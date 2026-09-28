@@ -1,6 +1,6 @@
 # ADR-0003 — Representação de dinheiro, percentuais e quantidades
 
-- Status: **Proposto**
+- Status: **Aceito** em 2026-09-28
 - Data: 2026-09-27
 - Responsável: architect
 

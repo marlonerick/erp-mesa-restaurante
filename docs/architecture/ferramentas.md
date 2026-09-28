@@ -11,8 +11,8 @@ Legenda de necessidade: **Obrigatória** (README), **Proposta** (depende de ADR)
 | Nome | Objetivo | Benefício | Risco | Dependências | Custo | Necessidade |
 |---|---|---|---|---|---|---|
 | Node.js 24 LTS | Runtime | Suporte LTS até 2028 | Baixo | — | Grátis | Obrigatória (ADR-0011) |
-| pnpm | Gerenciador de pacotes | Lockfile estrito, rápido, evita dependências fantasmas | Baixo | Node | Grátis | Proposta |
-| TypeScript (strict + `noUncheckedIndexedAccess`) | Tipagem | Erros em compilação | Baixo | — | Grátis | Obrigatória |
+| npm | Gerenciador de pacotes | Vem com o Node, `npm ci` reprodutível com `package-lock.json` | Baixo | Node | Grátis | Aprovada (D-3) |
+| TypeScript 6.0 (strict + `noUncheckedIndexedAccess`) | Tipagem | Erros em compilação | TS 7 ainda sem suporte no typescript-eslint (D-1) | — | Grátis | Obrigatória |
 | Next.js (App Router) | Framework fullstack | RSC, Server Actions, um deploy | Mudanças entre majors | React | Grátis | Obrigatória |
 | React | UI | Padrão do Next | Baixo | — | Grátis | Obrigatória |
 | MySQL 8.4 LTS | Banco | LTS, suporte longo | Baixo | Docker em dev | Grátis / gerenciado pago | Obrigatória |
@@ -58,7 +58,7 @@ Rate limit: implementação própria em tabela MySQL (sem Redis) — ver ADR-000
 | eslint-plugin-boundaries | Fronteiras de camadas/módulos | Impede import proibido | Configuração inicial | ESLint | Grátis | Proposta |
 | Prettier | Formatação | Diffs limpos | Baixo | — | Grátis | Proposta |
 | commitlint + husky/lefthook | Conventional Commits | Histórico legível | Baixo | — | Grátis | Proposta |
-| `pnpm audit` + OSV-Scanner | Verificação de dependências | Vulnerabilidades conhecidas | Falsos positivos | — | Grátis | Obrigatória (CI) |
+| `npm audit` + OSV-Scanner | Verificação de dependências | Vulnerabilidades conhecidas | Falsos positivos | — | Grátis | Obrigatória (CI) |
 
 ## CI/CD e operação
 

@@ -1,6 +1,6 @@
 # ADR-0010 — Impressão
 
-- Status: **Proposto** (depende da pergunta Q-02)
+- Status: **Aceito** em 2026-09-28 (ESC/POS reavaliado conforme resposta à Q-02)
 - Data: 2026-09-27
 - Responsável: architect
 

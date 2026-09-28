@@ -1,6 +1,6 @@
 # ADR-0005 — Tempo real do KDS e do mapa de mesas
 
-- Status: **Proposto**
+- Status: **Aceito** em 2026-09-28
 - Data: 2026-09-27
 - Responsável: architect
 

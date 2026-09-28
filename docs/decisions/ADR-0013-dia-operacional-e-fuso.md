@@ -1,6 +1,6 @@
 # ADR-0013 — Dia operacional e fuso horário
 
-- Status: **Proposto** (confirmar pergunta Q-05)
+- Status: **Aceito** em 2026-09-28 (horário de corte a confirmar — Q-05)
 - Data: 2026-09-27
 - Responsável: domain-spec + architect
 

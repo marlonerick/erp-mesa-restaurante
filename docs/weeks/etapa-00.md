@@ -48,5 +48,5 @@ Decisões tomadas sem as respostas de Q-01…Q-20 — mitigado por propostas pad
 ## Definition of Done
 - [x] Entregáveis criados
 - [x] PROJECT_STATUS.md atualizado
-- [ ] Revisão e `APROVADO` do usuário
-- [ ] ADRs movidos para `Aceito` conforme as respostas
+- [x] Revisão e `APROVADO` do usuário (2026-09-28)
+- [x] ADRs movidos para `Aceito` conforme as respostas (ADR-0006 segue aguardando Q-01)

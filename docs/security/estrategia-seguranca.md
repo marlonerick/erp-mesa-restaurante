@@ -67,4 +67,4 @@ agendado; auditoria nunca é alterada, apenas expurgada após o prazo.
 
 Checklist do `reviewer` (fechamento de cada etapa): autorização em todos os casos de uso novos,
 teste de isolamento, validação de entrada, idempotência onde aplicável, segredos, logs sem
-dados sensíveis, dependências auditadas (`pnpm audit`, OSV-Scanner), headers.
+dados sensíveis, dependências auditadas (`npm audit`, OSV-Scanner), headers.

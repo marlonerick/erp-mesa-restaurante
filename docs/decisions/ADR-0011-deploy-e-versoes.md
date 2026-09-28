@@ -1,6 +1,6 @@
 # ADR-0011 — Ambiente de deploy e versões
 
-- Status: **Proposto** (hospedagem depende da pergunta Q-03)
+- Status: **Aceito** em 2026-09-28 (provedor de hospedagem pendente — Q-03)
 - Data: 2026-09-27
 - Responsável: architect
 
@@ -20,6 +20,9 @@ conexões estável. Polling do KDS gera requisições contínuas.
 - **Container Node persistente** (`output: standalone`) + **MySQL 8.4 gerenciado**, ambos na região
   São Paulo, em provedor a definir com o usuário (Q-03).
 - Versões: **Node.js 24 LTS**, **MySQL 8.4 LTS**, Next.js/React última estável fixada na Etapa 1.
+- **TypeScript 6.0.x** (decisão D-1, 2026-09-28): o TypeScript 7 (compilador nativo) ainda não é
+  suportado pelo `typescript-eslint`; migração futura por novo ADR quando houver suporte.
+- Gerenciador de pacotes: **npm** (decisão D-3, 2026-09-28), com `package-lock.json` versionado e `npm ci` no CI.
 - Staging separado da produção; migrations em passo explícito do deploy.
 
 ## Consequências

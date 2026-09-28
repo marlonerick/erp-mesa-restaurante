@@ -1,6 +1,6 @@
 # ADR-0001 — ORM e migrations
 
-- Status: **Proposto**
+- Status: **Aceito** em 2026-09-28
 - Data: 2026-09-27
 - Responsável: architect
 
@@ -34,6 +34,9 @@ Regras:
   `drizzle-kit push` proibido fora de dev descartável.
 - Ajustes que o gerador não expressa (grants, CHECKs complexos) entram como migration SQL manual revisada.
 - Repositórios são a única camada que importa Drizzle.
+
+Versão (decisão D-2, 2026-09-28): **drizzle-orm 0.45.x / drizzle-kit 0.31.x (estáveis)**.
+A linha 1.0 estava em release candidate; a migração para 1.0 exige novo ADR quando for estável.
 
 ## Consequências
 - (+) SQL legível, fácil de revisar e otimizar.
