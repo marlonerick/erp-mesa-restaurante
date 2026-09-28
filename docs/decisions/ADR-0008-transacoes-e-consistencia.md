@@ -1,0 +1,34 @@
+# ADR-0008 — Transações e consistência entre módulos
+
+- Status: **Proposto**
+- Data: 2026-09-27
+- Responsável: architect
+
+## Contexto
+"Pagar conta" altera pagamento, conta, mesa, caixa, (estoque, se ADR-0006 = B), idempotência e
+auditoria. Módulos não podem acessar tabelas uns dos outros. Não há fila no MVP.
+
+## Opções
+1. **Transação única por caso de uso** + eventos de domínio síncronos em processo.
+2. Outbox + processamento assíncrono.
+3. Saga/compensação.
+
+## Decisão (proposta)
+**Opção 1** no MVP.
+
+- `UnitOfWork` em `shared/db`: o caso de uso de entrada abre a transação; os repositórios de
+  todos os módulos envolvidos recebem o mesmo `tx`.
+- Comunicação entre módulos por **caso de uso público** (ex.: `cashier.recordSale(tx, ctx, ...)`)
+  ou **evento de domínio síncrono** publicado no `EventBus` em processo e tratado **dentro da
+  mesma transação**. Falha em qualquer handler → rollback total.
+- Nenhum I/O externo (HTTP, impressão) dentro da transação.
+- Isolamento `REPEATABLE READ`; locking otimista por `version` nos agregados; `FOR UPDATE` em
+  saldos de estoque, sequência de numeração e sessão de caixa durante o pagamento.
+- Deadlock/lock timeout → retry automático até 3 vezes no caso de uso (apenas para erros
+  MySQL 1213/1205), seguro porque o comando é idempotente.
+
+Outbox (opção 2) entra por novo ADR quando houver o primeiro efeito externo (PSP, fiscal, webhook).
+
+## Consequências
+- (+) Consistência forte, simples de testar com MySQL real.
+- (−) Transações maiores; mitigado por mantê-las curtas e sem I/O externo.
