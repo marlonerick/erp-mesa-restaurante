@@ -46,7 +46,11 @@ export class Money {
     );
   }
 
-  /** Preço unitário × quantidade (inclusive fracionada, ex.: venda por kg). */
+  /**
+   * Preço × quantidade (inclusive fracionada). ATENÇÃO: a quantidade precisa estar na MESMA
+   * unidade do preço — a unidade de `Quantity` não é convertida aqui. Venda por peso
+   * (preço por kg) será modelada na Etapa 4 (pergunta Q-10).
+   */
   multiplyBy(quantity: Quantity): Money {
     return Money.fromBigInt(
       divideRoundHalfUp(BigInt(this.cents) * BigInt(quantity.thousandths), 1000n),

@@ -63,6 +63,10 @@ const domainRestrictions = [
         regex: '^@/(app|ui)(/|$)',
         message: 'domain/ não depende de UI.',
       },
+      {
+        regex: '^@/shared/(?!kernel(/|$))',
+        message: 'Em shared/, o domínio só pode depender do kernel (@/shared/kernel).',
+      },
     ],
   },
 ];
@@ -117,7 +121,8 @@ const uiRestrictions = [
     patterns: [
       ...persistencePatterns,
       {
-        regex: '^@/modules/[^/]+/(domain|application|infrastructure)(/|$)',
+        // Pelo atalho "@/" ou por caminho relativo ("../../modules/x/domain")
+        regex: '(^@/|/)modules/[^/]+/(domain|application|infrastructure)(/|$)',
         message:
           'A UI conversa com os módulos apenas pela camada interface/ (Server Actions, DTOs).',
       },

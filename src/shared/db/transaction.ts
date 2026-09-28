@@ -8,9 +8,12 @@ const RETRYABLE = new Set<number>([MYSQL_ERRNO.DEADLOCK, MYSQL_ERRNO.LOCK_WAIT_T
 const MAX_ATTEMPTS = 3;
 
 /**
- * Executa `work` em UMA transação (unidade de trabalho do caso de uso).
- * Em deadlock ou lock wait timeout, repete a transação inteira até 3 vezes — seguro porque
- * os comandos críticos são idempotentes. Qualquer outro erro desfaz tudo e é repassado.
+ * Executa `work` em UMA transação REPEATABLE READ (unidade de trabalho do caso de uso).
+ * Qualquer erro desfaz tudo e é repassado.
+ *
+ * Em deadlock ou lock wait timeout, `work` é executado DE NOVO, POR INTEIRO, até 3 vezes.
+ * Por isso `work` deve conter apenas operações no banco: nada de chamada HTTP, impressão,
+ * eventos para fora do processo ou alteração de estado capturado fora da função (ADR-0008).
  */
 export async function runInTransaction<T>(
   db: Database,
@@ -18,7 +21,7 @@ export async function runInTransaction<T>(
 ): Promise<T> {
   for (let attempt = 1; ; attempt += 1) {
     try {
-      return await db.transaction(work);
+      return await db.transaction(work, { isolationLevel: 'repeatable read' });
     } catch (error) {
       const errno = mysqlErrno(error);
       if (attempt >= MAX_ATTEMPTS || errno === undefined || !RETRYABLE.has(errno)) {

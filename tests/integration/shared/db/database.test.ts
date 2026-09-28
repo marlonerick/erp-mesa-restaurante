@@ -1,5 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
+import { mysqlErrno } from '@/shared/db/mysql-errors';
 import { runInTransaction } from '@/shared/db/transaction';
 import { idempotencyRecord } from '@/shared/idempotency/schema';
 import { newId } from '@/shared/kernel';
@@ -18,17 +19,45 @@ async function insertRecord(storeId: ReturnType<typeof newId>, key = newId()) {
 }
 
 describe('conexão e configuração do MySQL', () => {
-  it('sessão em UTC e sql_mode estrito', async () => {
-    const [rows] = await db.execute<{ tz: string; sm: string }>(
-      sql`SELECT @@session.time_zone AS tz, @@session.sql_mode AS sm`,
+  it('toda conexão usa UTC, mesmo com o servidor em -03:00 (ADR-0013)', async () => {
+    // Várias consultas em paralelo para passar por conexões diferentes do pool
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        db.execute(sql`SELECT @@session.time_zone AS tz, @@global.time_zone AS gtz`),
+      ),
     );
-    const row = (rows as unknown as { tz: string; sm: string }[])[0];
-    expect(row?.sm).toContain('STRICT_TRANS_TABLES');
-    expect(['+00:00', 'UTC', 'SYSTEM']).toContain(row?.tz);
+    for (const [rows] of results) {
+      const row = (rows as unknown as { tz: string; gtz: string }[])[0];
+      expect(row?.gtz).toBe('-03:00');
+      expect(row?.tz).toBe('+00:00');
+    }
+  });
+
+  it('CURRENT_TIMESTAMP grava em UTC', async () => {
+    const storeId = newId();
+    const before = Date.now();
+    await insertRecord(storeId);
+    const [row] = await db
+      .select({ createdAt: idempotencyRecord.createdAt })
+      .from(idempotencyRecord)
+      .where(eq(idempotencyRecord.storeId, storeId));
+
+    // Tolerância de 60 s: um erro de fuso seria de 3 horas
+    expect(Math.abs((row?.createdAt.getTime() ?? 0) - before)).toBeLessThan(60_000);
+  });
+
+  it('sql_mode estrito', async () => {
+    const [rows] = await db.execute(sql`SELECT @@session.sql_mode AS sm`);
+    expect((rows as unknown as { sm: string }[])[0]?.sm).toContain('STRICT_TRANS_TABLES');
   });
 
   it('usuário da aplicação NÃO pode alterar a estrutura do banco (privilégio mínimo)', async () => {
-    await expect(db.execute(sql`CREATE TABLE should_not_exist (id INT)`)).rejects.toThrow();
+    const error: unknown = await db.execute(sql`CREATE TABLE should_not_exist (id INT)`).then(
+      () => undefined,
+      (reason: unknown) => reason,
+    );
+    // 1142 = comando negado ao usuário
+    expect(mysqlErrno(error)).toBe(1142);
   });
 });
 

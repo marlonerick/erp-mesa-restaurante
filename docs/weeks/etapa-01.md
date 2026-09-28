@@ -42,8 +42,12 @@ Login, usuários, tabelas e telas de negócio; CSP completa; deploy/staging; `gi
 - Datas em UTC; `DECIMAL`/`BIGINT` trafegam como texto (sem float — ADR-0003).
 
 ## Segurança
-- Usuário da aplicação sem DDL (testado: `CREATE TABLE` falha).
-- Logs mascaram senha, PIN, hashes, token, cookie, authorization, CPF (testado).
+- Usuário da aplicação sem DDL (testado: `CREATE TABLE` falha com erro 1142).
+- Logs mascaram senha, PIN, hashes, token, cookie, set-cookie, authorization, CPF (testado) e
+  removem os parâmetros das consultas SQL dos erros de banco (testado).
+- Toda conexão força a sessão do MySQL em UTC (testado com servidor em -03:00).
+- MySQL de desenvolvimento acessível só pela própria máquina (`127.0.0.1`) e imagem fixada por digest;
+  ações do GitHub fixadas por SHA.
 - Erro inesperado nunca expõe stack/SQL (testado).
 - Vulnerabilidade aceita e documentada: GHSA-67mh-4wv8-2f99 (esbuild, só desenvolvimento).
 - `npm audit --omit=dev`: 0 vulnerabilidades. OSV-Scanner: nenhuma pendência.
@@ -52,15 +56,36 @@ Login, usuários, tabelas e telas de negócio; CSP completa; deploy/staging; `gi
 
 | Tipo | Quantidade | Resultado |
 |---|---|---|
-| Unitários (inclui propriedades, BDD de domínio e arquitetura) | 15 arquivos | ✅ |
-| Integração com MySQL 8.4 real | incluídos acima | ✅ |
-| **Total Vitest** | **171 testes** | ✅ todos passando |
+| Unitários + integração com MySQL 8.4 real (inclui propriedades, BDD de domínio e arquitetura) | 16 arquivos | ✅ |
+| **Total Vitest** | **197 testes** | ✅ todos passando |
 | E2E + BDD no navegador (celular, tablet, desktop) | 10 testes | ✅ todos passando |
 | Cobertura do kernel | 96,8% linhas / 96,3% ramos | ✅ meta ≥ 90% |
 
 Destaques: dois envios simultâneos com a mesma chave executam a operação **uma única vez**;
 retentativa automática em deadlock; divisão de conta sempre soma o total (testado com milhares de
-valores sorteados); fronteiras de camadas bloqueadas (16 casos proibidos, 6 permitidos).
+valores sorteados); fronteiras de camadas bloqueadas (20 casos proibidos, 6 permitidos).
+
+## Revisão do `reviewer` (2026-09-28)
+
+Veredito: **aprovado com ressalvas, sem bloqueantes**. Todos os achados foram reproduzidos por
+testes (23 testes novos, vermelhos antes da correção) e corrigidos:
+
+| # | Achado | Correção |
+|---|---|---|
+| I-1 | Hash de idempotência tratava `Date` como `{}` e quebrava com `bigint` | Forma canônica com data/bigint marcados; tipos sem representação são recusados |
+| I-2 | Comando sem retorno falhava; reenvio devolvia forma diferente da 1ª execução | Resultado sempre na forma JSON (`Jsonified<T>`), `undefined` vira `null` |
+| I-3 | Log de erro de banco vazaria parâmetros SQL (hash de senha, PIN) | Serializador de erro remove `sql`/`params` e mascara `params:` na mensagem; máscara em 3 níveis + `set-cookie`, `secret`, tokens |
+| I-4 | `/ready` respondia 500 com `.env` inválido | Logger independe do `.env`; `/ready` responde 503 |
+| I-5 | Sessão MySQL não forçada em UTC; teste aceitava qualquer fuso | `SET time_zone = '+00:00'` em toda conexão; teste com servidor em -03:00 |
+| I-6 | DoD marcada antes do tempo (mapa, CPF, revisão) | ERD atualizado, CPF testado, DoD marcada após as correções |
+| S-1 | UUID inválido virava zeros no `BINARY(16)` | Validação antes de converter |
+| S-2 | Domínio podia importar `shared/*` além do kernel; UI entrava no domínio por caminho relativo | Regras e testes novos |
+| S-3 | Retentativa reexecuta a transação inteira (não documentado) | JSDoc + ADR-0008; isolamento explícito |
+| S-4 | `multiplyBy` ignora unidade (teste enganoso) | Documentado; venda por peso fica para a Etapa 4 (Q-10) |
+| S-5 | Teste de privilégio aceitava qualquer erro | Exige erro 1142 |
+| S-7 | MySQL dev exposto à rede local | Porta só em `127.0.0.1`; imagem por digest |
+| S-8 | Ações do CI presas só por etiqueta | Fixadas por SHA |
+| S-6 | Falta teste com deadlock **real** (3 envios, o 1º desfeito) | **Pendente** — registrado como débito |
 
 ## Performance
 Sem telas de negócio ainda. `/health` e `/ready` respondem em milissegundos no E2E.
@@ -79,5 +104,5 @@ Sem telas de negócio ainda. `/health` e `/ready` respondem em milissegundos no 
 ## Definition of Done
 - [x] Entregáveis criados e testados
 - [x] Documentação, mapas e `PROJECT_STATUS.md` atualizados
-- [x] Revisão do `reviewer`
+- [x] Revisão do `reviewer` e correção dos achados
 - [ ] `APROVADO` do usuário

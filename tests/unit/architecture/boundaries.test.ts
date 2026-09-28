@@ -56,6 +56,24 @@ describe('fronteiras de arquitetura (docs/architecture/visao-geral.md §2)', () 
     ['kernel → React', 'src/shared/kernel/money.ts', "import 'react';"],
     ['tela → banco', 'src/app/pdv/page.tsx', "import '@/shared/db/client';"],
     ['tela → domínio de módulo', 'src/app/pdv/page.tsx', "import '@/modules/orders/domain/order';"],
+    // Revisão: o domínio só pode depender do kernel dentro de shared/
+    [
+      'domain → idempotência',
+      'src/modules/orders/domain/order.ts',
+      "import '@/shared/idempotency/idempotency';",
+    ],
+    ['domain → config', 'src/modules/orders/domain/order.ts', "import '@/shared/config/env';"],
+    [
+      'domain → erros HTTP',
+      'src/modules/orders/domain/order.ts',
+      "import '@/shared/errors/error-response';",
+    ],
+    // Revisão: a UI também não entra no domínio por caminho relativo
+    [
+      'tela → domínio por caminho relativo',
+      'src/app/pdv/page.tsx',
+      "import '../../modules/orders/domain/order';",
+    ],
   ])('bloqueia %s', async (_label, file, code) => {
     expect(await lint(file, code)).toContain('no-restricted-imports');
   });

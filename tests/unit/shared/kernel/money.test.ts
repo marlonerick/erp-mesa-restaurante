@@ -109,8 +109,9 @@ describe('Money', () => {
     });
 
     it('calcula preço por kg × peso com arredondamento half-up', () => {
-      // R$ 59,90/kg × 0,457 kg = R$ 27,3743 → R$ 27,37
-      expect(cents(5990).multiplyBy(Quantity.of('0.457', 'g')).cents).toBe(2737);
+      // R$ 59,90 por unidade de venda × 0,457 unidade = R$ 27,3743 → R$ 27,37
+      // (a quantidade está na mesma unidade do preço; conversão de unidades não é feita aqui)
+      expect(cents(5990).multiplyBy(Quantity.of('0.457', 'un')).cents).toBe(2737);
       // R$ 0,01 × 0,5 = 0,5 centavo → 1 centavo
       expect(cents(1).multiplyBy(Quantity.of('0.5', 'un')).cents).toBe(1);
     });

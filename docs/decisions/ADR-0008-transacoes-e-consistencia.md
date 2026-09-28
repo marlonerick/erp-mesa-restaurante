@@ -26,6 +26,10 @@ auditoria. Módulos não podem acessar tabelas uns dos outros. Não há fila no 
   saldos de estoque, sequência de numeração e sessão de caixa durante o pagamento.
 - Deadlock/lock timeout → retry automático até 3 vezes no caso de uso (apenas para erros
   MySQL 1213/1205), seguro porque o comando é idempotente.
+- Implementação (Etapa 1): `runInTransaction` em `src/shared/db/transaction.ts`, com isolamento
+  `REPEATABLE READ` explícito. **A função do caso de uso é reexecutada por inteiro** a cada
+  tentativa: ela só pode conter operações no banco — nenhum efeito externo nem alteração de estado
+  capturado fora dela.
 
 Outbox (opção 2) entra por novo ADR quando houver o primeiro efeito externo (PSP, fiscal, webhook).
 

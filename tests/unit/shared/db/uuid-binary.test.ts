@@ -19,6 +19,13 @@ describe('conversão UUID ↔ BINARY(16)', () => {
     );
   });
 
+  it.each(['', 'nao-e-uuid', '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5z', '0190a1b2c3d47e5f'])(
+    'recusa texto que não é UUID em vez de completar com zeros (%j) — revisão',
+    (value) => {
+      expect(() => uuidToBuffer(value)).toThrow(/UUID/);
+    },
+  );
+
   it('recusa buffer com tamanho diferente de 16 bytes', () => {
     expect(() => bufferToUuid(Buffer.alloc(8))).toThrow(/16 bytes/);
   });

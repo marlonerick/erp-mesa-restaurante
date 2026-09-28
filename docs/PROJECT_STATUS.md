@@ -36,8 +36,9 @@
 - ADR-0006 (momento da baixa de estoque) — aguarda Q-01; bloqueia a Etapa 5.
 
 ## Testes
-- Vitest: 171 testes passando (unitários, propriedades, BDD de domínio, arquitetura e integração
+- Vitest: 197 testes passando (unitários, propriedades, BDD de domínio, arquitetura e integração
   com MySQL 8.4 real). Cobertura do kernel: 96,8%.
+- Revisão do `reviewer`: aprovado com ressalvas, sem bloqueantes; 13 de 14 achados corrigidos.
 - Playwright: 10 testes passando (celular, tablet, desktop + BDD).
 - CI: configurado; ainda não executado no GitHub (ramo não enviado).
 
@@ -50,6 +51,9 @@ Nenhum.
 - Revisar até 2027-03-31 a exceção GHSA-67mh-4wv8-2f99 (esbuild via drizzle-kit, só desenvolvimento).
 - Job de limpeza da tabela de idempotência (retenção de 7 dias) — entra quando houver agendador.
 - CSP completa com nonce — Etapa 2.
+- Teste de idempotência com deadlock REAL (3 envios simultâneos, o 1º desfeito) — achado S-6 da revisão.
+- Modelar venda por peso (preço por kg × quantidade) — Etapa 4, depende da Q-10.
+- Decidir se ficam as duas ferramentas de BDD (domínio e navegador) — pergunta ao usuário.
 
 ## Riscos principais
 R-01 (piloto sem fiscal), R-03 (pagamento duplicado), R-06 (isolamento entre lojas),

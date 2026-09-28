@@ -47,7 +47,12 @@
 ## 5. Erros e logs
 
 - Nunca expor stack, SQL ou nome de tabela ao cliente (padrão em docs/api/convencoes.md).
-- Pino com `redact` para `password`, `pin`, `token`, `cookie`, `authorization`, `*.cpf`.
+- Pino com `redact` (até 3 níveis de profundidade) para `password`, `passwordHash`, `pin`,
+  `pinHash`, `token`, `accessToken`, `refreshToken`, `secret`, `cookie`, `set-cookie`,
+  `authorization` e `cpf`.
+- Erros de banco no log: o serializador remove `sql`, `params`, `query` e `values`, e troca o trecho
+  `params: ...` da mensagem e do stack por `[REDACTED]` — as consultas carregam valores como hash
+  de senha e PIN (achado da revisão da Etapa 1, coberto por teste).
 - Todo log carrega `requestId`, `storeId`, `userId`.
 
 ## 6. LGPD

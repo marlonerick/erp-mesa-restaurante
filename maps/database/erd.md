@@ -3,6 +3,9 @@
 Detalhe de colunas, índices e constraints: [docs/database/modelo-de-dados.md](../../docs/database/modelo-de-dados.md).
 Diagrama dividido por área para legibilidade. PKs `id` são UUIDv7 `BINARY(16)`.
 
+Tabelas já criadas por migration: `idempotency_record` (Etapa 1; a FK para `store` entra na Etapa 3).
+As demais são o modelo planejado.
+
 ## Organização, acesso e auditoria
 
 ```mermaid
@@ -18,7 +21,16 @@ erDiagram
   role ||--o{ role_permission : concede
   permission ||--o{ role_permission : compoe
   store ||--o{ audit_log : registra
+  store ||--o{ idempotency_record : "evita duplicidade"
 
+  idempotency_record {
+    binary store_id PK
+    string idem_key PK
+    string operation
+    string request_hash
+    json response
+    datetime created_at
+  }
   organization {
     binary id PK
     string name

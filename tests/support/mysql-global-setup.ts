@@ -27,7 +27,8 @@ export default async function setup(project: TestProject): Promise<() => Promise
     .withCommand([
       '--character-set-server=utf8mb4',
       '--collation-server=utf8mb4_0900_ai_ci',
-      '--default-time-zone=+00:00',
+      // Servidor PROPOSITALMENTE fora de UTC: prova que a aplicação força UTC em cada conexão
+      '--default-time-zone=-03:00',
       '--sql-mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION,ONLY_FULL_GROUP_BY',
       '--transaction-isolation=REPEATABLE-READ',
     ])

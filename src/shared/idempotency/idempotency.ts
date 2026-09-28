@@ -15,17 +15,39 @@ export interface IdempotentRequest {
   readonly payload: unknown;
 }
 
+/**
+ * Forma de um valor depois de ida e volta por JSON: datas viram texto, tipos de valor usam o
+ * toJSON (Money vira centavos) e "sem retorno" vira null.
+ */
+export type Jsonified<T> = T extends Date
+  ? string
+  : T extends { toJSON(): infer R }
+    ? Jsonified<R>
+    : T extends undefined
+      ? null
+      : T extends readonly (infer U)[]
+        ? Jsonified<U>[]
+        : T extends object
+          ? { [K in keyof T]: Jsonified<T[K]> }
+          : T;
+
 export interface IdempotentOutcome<T> {
-  readonly result: T;
+  /** Sempre a forma JSON — idêntica na primeira execução e nos reenvios. */
+  readonly result: Jsonified<T>;
   /** true quando a resposta veio de uma execução anterior (reenvio). */
   readonly replayed: boolean;
+}
+
+function toJsonForm<T>(value: T): Jsonified<T> {
+  return JSON.parse(JSON.stringify(value ?? null)) as Jsonified<T>;
 }
 
 const OPERATION_FORMAT = /^[a-z][a-zA-Z]*(\.[a-z][a-zA-Z]*)+$/;
 
 /**
  * Executa um comando no máximo uma vez por (loja, chave), DENTRO da transação do caso de uso
- * (docs/api/convencoes.md §3). O resultado precisa ser serializável em JSON (um DTO).
+ * (docs/api/convencoes.md §3). O resultado deve ser um DTO serializável em JSON; ele é devolvido
+ * SEMPRE na forma JSON (`Jsonified<T>`), para que a primeira execução e o reenvio sejam iguais.
  *
  * Funcionamento: insere a chave primeiro. Se outra transação já a inseriu, o INSERT espera o
  * commit dela, falha com chave duplicada, e então a resposta gravada é devolvida. Se a
@@ -87,10 +109,10 @@ export async function executeIdempotent<T>(
         'CONFLICT',
       );
     }
-    return { result: existing.response as T, replayed: true };
+    return { result: (existing.response ?? null) as Jsonified<T>, replayed: true };
   }
 
-  const result = await execute();
+  const result = toJsonForm(await execute());
   await tx.update(idempotencyRecord).set({ response: result }).where(where);
   return { result, replayed: false };
 }

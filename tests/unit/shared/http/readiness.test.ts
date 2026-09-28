@@ -1,6 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GET as health } from '@/app/health/route';
-import { checkReadiness } from '@/shared/http/readiness';
+import { checkApplicationReadiness, checkReadiness } from '@/shared/http/readiness';
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+describe('/ready com configuração inválida (revisão)', () => {
+  it('responde 503 — e não 500 — quando falta DATABASE_URL', async () => {
+    vi.stubEnv('DATABASE_URL', undefined);
+    const result = await checkApplicationReadiness();
+    expect(result.status).toBe(503);
+  });
+});
 
 describe('/health — o processo está vivo', () => {
   it('responde 200 sem consultar o banco e sem cache', async () => {

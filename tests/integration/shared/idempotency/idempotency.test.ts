@@ -163,6 +163,35 @@ describe('executeIdempotent — pagamento reenviado por perda de conexão (READM
     expect(outcomes.every((o) => JSON.stringify(o.result) === '{"paymentId":"único"}')).toBe(true);
   });
 
+  it('comando sem retorno (undefined) funciona e o reenvio devolve null (revisão)', async () => {
+    const request = { storeId: newId(), key: newId(), operation: 'cashier.close', payload: {} };
+
+    const first = await runInTransaction(db, (tx) =>
+      executeIdempotent(tx, request, () => Promise.resolve(undefined)),
+    );
+    const replay = await runInTransaction(db, (tx) =>
+      executeIdempotent(tx, request, () => Promise.resolve(undefined)),
+    );
+
+    expect(first).toEqual({ result: null, replayed: false });
+    expect(replay).toEqual({ result: null, replayed: true });
+  });
+
+  it('primeira execução e reenvio devolvem exatamente a mesma forma JSON (revisão)', async () => {
+    const request = { storeId: newId(), key: newId(), operation: 'x.y', payload: {} };
+    const dto = { at: new Date('2026-03-15T01:30:00.000Z'), total: 1100 };
+
+    const first = await runInTransaction(db, (tx) =>
+      executeIdempotent(tx, request, () => Promise.resolve(dto)),
+    );
+    const replay = await runInTransaction(db, (tx) =>
+      executeIdempotent(tx, request, () => Promise.resolve(dto)),
+    );
+
+    expect(first.result).toEqual({ at: '2026-03-15T01:30:00.000Z', total: 1100 });
+    expect(replay.result).toEqual(first.result);
+  });
+
   it.each([
     ['chave que não é UUIDv7', { key: 'abc-123', operation: 'x.y' }, 'INVALID_IDEMPOTENCY_KEY'],
     [

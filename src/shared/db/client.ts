@@ -19,6 +19,16 @@ export function createDatabase({ url, poolSize }: DatabaseOptions) {
     bigNumberStrings: true,
     enableKeepAlive: true,
   });
+  // `timezone: 'Z'` só afeta a conversão no Node. A SESSÃO do MySQL também precisa estar em UTC,
+  // senão CURRENT_TIMESTAMP/NOW() gravariam a hora local do servidor (ADR-0013). O comando entra
+  // na fila da conexão antes de qualquer consulta da aplicação.
+  pool.pool.on('connection', (connection) => {
+    connection.query("SET time_zone = '+00:00'", (error) => {
+      if (error) {
+        connection.destroy();
+      }
+    });
+  });
   const db = drizzle(pool, { schema, mode: 'default' });
 
   return {
