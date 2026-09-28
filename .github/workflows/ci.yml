@@ -53,6 +53,13 @@ jobs:
       - name: Subir MySQL para E2E
         run: npm run db:up
 
+      - name: Diagnóstico do MySQL (em caso de falha)
+        if: failure()
+        run: |
+          docker ps -a
+          docker logs erp-mysql-dev || true
+          docker inspect --format '{{json .State.Health}}' erp-mysql-dev || true
+
       - name: Instalar navegador do Playwright
         run: npx playwright install --with-deps chromium
 
