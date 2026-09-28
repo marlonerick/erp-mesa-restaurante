@@ -1,0 +1,35 @@
+# dependências
+node_modules/
+
+# build
+.next/
+out/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# testes
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.features-gen/
+
+# ambiente (nunca versionar segredos; apenas .env.example)
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+
+# sistema/editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# configurações locais do Claude Code
+.claude/settings.local.json
