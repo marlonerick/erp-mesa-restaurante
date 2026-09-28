@@ -40,8 +40,10 @@ npx playwright install chromium   # navegador para os testes de ponta a ponta
 
 ## Verificações automáticas
 
-- **Ao fazer commit:** lint e formatação dos arquivos alterados; mensagem no padrão
-  Conventional Commits (ex.: `feat(orders): permite transferir mesa`).
+- **Ao fazer commit:** lint e formatação dos arquivos alterados; mensagem no formato
+  `tipo(semana-N): etapa N - o que foi feito` (ex.: `feat(semana-6): etapa 6 - permite transferir mesa`).
+  Tipos: `feat` (funcionalidade), `fix` (correção), `test`, `docs`, `chore`, `ci`, `refactor`.
+  Por enquanto, os commits vão direto na `main` (decisão D-9).
 - **Ao fazer push:** typecheck e testes unitários.
 - **No GitHub (CI):** a esteira completa — lint → typecheck → unitários → integração → E2E →
   vulnerabilidades → build.

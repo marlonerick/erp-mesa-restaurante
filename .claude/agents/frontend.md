@@ -20,3 +20,11 @@ Regras:
 - Valores monetários chegam em centavos: formatar com o utilitário compartilhado (pt-BR, BRL), nunca calcular totais no cliente como fonte de verdade.
 - Acessibilidade: alvos de toque ≥ 44px, contraste alto no KDS, navegação por teclado no PDV, rótulos em todos os campos.
 - Proibido `dangerouslySetInnerHTML` com dado de usuário.
+
+Design visual — use a skill `frontend-design` (`.claude/skills/frontend-design/`), adaptada a um ERP:
+- A identidade visual (paleta, tipografia, espaçamentos) é definida UMA vez como tokens do tema
+  (Tailwind + shadcn/ui) e reaproveitada em todas as telas; não reinventar a cada tela.
+- Nas telas operacionais (comanda no celular, KDS, PDV), leitura rápida, contraste e alvos de toque
+  vencem a ousadia estética; a regra do "hero" da skill não se aplica a elas.
+- Siga à risca a parte de textos da skill: botões dizem o que acontece ("Enviar para a cozinha"),
+  erros explicam o que houve e como resolver, telas vazias convidam à ação — tudo em português.

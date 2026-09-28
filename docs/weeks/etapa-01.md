@@ -34,7 +34,7 @@ Login, usuários, tabelas e telas de negócio; CSP completa; deploy/staging; `gi
 | `Result` no kernel | Não criado | Os casos de uso usam `DomainError`; o retorno para a UI é `ActionResult`. Criar só quando houver uso |
 | `docker/mysql/conf.d/my.cnf` | Opções na linha de comando do compose | No Windows o MySQL ignora `.cnf` montado (aparece como gravável por todos) |
 | `next start` | `node .next/standalone/server.js` (+ `scripts/prepare-standalone.ts`) | Com `output: standalone` o `next start` não é o servidor de produção real |
-| Manter só uma ferramenta de BDD | As duas funcionaram; **decisão pendente com o usuário** | Cada uma cobre uma camada (domínio × navegador) |
+| Manter só uma ferramenta de BDD | As duas foram mantidas (**aprovado pelo usuário, D-10**) | Cada uma cobre uma camada (domínio × navegador) |
 
 ## Banco
 - Migration `drizzle/0000_idempotency_record.sql` (revisada): PK `(store_id, idem_key)`, índice em `created_at`.
@@ -98,11 +98,11 @@ Sem telas de negócio ainda. `/health` e `/ready` respondem em milissegundos no 
 - [x] CI pronto (roda quando o ramo for enviado ao GitHub)
 
 ## Riscos e pendências
-- A esteira de CI **ainda não rodou no GitHub** (nada foi enviado — aguarda autorização de `git push`).
+- A esteira de CI roda no GitHub a partir do envio para a `main` (autorizado em 2026-09-28).
 - Cobertura menor em `shared/http` e `shared/logger` (funções que leem o ambiente real, cobertas pelo E2E).
 
 ## Definition of Done
 - [x] Entregáveis criados e testados
 - [x] Documentação, mapas e `PROJECT_STATUS.md` atualizados
 - [x] Revisão do `reviewer` e correção dos achados
-- [ ] `APROVADO` do usuário
+- [x] `APROVADO` do usuário (2026-09-28) — BDD com as duas ferramentas (D-10); enviado direto na `main` (D-9)

@@ -51,8 +51,8 @@ Rate limit: implementação própria em tabela MySQL (sem Redis) — ver ADR-000
 | Vitest | Unit e integração | Rápido, TS nativo | Baixo | — | Grátis | Obrigatória |
 | Testcontainers (MySQL) | MySQL real nos testes | Sem mocks de banco | Exige Docker no CI | Docker | Grátis | Obrigatória |
 | Playwright | E2E | Multi-browser, viewport móvel/tablet | Flakiness | — | Grátis | Obrigatória |
-| playwright-bdd | Executar `.feature` no E2E | Gherkin em português executável | Acoplamento a Playwright | Playwright | Grátis | Instalada — experimento da Etapa 1 aprovado tecnicamente (decisão final com o usuário) |
-| @amiceli/vitest-cucumber | Executar `.feature` na camada de domínio/aplicação | BDD sem browser, rápido | Projeto pequeno | Vitest | Grátis | Instalada — experimento da Etapa 1 aprovado tecnicamente (decisão final com o usuário) |
+| playwright-bdd | Executar `.feature` no E2E | Gherkin em português executável | Acoplamento a Playwright | Playwright | Grátis | Aprovada (D-10) — usada junto com a outra ferramenta de BDD |
+| @amiceli/vitest-cucumber | Executar `.feature` na camada de domínio/aplicação | BDD sem browser, rápido | Projeto pequeno | Vitest | Grátis | Aprovada (D-10) — usada junto com a outra ferramenta de BDD |
 | fast-check | Testes de propriedade | Money/Quantity/arredondamento | Baixo | — | Grátis | Instalada |
 | ESLint + typescript-eslint | Lint e fronteiras de camadas (`no-restricted-imports`) | Regras de tipo, `no-explicit-any` | Baixo | — | Grátis | Obrigatória |
 | ~~eslint-plugin-boundaries~~ | — | — | — | — | — | **Descartada na Etapa 1**: exigiria `eslint-import-resolver-typescript`; a regra nativa cobre o mesmo |
@@ -82,6 +82,18 @@ Fixadas com `save-exact` no `package.json`; o `package-lock.json` é a referênc
 
 Pacotes complementares (tipos, plugins e presets) são partes obrigatórias das ferramentas aprovadas.
 Evitados de propósito: `dotenv` e `tsx` — o Node 24 já lê `.env` (`--env-file`) e executa TypeScript.
+
+## Skills do Claude Code (avaliadas em 2026-09-28, D-11)
+
+Skills são instruções extras que o Claude carrega em tarefas específicas. Toda skill é **lida
+por inteiro antes de entrar no projeto** (é conteúdo de terceiros que orienta o agente).
+
+| Skill | Decisão | Motivo |
+|---|---|---|
+| `frontend-design` (anthropics/skills, Apache 2.0, commit `33375500`) | ✅ Instalada em `.claude/skills/frontend-design/` | Orienta identidade visual, tipografia, hierarquia, acessibilidade e textos da interface. Nas telas operacionais (comanda, KDS, PDV), rapidez de leitura e toque vencem a ousadia estética — ver `.claude/agents/frontend.md` |
+| `find-skills` (vercel-labs) | ❌ Não adotada | Só busca/instala outras skills via `npx skills`, baixando conteúdo de terceiros; a avaliação é feita sob demanda |
+| `prisma-database-setup` (prisma) | ❌ Não adotada | Configura Prisma; o projeto usa Drizzle (ADR-0001) — instruções conflitantes |
+| `clerk-backend-api` (clerk) | ❌ Não adotada | Depende do Clerk (serviço pago de autenticação); o projeto usa sessão própria revogável (ADR-0002) e mantém os dados no próprio banco |
 
 ## Explicitamente fora do MVP
 

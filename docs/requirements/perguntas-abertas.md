@@ -16,8 +16,9 @@ padrão que será adotada se você responder "use a proposta".
 | Q-09 | Adicionais (ex.: "bacon extra") consomem estoque? Têm preço diferente por loja? | Consomem via ficha técnica do adicional; preço único por empresa | Etapa 4 |
 | Q-10 | Há venda **por peso** (buffet por kg, balança)? | Não no piloto (modelo já aceita quantidade decimal) | Etapa 4 |
 | Q-11 | ~~Onde fica o repositório Git?~~ **Respondida (2026-09-28):** GitHub `marlonerick/erp-mesa-restaurante`, já com o primeiro commit; CI com GitHub Actions | — | — |
-| Q-12 | Duração de sessão: expira após 12 h ociosa e 7 dias no máximo? Tablets/celulares serão **compartilhados** entre garçons (exige troca rápida de usuário)? | 12 h / 7 dias; aparelhos individuais | Etapa 2 |
-| Q-13 | Retenção: auditoria 5 anos, logs 90 dias, backups diários por 30 dias e mensais por 12 meses? | Sim | Etapa 2 (auditoria) / Etapa 10 |
+| Q-12 | ~~Duração de sessão e aparelhos compartilhados?~~ **Respondida (2026-09-28):** sessão expira após **12 h sem uso** e, no máximo, **7 dias** (depois exige login de novo). Celulares e tablets **serão compartilhados** entre garçons → a Etapa 2 precisa de troca rápida de usuário no mesmo aparelho | — | — |
+| Q-13 | ~~Retenção de dados?~~ **Respondida (2026-09-28):** os dados ficam guardados **para sempre** no banco (vendas, caixa, estoque, auditoria). Ver Q-13b | — | — |
+| Q-13b | LGPD: dados pessoais técnicos (IP e navegador das **sessões expiradas**) podem ser apagados após 90 dias, e os **logs da aplicação** (arquivos fora do banco) mantidos por 90 dias? A lei pede guardar dado pessoal só enquanto for necessário; vendas e auditoria continuam para sempre | Sim | Etapa 2 |
 | Q-14 | No KDS, "iniciar/pronto" é por **ticket inteiro** ou **por item**? Tempos de alerta (ex.: amarelo 10 min, vermelho 20 min)? | Por item, com atalho "tudo" no ticket; 10/20 min configurável | Etapa 7 |
 | Q-15 | Dispositivos do piloto: garçons usam celular próprio ou da casa? KDS em TV, monitor ou tablet? | Celulares da casa; KDS em tablet ≥ 10" ou monitor touch | Etapa 6 |
 | Q-16 | Fechamento cego: o operador informa só o **dinheiro** ou também os totais de cartão e PIX conferidos? | Dinheiro obrigatório; cartão/PIX opcional | Etapa 8 |
@@ -37,6 +38,15 @@ padrão que será adotada se você responder "use a proposta".
 | D-5 | Rotas de saúde em `/health` e `/ready` |
 | D-6 | Hooks de commit com **lefthook** |
 | D-7 | TS estrito + `noUncheckedIndexedAccess`, `noImplicitOverride`, `noFallthroughCasesInSwitch`, `noImplicitReturns`; sem `exactOptionalPropertyTypes` |
+
+## Decisões tomadas na aprovação da Etapa 1 (2026-09-28)
+
+| ID | Decisão |
+|---|---|
+| D-8 | Commits no formato `tipo(semana-N): etapa N - o que foi feito` (semana N = etapa N), verificado pelo commitlint |
+| D-9 | Trabalho e push **direto na `main`** enquanto o projeto não está em produção; depois, ramos + PR |
+| D-10 | BDD com as **duas** ferramentas: `@amiceli/vitest-cucumber` (regras de negócio) e `playwright-bdd` (navegador) |
+| D-11 | Skill do Claude Code **frontend-design** (Anthropic, Apache 2.0) instalada no projeto; find-skills, prisma-database-setup e clerk-backend-api avaliadas e **não** adotadas (ver docs/architecture/ferramentas.md) |
 
 ## Pontos da especificação que interpretei (confirme ou corrija)
 

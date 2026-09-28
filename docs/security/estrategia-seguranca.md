@@ -59,14 +59,16 @@
 
 | Dado pessoal | Onde | Base legal (proposta) | Retenção |
 |---|---|---|---|
-| Nome e username de funcionários | `user` | Execução de contrato de trabalho | Enquanto ativo; após desativação, mantido (soft delete) por vínculo com auditoria — 5 anos |
-| IP e user-agent | `session`, `audit_log` | Legítimo interesse (segurança) | Sessões: 90 dias após expirar; auditoria: 5 anos |
-| Logs de aplicação | stdout / coletor | Legítimo interesse | 90 dias |
-| Auditoria | `audit_log` | Obrigação legal/legítimo interesse (prova de operações financeiras) | 5 anos |
+| Nome e username de funcionários | `user` | Execução de contrato de trabalho | **Para sempre** (desativação por soft delete; vínculo com a auditoria) |
+| Dados de negócio (vendas, caixa, estoque, financeiro) | tabelas operacionais | Obrigação legal/legítimo interesse | **Para sempre** (decisão Q-13) |
+| Auditoria (inclui IP e navegador de quem agiu) | `audit_log` | Obrigação legal/legítimo interesse (prova de operações financeiras) | **Para sempre** (decisão Q-13) |
+| IP e navegador de sessões expiradas | `session` | Legítimo interesse (segurança) | 90 dias após expirar (**proposta — Q-13b**) |
+| Logs de aplicação | stdout / coletor (fora do banco) | Legítimo interesse | 90 dias (**proposta — Q-13b**) |
 | Clientes do restaurante | **não coletados no MVP** (`label` livre da conta desencorajado para dados pessoais) | — | — |
 
-Valores de retenção são proposta — confirmar com o usuário (Q-13). Descarte: job de limpeza
-agendado; auditoria nunca é alterada, apenas expurgada após o prazo.
+Decisão Q-13 (2026-09-28): tudo o que está no banco é guardado para sempre. Pela LGPD, dado
+pessoal só deve ser mantido enquanto necessário; por isso os dados técnicos de sessão e os logs
+têm prazo proposto (Q-13b). A auditoria nunca é alterada nem apagada.
 
 ## 7. Cabeçalhos e rastreio (Etapa 1)
 
