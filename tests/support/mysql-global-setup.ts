@@ -31,6 +31,7 @@ export default async function setup(project: TestProject): Promise<() => Promise
       '--default-time-zone=-03:00',
       '--sql-mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION,ONLY_FULL_GROUP_BY',
       '--transaction-isolation=REPEATABLE-READ',
+      '--log-bin-trust-function-creators=1',
     ])
     .start();
 

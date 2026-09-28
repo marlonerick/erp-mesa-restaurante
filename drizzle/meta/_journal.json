@@ -8,6 +8,20 @@
       "when": 1790603130025,
       "tag": "0000_idempotency_record",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1790619671677,
+      "tag": "0001_identidade_e_acesso",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1790619673528,
+      "tag": "0002_auditoria_imutavel_e_catalogo",
+      "breakpoints": true
     }
   ]
 }

@@ -27,6 +27,15 @@ da pergunta Q-03.
 - `.env.example` versionado sem valores reais.
 - `TZ=UTC` no processo e `time_zone='+00:00'` na conexão MySQL.
 
+## Parâmetros obrigatórios do MySQL (todos os ambientes)
+
+| Parâmetro | Valor | Motivo |
+|---|---|---|
+| `log_bin_trust_function_creators` | `1` | Com o binlog ligado (necessário para backup ponto-no-tempo), o MySQL só permite ao usuário de migration criar os **triggers da auditoria imutável** com este parâmetro (erro 1419 sem ele). Em MySQL gerenciado, ajustar no grupo de parâmetros do provedor |
+| `sql_mode` | estrito (`STRICT_TRANS_TABLES`, …) | Recusar dados inválidos em vez de ajustá-los em silêncio |
+| `default_time_zone` | `+00:00` (recomendado) | A aplicação já força UTC por conexão; manter o servidor em UTC evita confusão em consultas manuais |
+| `character_set_server` / `collation_server` | `utf8mb4` / `utf8mb4_0900_ai_ci` | Acentos e emojis |
+
 ## Backup e restauração
 
 - Backup lógico diário (`mysqldump --single-transaction` ou snapshot do provedor) + binlog para
