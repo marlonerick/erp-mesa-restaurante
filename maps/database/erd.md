@@ -3,8 +3,14 @@
 Detalhe de colunas, índices e constraints: [docs/database/modelo-de-dados.md](../../docs/database/modelo-de-dados.md).
 Diagrama dividido por área para legibilidade. PKs `id` são UUIDv7 `BINARY(16)`.
 
-Tabelas já criadas por migration: `idempotency_record` (Etapa 1; a FK para `store` entra na Etapa 3).
-As demais são o modelo planejado.
+Tabelas já criadas por migration:
+- Etapa 1: `idempotency_record` (a FK para `store` entra na Etapa 3).
+- Etapa 2: `organization`, `company`, `store` (mínimo), `app_user` (nome físico do "user"),
+  `user_session`, `known_device`, `device_user`, `rate_limit_bucket`, `role`, `permission`,
+  `role_permission`, `user_role_assignment`, `elevated_grant`, `audit_log` (com triggers de imutabilidade).
+
+As demais são o modelo planejado. Nomes da Etapa 2 prevalecem sobre o diagrama abaixo
+(ex.: `session` → `user_session`; `terminal` e `kitchen_station` ainda não existem).
 
 ## Organização, acesso e auditoria
 

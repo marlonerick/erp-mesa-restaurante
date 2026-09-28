@@ -3,14 +3,22 @@
 ## 1. Autenticação (ADR-0002)
 
 - Login por `username` + senha (sem e-mail obrigatório — mínimo de dados pessoais).
-- Hash **Argon2id** (`@node-rs/argon2`, parâmetros OWASP: m=19 MiB, t=2, p=1, revisados na Etapa 2).
+- Hash **Argon2id** (`@node-rs/argon2`, parâmetros OWASP: m=19 MiB, t=2, p=1) para senha e PIN.
+  Usuário inexistente também passa pelo Argon2 (hash descartável): tempo de resposta igual.
 - Sessão própria em banco: token aleatório de 256 bits no cookie; no banco apenas `SHA-256(token)`.
-- Cookie `__Host-session`: `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`.
-- Expiração: ociosa 12 h (turno) e absoluta 7 dias (valores a confirmar — Q-12); renovação deslizante.
-- Revogação no servidor: logout, desativação de usuário, troca de senha e reset revogam todas as sessões.
-- Rate limit de login por `username` e por IP (tabela `rate_limit_bucket`): 5 falhas/15 min por usuário,
-  30/15 min por IP; resposta genérica ("usuário ou senha inválidos").
-- Reset de senha apenas por ADMIN/GERENTE, com `must_change_password`.
+- Cookies `erp_session` e `erp_device`: `HttpOnly`, `SameSite=Lax`, `Path=/`; com `APP_ORIGIN`
+  em `https://` ganham `Secure` e o prefixo `__Host-`.
+- Expiração (Q-12): 12 h sem uso, 7 dias no máximo; **3 min em aparelho compartilhado** (E2-3).
+  Consultas automáticas não renovam o tempo de uso.
+- Revogação no servidor: logout, bloqueio de tela, troca de usuário no aparelho, troca/redefinição
+  de senha e desativação encerram sessões.
+- Limite de tentativas (tabela `rate_limit_bucket`): 5 falhas/15 min por usuário, 30/15 min por IP;
+  mesma mensagem para usuário inexistente, senha errada e usuário desativado.
+- **IP do cliente:** só é lido do `X-Forwarded-For` com `TRUST_PROXY=true` (atrás de proxy que
+  sobrescreve o cabeçalho). Sem isso o IP é desconhecido e só o limite por usuário vale — confiar no
+  cabeçalho sem proxy permitiria driblar o limite trocando o IP falsamente.
+- PIN: 6 dígitos, sem sequência/repetição; **5 erros travam** (destrava com login por senha).
+- Senha provisória (criação/redefinição pelo gerente) obriga troca; até lá nenhuma permissão vale.
 
 ## 2. Autorização
 
@@ -22,7 +30,10 @@
 - **Autorização elevada:** o autorizador digita username + PIN (6 dígitos, Argon2id, rate limit
   próprio) no dispositivo atual; vale para **uma** operação (token de uso único, 60 s). Auditoria
   registra `actor_user_id` e `authorizer_user_id` (`ELEVATED_AUTH_GRANTED`).
-- Troca de loja em 1 clique valida que o usuário tem papel na loja de destino; grava na sessão.
+- Troca de loja em 1 clique valida que o usuário tem papel na loja de destino; grava na sessão (Etapa 3).
+- Implementação (Etapa 2): `requirePermission(ctx, ...)` no kernel; `authorizeOrElevate` no módulo
+  Authorization consome a autorização com um `UPDATE` condicional (uso único mesmo em paralelo),
+  presa à sessão, à loja e à permissão.
 
 ## 3. Isolamento entre lojas (IDOR/BOLA)
 
@@ -73,8 +84,12 @@ têm prazo proposto (Q-13b). A auditoria nunca é alterada nem apagada.
 ## 7. Cabeçalhos e rastreio (Etapa 1)
 
 - `next.config.ts`: `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options: DENY`,
-  `Permissions-Policy`, CSP parcial (`frame-ancestors 'none'; base-uri; form-action; object-src`),
-  HSTS em produção, sem `X-Powered-By`. **CSP completa com nonce: Etapa 2.**
+  `Permissions-Policy`, HSTS em produção, sem `X-Powered-By`.
+- **CSP com nonce (Etapa 2)** em `src/proxy.ts`: nonce novo por requisição; `script-src 'self'
+  'nonce-…' 'strict-dynamic'` (sem `unsafe-eval` em produção), `object-src 'none'`,
+  `frame-ancestors 'none'`, `upgrade-insecure-requests` em HTTPS. Todas as páginas são geradas por
+  requisição (`connection()` no layout raiz) para o nonce valer. Estilos inline permitidos
+  (`'unsafe-inline'` só em `style-src`) — risco bem menor que em scripts.
 - `src/proxy.ts`: todo request recebe `x-request-id` (reaproveitado só se tiver formato seguro,
   evitando injeção em logs).
 

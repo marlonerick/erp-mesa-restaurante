@@ -3,6 +3,27 @@
 Seta `A --> B` = A chama caso de uso público de B ou assina evento de B. Nenhum módulo acessa
 tabelas de outro. Ciclos são proibidos (verificado no lint).
 
+## Implementado (Etapa 2 — ADR-0014)
+
+```mermaid
+flowchart LR
+  AUTH[Auth] --> USERS[Users]
+  AUTH --> AUTHZ[Authorization]
+  AUTH --> ORG[Organizations]
+  USERS --> AUTHZ
+  USERS --> ORG
+  AUTHZ --> ORG
+  AUTH --> AUDIT[Audit]
+  USERS --> AUDIT
+  AUTHZ --> AUDIT
+  USERSWEB["users/web (tela)"] -. injeta revokeUserSessions .-> USERS
+  USERSWEB --> AUTHWEB["auth/web"]
+```
+
+Portas públicas: `@/modules/<m>` (núcleo, sem Next) e `@/modules/<m>/web` (adaptadores Next).
+
+## Planejado (MVP completo)
+
 ```mermaid
 flowchart TD
   subgraph Transversal

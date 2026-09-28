@@ -17,8 +17,34 @@ npm install                 # instala as dependências e os hooks de Git (leftho
 cp .env.example .env        # no PowerShell: Copy-Item .env.example .env
 npm run db:up               # sobe o MySQL 8.4 no Docker (bancos erp_dev e erp_e2e)
 npm run db:migrate          # cria as tabelas
+npm run db:seed             # equipe FICTÍCIA do piloto (tabela abaixo)
 npx playwright install chromium   # navegador para os testes de ponta a ponta
 ```
+
+### Usuários de exemplo (só desenvolvimento)
+
+| Usuário | Senha | PIN | Perfil |
+|---|---|---|---|
+| admin | Admin@2026 | — | Administrador (toda a organização) |
+| gerente | Gerente@2026 | 739104 | Gerente — loja Centro |
+| caixa | Caixa@2026 | 551208 | Caixa — loja Centro |
+| joao | Garcom@2026 | 305917 | Garçom — loja Centro |
+| ana | Garcom@2026 | 482915 | Garçom — loja Centro |
+| cozinha | Cozinha@2026 | 624081 | Cozinha — loja Centro |
+| rui | Garcom@2026 | 270593 | Garçom — loja Praia (para ver o isolamento) |
+
+Para testar a troca rápida: entre com `joao` e com `ana` marcando "Este aparelho é compartilhado",
+depois toque em "Trocar usuário".
+
+## Primeira instalação em um servidor novo
+
+```bash
+npm run db:migrate
+npm run admin:create        # pergunta nome do restaurante, loja e cria o ADMINISTRADOR
+```
+
+O comando só funciona com o banco sem usuários. Depois disso, a equipe é cadastrada pela tela
+**Usuários**.
 
 ## Dia a dia
 
@@ -34,7 +60,8 @@ npx playwright install chromium   # navegador para os testes de ponta a ponta
 | Formatar código | `npm run format` |
 | Criar migration depois de mudar o schema | `npm run db:generate` (revisar o SQL gerado antes do commit) |
 | Aplicar migrations | `npm run db:migrate` |
-| Dados de exemplo | `npm run db:seed` (vazio até a Etapa 2) |
+| Dados de exemplo | `npm run db:seed` (só com o banco vazio) |
+| Limpeza LGPD (sessões antigas, contadores) | `npm run maintenance:purge` |
 | Compilar e rodar como em produção | `npm run build` e depois `npm run start` |
 | Desligar o MySQL | `npm run db:down` (os dados ficam no volume do Docker) |
 

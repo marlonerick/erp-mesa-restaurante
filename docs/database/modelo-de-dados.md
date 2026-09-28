@@ -45,9 +45,12 @@ Notação: **PK**, FK →, *UQ* = único, *IX* = índice, *CK* = check.
 
 | Tabela | Colunas principais | Chaves e constraints |
 |---|---|---|
-| `user` | id, organization_id, name, username, password_hash, pin_hash NULL, status ENUM(`ATIVO`,`DESATIVADO`), must_change_password, created_by, deleted_at | FK → organization; *UQ* (organization_id, username) |
-| `session` | id, user_id, token_hash CHAR(64), active_store_id, terminal_id NULL, ip, user_agent, created_at, last_seen_at, expires_at, revoked_at | *UQ* token_hash; *IX* (user_id, revoked_at); *IX* expires_at |
-| `role` | id, organization_id NULL (NULL = perfil de sistema), code, name, max_discount_bp INT, is_system | *UQ* (organization_id, code) |
+| `app_user` (implementado) | id, organization_id, name, username, password_hash, pin_hash NULL, status ENUM(`ATIVO`,`DESATIVADO`), must_change_password, failed_pin_attempts, pin_locked_at, password_changed_at, disabled_at, created_by, version | FK → organization; *UQ* username (**único no sistema** — login sem escolher empresa) |
+| `user_session` (implementado) | id, user_id, token_hash CHAR(64), organization_id, active_store_id, device_id NULL, login_method ENUM(`PASSWORD`,`PIN`), idle_timeout_seconds, ip, user_agent, created_at, last_seen_at, expires_at, revoked_at, revoke_reason | *UQ* token_hash; *IX* (user_id, revoked_at); *IX* (device_id, revoked_at); *IX* expires_at |
+| `known_device` (implementado) | id, token_hash CHAR(64), shared, created_at, last_seen_at | *UQ* token_hash — aparelho identificado por cookie próprio |
+| `device_user` (implementado) | device_id, user_id, last_password_login_at | PK (device_id, user_id) — base da troca rápida |
+| `elevated_grant` (implementado) | id, token_hash, store_id, permission_code, requester_user_id, requester_session_id, authorizer_user_id, created_at, expires_at, used_at | *UQ* token_hash — autorização do gerente, uso único, 60 s |
+| `role` | id, organization_id NULL (NULL = perfil de sistema), code, name, max_discount_bp INT, is_system | *UQ* code (Etapa 2; perfis por organização exigirão revisar) |
 | `permission` | code VARCHAR(64), description | PK code — catálogo semeado por migration |
 | `role_permission` | role_id, permission_code | PK (role_id, permission_code) |
 | `user_role_assignment` | id, user_id, role_id, scope_type ENUM(`ORGANIZATION`,`COMPANY`,`STORE`), scope_id, created_by | *UQ* (user_id, role_id, scope_type, scope_id); *IX* (scope_type, scope_id) |

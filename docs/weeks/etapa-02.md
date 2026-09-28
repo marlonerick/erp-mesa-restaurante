@@ -6,25 +6,64 @@ Plano aprovado em 2026-09-28 com as decisões E2-1 a E2-7 e Q-13b (docs/requirem
 Login seguro, sessões revogáveis, usuários, perfis e permissões por loja, autorização do gerente
 por PIN, troca rápida em aparelho compartilhado e auditoria imutável.
 
-## Escopo
-Especificações: `docs/modules/auth.md`, `authorization.md`, `users.md`, `audit.md`,
-`organizations.md` (parte mínima). Cenários: `tests/features/{auth,authorization,users}/`.
+## Entregue
 
-## Fora do escopo
-Cadastro completo de empresa/loja/terminal e troca de loja (Etapa 3); tela de auditoria (Etapa 9);
-recuperação de senha por e-mail/SMS (não previsto).
+| Área | Entrega |
+|---|---|
+| Especificação | SDDs `auth`, `authorization`, `users`, `audit`, `organizations` (mínimo); 22 cenários BDD em português |
+| Banco | 14 tabelas (migration 0001) + triggers de auditoria imutável e catálogo de 34 permissões / 5 perfis (migration 0002) |
+| Regras (domínio) | Senha, PIN, expiração de sessão (12 h / 3 min compartilhado / 7 dias), limite de tentativas, permissões por escopo, anti-escalada, nome de usuário |
+| Casos de uso | Login, troca rápida por PIN, sessão/contexto, sair, bloquear tela, trocar senha, cadastrar PIN, autorização do gerente (uso único, 60 s), administração de usuários, primeira instalação, limpeza LGPD |
+| Web | Cookies HttpOnly/SameSite (Secure e `__Host-` em HTTPS), Server Actions com Zod, **CSP com nonce** por requisição |
+| Telas | Login, "Quem está usando?" com teclado de PIN, trocar senha, meu PIN, início, usuários (lista, cadastro, edição) — identidade de azulejo (skill frontend-design) |
+| Comandos | `npm run admin:create`, `npm run db:seed`, `npm run maintenance:purge` |
 
-## Dependências
-Etapa 1 (kernel, banco, idempotência, erros, logger).
+## Desvios e decisões tomadas durante a etapa
 
-## Andamento
-(atualizado ao fim da etapa)
+| Situação | Decisão | Onde |
+|---|---|---|
+| Trigger não podia ser criado com binlog ligado (erro 1419) | `log_bin_trust_function_creators=1` em todos os ambientes (produção inclusive) | docs/deployment/ambientes.md |
+| Módulos precisavam de funções web de outros sem carregar Next nos scripts | Porta `@/modules/<m>/web` + injeção entre módulos + tabelas centralizadas | ADR-0014 |
+| Scripts TypeScript com atalho `@/` | Tradutor próprio (`scripts/register-alias.mjs`, ~30 linhas) em vez de instalar `tsx` | — |
+| Componentes shadcn/ui | Escritos no estilo shadcn (código no projeto), sem CLI nem Radix por ora; instalação completa quando houver janelas/seletores (Etapa 4) | — |
+| Formulários | `useActionState` do React + Zod no servidor; React Hook Form fica para formulários complexos | ADR-0012 |
+| IP do cliente para o limite por IP | Só confiado atrás de proxy (`TRUST_PROXY=true`); sem isso, apenas o limite por usuário vale | docs/security |
+| Nome de usuário único | Único **no sistema** (não por organização): login sem escolher empresa | docs/modules/auth.md |
+
+## Problemas encontrados e corrigidos
+1. **Deadlock em logins simultâneos (troca de turno).** `UPDATE`/`DELETE` que não encontram linhas
+   ainda "trancam" trechos do índice (gap lock); com ids UUIDv7 crescentes, todos os logins em
+   aparelhos novos disputavam o mesmo trecho. Correção: não encerrar sessões de aparelho recém-criado
+   nem apagar contador vazio. Teste de 20 logins simultâneos **falha sem a correção**.
+2. **Falha de login precisa ser gravada antes do erro:** se o erro fosse lançado dentro da
+   transação, o banco desfaria o contador de tentativas e o limite de 5 nunca funcionaria. Os casos
+   de uso devolvem o resultado da transação e só depois lançam o erro.
+3. **Acessibilidade da lista de usuários:** mudar o `display` de `<tr>` apagava a tabela para
+   leitores de tela. Agora: tabela no computador, lista no celular.
+4. **Classes CSS que se anulavam** no teclado de PIN (achado na revisão por capturas de tela).
+
+## Testes (2026-09-28)
+
+| Tipo | Resultado |
+|---|---|
+| Unitários (domínio, kernel, arquitetura, CSP) | ✅ 219 |
+| Integração com MySQL 8.4 real (BDD + regras de borda + auditoria + concorrência) | ✅ 141 |
+| E2E no navegador (celular, tablet, desktop) + BDD | ✅ 37 (2 execuções seguidas, sem instabilidade) |
+| Cobertura do kernel | ✅ 96,8% |
+
+## Segurança
+Senhas e PINs em Argon2id; token de sessão só como hash no banco; cookies HttpOnly/SameSite/Secure;
+mesma mensagem para usuário inexistente, senha errada e usuário desativado (tempo constante);
+limite de tentativas por usuário e IP; PIN trava após 5 erros; autorização elevada de uso único
+presa à sessão e à permissão; anti-escalada de perfis; isolamento entre lojas testado (lista,
+edição, senha, desativação, perfis); auditoria imutável garantida por trigger; CSP com nonce.
 
 ## Definition of Done
-- [ ] SDDs e cenários BDD
-- [ ] Migrations revisadas
-- [ ] Testes unitários, integração (MySQL real), BDD, isolamento entre lojas, E2E
-- [ ] Lint, typecheck, build, CI
+- [x] SDDs e cenários BDD
+- [x] Migrations revisadas
+- [x] Testes unitários, integração (MySQL real), BDD, isolamento entre lojas, E2E
+- [x] Lint, typecheck, build
+- [ ] CI no GitHub (após o push)
 - [ ] Revisão do `reviewer`
-- [ ] Docs, mapas e `PROJECT_STATUS.md`
+- [x] Docs, mapas e `PROJECT_STATUS.md`
 - [ ] `APROVADO` do usuário
