@@ -105,7 +105,7 @@ edição, senha, desativação, perfis); auditoria imutável garantida por trigg
 - [x] Migrations revisadas
 - [x] Testes unitários, integração (MySQL real), BDD, isolamento entre lojas, E2E
 - [x] Lint, typecheck, build
-- [ ] CI no GitHub (após o push)
+- [x] CI no GitHub (verde em 2026-09-28; a verificação de saúde do MySQL precisou ser reforçada — ver commit "torna robusta a verificação de saúde")
 - [x] Revisão do `reviewer` (2 rodadas; achados corrigidos)
 - [x] Docs, mapas e `PROJECT_STATUS.md`
 - [ ] `APROVADO` do usuário
