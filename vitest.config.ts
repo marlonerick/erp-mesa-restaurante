@@ -25,6 +25,18 @@ export default defineConfig({
           include: ['tests/unit/**/*.test.ts'],
         },
       },
+      {
+        extends: true,
+        test: {
+          name: 'integration',
+          environment: 'node',
+          include: ['tests/integration/**/*.test.ts'],
+          // MySQL 8.4 real via Testcontainers (proibido mock/SQLite)
+          globalSetup: ['tests/support/mysql-global-setup.ts'],
+          testTimeout: 30_000,
+          hookTimeout: 180_000,
+        },
+      },
     ],
   },
 });
