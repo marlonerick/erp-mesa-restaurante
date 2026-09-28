@@ -1,9 +1,11 @@
 // API pública do módulo Users.
-import { getDatabase } from '@/shared/db/client';
+import { type Database, getDatabase } from '@/shared/db/client';
 import type { Transaction } from '@/shared/db/transaction';
-import type { Id, RequestContext } from '@/shared/kernel';
+import { type Clock, type Id, type RequestContext, systemClock } from '@/shared/kernel';
 import { argon2Hasher } from '@/shared/security/password-hasher';
 import * as admin from './application/administration';
+import * as bootstrap from './application/bootstrap';
+import type { FirstAdminInput } from './application/bootstrap';
 import type { RevokeUserSessions, UserRecord, UsersDependencies } from './application/ports';
 import { userRepository as repo } from './infrastructure/user-repository';
 
@@ -32,6 +34,25 @@ export const storePinHash = (tx: Transaction, id: Id, pinHash: string) =>
   repo.updatePin(tx, id, pinHash);
 export const insertUser = (tx: Transaction, user: Parameters<typeof repo.insert>[1]) =>
   repo.insert(tx, user);
+
+// ---- Primeira instalação (comando npm run admin:create — E2-5) ----
+
+export type { BootstrapResult, FirstAdminInput } from './application/bootstrap';
+
+export function bootstrapFirstAdmin(
+  input: FirstAdminInput,
+  overrides: { db?: Database; clock?: Clock } = {},
+) {
+  return bootstrap.bootstrapFirstAdmin(
+    {
+      db: overrides.db ?? getDatabase().db,
+      repo,
+      hasher: argon2Hasher,
+      clock: overrides.clock ?? systemClock,
+    },
+    input,
+  );
+}
 
 // ---- Administração de usuários (telas de gerente/admin) ----
 

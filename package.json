@@ -23,7 +23,10 @@
     "db:down": "docker compose -f docker/compose.dev.yml down",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate.ts",
-    "db:seed": "node --env-file-if-exists=.env scripts/seed-dev.ts",
+    "db:seed": "npm run ts-script -- scripts/seed-dev.ts",
+    "admin:create": "npm run ts-script -- scripts/admin-create.ts",
+    "maintenance:purge": "npm run ts-script -- scripts/maintenance-purge.ts",
+    "ts-script": "node --env-file-if-exists=.env --experimental-transform-types --disable-warning=ExperimentalWarning --import ./scripts/register-alias.mjs",
     "prepare": "lefthook install"
   },
   "dependencies": {
