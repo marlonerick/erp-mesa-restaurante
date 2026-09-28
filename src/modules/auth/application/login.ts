@@ -1,6 +1,7 @@
 import { getAccessibleStores } from '@/modules/authorization';
 import {
   clearPinFailures,
+  findUserById,
   findUserByUsername,
   normalizeUsername,
   type UserRecord,
@@ -16,7 +17,7 @@ import {
   rateLimitWindowStart,
 } from '../domain/rate-limit-policy';
 import type { AuthDependencies, DeviceRecord, RequestMeta } from './ports';
-import { authErrors, openSession, recordLoginFailure } from './shared';
+import { authErrors, openSession, recordLoginFailure, reserveAttempt } from './shared';
 
 export interface LoginInput {
   readonly username: string;
@@ -51,25 +52,36 @@ async function resolveDevice(
   deps: AuthDependencies,
   tx: Transaction,
   deviceToken: string | null,
-  shared: boolean,
+  sharedRequested: boolean,
   now: Date,
 ): Promise<{ device: DeviceRecord; token: string; isNew: boolean }> {
   const existing = deviceToken
     ? await deps.repo.findDeviceByTokenHash(tx, hashToken(deviceToken))
     : null;
   if (existing && deviceToken) {
+    // Uma vez compartilhado, continua compartilhado: esquecer de marcar a caixa no tablet do salão
+    // não pode transformar as sessões dele em sessões de 12 h (achado I2 da revisão)
+    const shared = existing.shared || sharedRequested;
     await deps.repo.updateDevice(tx, existing.id, { shared, now });
     return { device: { id: existing.id, shared }, token: deviceToken, isNew: false };
   }
   const token = generateSecretToken();
   const id = newId();
-  await deps.repo.insertDevice(tx, { id, tokenHash: hashToken(token), shared, now });
-  return { device: { id, shared }, token, isNew: true };
+  await deps.repo.insertDevice(tx, {
+    id,
+    tokenHash: hashToken(token),
+    shared: sharedRequested,
+    now,
+  });
+  return { device: { id, shared: sharedRequested }, token, isNew: true };
 }
 
 /**
- * Login por usuário e senha (docs/modules/auth.md). Falhas são GRAVADAS (limite de tentativas e
- * auditoria) e só depois o erro é devolvido — por isso o resultado sai da transação como valor.
+ * Login por usuário e senha (docs/modules/auth.md), em três passos:
+ * 1) transação curta: RESERVA a tentativa nos contadores (usuário e IP) — tentativas simultâneas
+ *    passam em fila e só as 5 primeiras seguem (achado B2 da revisão); lê o usuário;
+ * 2) Argon2 FORA do banco (não segura conexão do pool — achado I5);
+ * 3) transação curta: grava a falha (auditoria) ou abre a sessão e devolve a tentativa reservada.
  */
 export async function login(
   deps: AuthDependencies,
@@ -78,39 +90,58 @@ export async function login(
 ): Promise<LoginResult> {
   const now = deps.clock.now();
   const username = safeUsername(input.username);
-  const attempted = username ?? input.username.trim().toLowerCase();
+  const counterName = username ?? `invalido:${hashToken(input.username.trim().toLowerCase())}`;
   const window = rateLimitWindowStart(now, LOGIN_WINDOW_SECONDS);
 
-  const outcome = await runInTransaction(deps.db, async (tx): Promise<Outcome> => {
-    const userHits = await deps.repo.rateLimitHits(tx, userKey(attempted), window);
-    const blocked =
-      userHits >= LOGIN_FAILURES_PER_USER ||
-      (meta.ip !== null &&
-        (await deps.repo.rateLimitHits(tx, ipKey(meta.ip), window)) >= LOGIN_FAILURES_PER_IP);
-    if (blocked) {
-      await recordLoginFailure(tx, {
-        user: null,
-        attemptedUsername: attempted,
-        reason: 'RATE_LIMITED',
-        method: 'PASSWORD',
-        meta,
-        now,
-      });
-      return { ok: false, error: authErrors.rateLimited() };
-    }
+  // 1) Reserva e leitura
+  const phase1 = await runInTransaction(
+    deps.db,
+    async (tx): Promise<{ allowed: false } | { allowed: true; user: UserRecord | null }> => {
+      const userAllowed = await reserveAttempt(
+        deps,
+        tx,
+        userKey(counterName),
+        LOGIN_FAILURES_PER_USER,
+        window,
+      );
+      const ipAllowed =
+        meta.ip === null ||
+        (await reserveAttempt(deps, tx, ipKey(meta.ip), LOGIN_FAILURES_PER_IP, window));
+      if (!userAllowed || !ipAllowed) {
+        await recordLoginFailure(tx, {
+          user: null,
+          attemptedUsername: username,
+          reason: 'RATE_LIMITED',
+          method: 'PASSWORD',
+          meta,
+          now,
+        });
+        return { allowed: false };
+      }
+      return { allowed: true, user: username ? await findUserByUsername(tx, username) : null };
+    },
+  );
+  if (!phase1.allowed) throw authErrors.rateLimited();
 
-    const user: UserRecord | null = username ? await findUserByUsername(tx, username) : null;
-    // Usuário inexistente também passa pelo Argon2: mesma demora, nada revelado (RN-AUTH-03)
-    const passwordOk = await deps.hasher.verify(
-      user?.passwordHash ?? (await dummyPasswordHash(deps.hasher)),
-      input.password,
-    );
-    if (!user || !passwordOk || user.status !== 'ATIVO') {
-      await deps.repo.rateLimitRegister(tx, userKey(attempted), window);
-      if (meta.ip !== null) await deps.repo.rateLimitRegister(tx, ipKey(meta.ip), window);
+  // 2) Conferência da senha. Usuário inexistente também passa pelo Argon2: mesma demora (RN-AUTH-03)
+  const passwordOk = await deps.hasher.verify(
+    phase1.user?.passwordHash ?? (await dummyPasswordHash(deps.hasher)),
+    input.password,
+  );
+
+  // 3) Resultado
+  const outcome = await runInTransaction(deps.db, async (tx): Promise<Outcome> => {
+    // Relê: o usuário pode ter sido desativado ou ter a senha trocada nesse meio-tempo
+    const user = phase1.user ? await findUserById(tx, phase1.user.id) : null;
+    const valid =
+      user !== null &&
+      passwordOk &&
+      user.status === 'ATIVO' &&
+      user.passwordHash === phase1.user?.passwordHash;
+    if (!valid) {
       await recordLoginFailure(tx, {
         user,
-        attemptedUsername: attempted,
+        attemptedUsername: username,
         reason: user?.status === 'DESATIVADO' ? 'USUARIO_DESATIVADO' : 'CREDENCIAIS_INVALIDAS',
         method: 'PASSWORD',
         meta,
@@ -123,7 +154,7 @@ export async function login(
     if (!store) {
       await recordLoginFailure(tx, {
         user,
-        attemptedUsername: attempted,
+        attemptedUsername: username,
         reason: 'SEM_LOJA',
         method: 'PASSWORD',
         meta,
@@ -132,12 +163,14 @@ export async function login(
       return { ok: false, error: authErrors.noStoreAccess() };
     }
 
-    // Só apaga o contador se houver falhas: um DELETE sem linhas ainda "tranca" a faixa do índice
-    // (gap lock) e causava deadlock entre logins simultâneos de pessoas diferentes
-    if (userHits > 0) await deps.repo.rateLimitClear(tx, userKey(user.username));
+    // Login certo: zera o contador do usuário e devolve a tentativa ao IP — o restaurante inteiro
+    // costuma sair pelo mesmo IP, e a troca de turno não pode bloquear a equipe
+    await deps.repo.rateLimitClear(tx, userKey(user.username), window);
+    if (meta.ip !== null) await deps.repo.rateLimitRelease(tx, ipKey(meta.ip), window);
     // Entrar com a senha destrava o PIN (RN-AUTH-12)
-    if (user.pinLockedAt !== null || user.failedPinAttempts > 0)
+    if (user.pinLockedAt !== null || user.failedPinAttempts > 0) {
       await clearPinFailures(tx, user.id);
+    }
 
     const {
       device,

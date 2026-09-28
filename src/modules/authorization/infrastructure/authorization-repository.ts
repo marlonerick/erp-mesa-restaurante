@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, isNull, or } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, lt, or } from 'drizzle-orm';
 import { elevatedGrant, role, rolePermission, userRoleAssignment } from '@/shared/db/schema';
 import { isPermission, newId, type Permission } from '@/shared/kernel';
 import type { AuthorizationRepository, RoleDefinition } from '../application/ports';
@@ -126,6 +126,11 @@ export const authorizationRepository: AuthorizationRepository = {
       createdAt: grant.createdAt,
       expiresAt: grant.expiresAt,
     });
+  },
+
+  async purgeElevatedGrants(tx, before) {
+    const [result] = await tx.delete(elevatedGrant).where(lt(elevatedGrant.createdAt, before));
+    return result.affectedRows;
   },
 
   async consumeElevatedGrant(tx, { tokenHash, sessionId, storeId, permission, now }) {

@@ -33,7 +33,9 @@ export const AUDIT_EVENTS = [
 export type AuditEvent = (typeof AUDIT_EVENTS)[number];
 
 // Rede de segurança (RN-AUDIT-05): mesmo que um caso de uso erre, estes campos nunca são gravados.
-const SECRET_KEY = /pass(word)?|pin|hash|token|secret|cookie|authorization/i;
+// Casa o NOME do campo (password, pin, passwordHash, sessionToken...), não pedaços dele — antes,
+// "ownPinChanged" e "temporaryPasswordSet" eram apagados e a auditoria perdia a descrição (achado I3).
+const SECRET_KEY = /^(password|pin|secret|cookie|authorization)$|(hash|token|password|pin)$/i;
 
 export function stripSecrets(data: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(

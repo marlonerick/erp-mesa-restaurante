@@ -1,11 +1,5 @@
 import { and, eq, gte, isNull, lt, ne, or, sql } from 'drizzle-orm';
-import {
-  deviceUser,
-  elevatedGrant,
-  knownDevice,
-  rateLimitBucket,
-  userSession,
-} from '@/shared/db/schema';
+import { deviceUser, knownDevice, rateLimitBucket, userSession } from '@/shared/db/schema';
 import type { AuthRepository } from '../application/ports';
 
 const sessionColumns = {
@@ -99,7 +93,13 @@ export const authRepository: AuthRepository = {
     return rows.map((row) => row.userId);
   },
 
-  async rateLimitHits(tx, key, windowStart) {
+  async rateLimitReserve(tx, key, windowStart) {
+    // Soma atômica (cria o contador da janela ou incrementa). O incremento trava só esta linha:
+    // tentativas simultâneas passam em fila e cada uma lê um total diferente.
+    await tx
+      .insert(rateLimitBucket)
+      .values({ bucketKey: key, windowStart, hits: 1 })
+      .onDuplicateKeyUpdate({ set: { hits: sql`${rateLimitBucket.hits} + 1` } });
     const [row] = await tx
       .select({ hits: rateLimitBucket.hits })
       .from(rateLimitBucket)
@@ -107,22 +107,21 @@ export const authRepository: AuthRepository = {
     return row?.hits ?? 0;
   },
 
-  async rateLimitRegister(tx, key, windowStart) {
-    // Soma atômica: cria o contador da janela ou incrementa o existente
+  async rateLimitRelease(tx, key, windowStart) {
     await tx
-      .insert(rateLimitBucket)
-      .values({ bucketKey: key, windowStart, hits: 1 })
-      .onDuplicateKeyUpdate({ set: { hits: sql`${rateLimitBucket.hits} + 1` } });
+      .update(rateLimitBucket)
+      .set({ hits: sql`GREATEST(${rateLimitBucket.hits} - 1, 0)` })
+      .where(and(eq(rateLimitBucket.bucketKey, key), eq(rateLimitBucket.windowStart, windowStart)));
   },
 
-  async rateLimitClear(tx, key) {
-    await tx.delete(rateLimitBucket).where(eq(rateLimitBucket.bucketKey, key));
+  async rateLimitClear(tx, key, windowStart) {
+    // Chave primária completa: apaga só a linha existente, sem trancar faixas do índice
+    await tx
+      .delete(rateLimitBucket)
+      .where(and(eq(rateLimitBucket.bucketKey, key), eq(rateLimitBucket.windowStart, windowStart)));
   },
 
   async purge(tx, limits) {
-    const [grants] = await tx
-      .delete(elevatedGrant)
-      .where(lt(elevatedGrant.createdAt, limits.grantsCreatedBefore));
     const [sessions] = await tx
       .delete(userSession)
       .where(
@@ -138,7 +137,6 @@ export const authRepository: AuthRepository = {
       .delete(deviceUser)
       .where(lt(deviceUser.lastPasswordLoginAt, limits.deviceUsersBefore));
     return {
-      autorizacoesDoGerente: grants.affectedRows,
       sessoes: sessions.affectedRows,
       contadoresDeTentativas: buckets.affectedRows,
       usuariosDeAparelhos: deviceUsers.affectedRows,

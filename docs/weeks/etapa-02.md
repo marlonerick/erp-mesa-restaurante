@@ -42,12 +42,39 @@ por PIN, troca rápida em aparelho compartilhado e auditoria imutável.
    leitores de tela. Agora: tabela no computador, lista no celular.
 4. **Classes CSS que se anulavam** no teclado de PIN (achado na revisão por capturas de tela).
 
+## Revisão do `reviewer` (2026-09-28)
+
+1ª revisão: **reprovada** (2 bloqueantes, 6 importantes, 7 sugestões). Todos os bloqueantes e
+importantes foram reproduzidos por testes (`tests/integration/modules/review-etapa-02.test.ts`,
+11 vermelhos antes da correção) e corrigidos:
+
+| # | Achado | Correção |
+|---|---|---|
+| B1 | Gerente conseguia redefinir a senha do ADMIN da organização (e de quem é gerente em outra loja) e virar ADMIN | Guarda "quem age está acima do alvo" em todos os escopos (RN-AUTHZ-09) |
+| B2 | Limite de 5 tentativas furado por tentativas simultâneas | Reservar antes de conferir (RN-AUTH-16); teste: 20 em paralelo → ≤ 5 conferências |
+| I1 | Travamento do PIN com a mesma janela | Reserva atômica no `app_user` antes do Argon2 |
+| I2 | Troca por PIN em aparelho não compartilhado; login sem a caixa "descompartilhava" o tablet | Só em compartilhado; compartilhado é permanente (RN-AUTH-18) |
+| I3 | Filtro de segredos da auditoria apagava a descrição dos eventos de senha/PIN | Filtro por nome exato do campo + campo neutro `change` |
+| I4 | Senha atual podia ser adivinhada sem limite | Mesmo limite do login (RN-AUTH-19) |
+| I5 | Argon2 segurava conexão do pool | Três passos: reserva → Argon2 fora → grava (RN-AUTH-17) |
+| I6 | Auth apagava tabela do Authorization | Limpeza das autorizações pela API do Authorization |
+| S1 | Autorização do gerente revelava quem existe | Resposta única `INVALID_AUTHORIZATION` + tempo constante + auditoria |
+| S2 | Autorizador com senha provisória autorizava | Recusado |
+| S3 | Cookie `__Host-` não era apagado | Regravado vazio com as mesmas opções |
+| S4 | `APP_ORIGIN` http em produção | Exige https (exceto localhost) |
+| S5 | Primeiro IP do X-Forwarded-For (falsificável) | Último IP (o que o nosso proxy viu) |
+| S6 | Janela fixa | Registrado no SDD (RN-AUTH-20) |
+| S7 | Texto digitado no campo usuário ia para a auditoria | Só grava se tiver formato de usuário |
+
+Também: o limite por IP agora devolve a tentativa em login certo — sem isso, a troca de turno
+(toda a equipe no mesmo IP) bloquearia o restaurante.
+
 ## Testes (2026-09-28)
 
 | Tipo | Resultado |
 |---|---|
-| Unitários (domínio, kernel, arquitetura, CSP) | ✅ 219 |
-| Integração com MySQL 8.4 real (BDD + regras de borda + auditoria + concorrência) | ✅ 141 |
+| Unitários (domínio, kernel, arquitetura, CSP) | ✅ 220 |
+| Integração com MySQL 8.4 real (BDD + regras de borda + auditoria + concorrência + achados da revisão) | ✅ 154 |
 | E2E no navegador (celular, tablet, desktop) + BDD | ✅ 37 (2 execuções seguidas, sem instabilidade) |
 | Cobertura do kernel | ✅ 96,8% |
 

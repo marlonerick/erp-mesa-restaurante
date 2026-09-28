@@ -26,7 +26,10 @@ export async function writeSessionToken(token: string): Promise<void> {
 }
 
 export async function clearSessionToken(): Promise<void> {
-  (await cookies()).delete(names().session);
+  // delete() não repete Secure/Path, e o navegador recusa apagar um cookie __Host- assim;
+  // regravar vazio com as mesmas opções e validade zero apaga de verdade (sugestão 3 da revisão)
+  const { session, secure } = names();
+  (await cookies()).set(session, '', options(0, secure));
 }
 
 export async function readDeviceToken(): Promise<string | null> {

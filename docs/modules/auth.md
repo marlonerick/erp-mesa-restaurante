@@ -26,6 +26,11 @@ Qualquer usuário ativo (ADMIN, GERENTE, CAIXA, GARCOM, COZINHA). Sistema (expir
 - **RN-AUTH-13** — O aparelho é identificado por um cookie próprio de longa duração (token aleatório, hash no banco). "Aparelho compartilhado" é marcado no login.
 - **RN-AUTH-14** — Ao entrar, a sessão fica na loja a que o usuário tem acesso (a primeira em ordem alfabética, se houver várias; a troca de loja é da Etapa 3). Sem acesso a nenhuma loja, o login é recusado **depois** de a senha ser conferida.
 - **RN-AUTH-15** — Consultas automáticas (polling, a partir da Etapa 6) **não** renovam o tempo de uso da sessão; só ações do usuário renovam.
+- **RN-AUTH-16** — *Reservar antes de conferir* (revisão da Etapa 2): toda tentativa de senha ou PIN é contada **antes** da conferência, de forma atômica. Tentativas simultâneas passam em fila e no máximo 5 são conferidas por janela/usuário. Login certo zera o contador do usuário e **devolve** a tentativa ao contador do IP (a equipe inteira costuma sair pelo mesmo IP).
+- **RN-AUTH-17** — A conferência Argon2 roda **fora** de transação (não segura conexão do banco).
+- **RN-AUTH-18** — Troca rápida só em aparelho **compartilhado**. Uma vez marcado como compartilhado, o aparelho continua assim mesmo que alguém entre sem marcar a caixa.
+- **RN-AUTH-19** — Trocar a própria senha e cadastrar PIN exigem a senha atual, com o mesmo limite de 5 tentativas por 15 min.
+- **RN-AUTH-20** — A janela do limite é **fixa** (15 min alinhados ao relógio): em tese, 5 tentativas no fim de uma janela e 5 no início da seguinte. Aceito para o MVP.
 
 ## 4. Entidades
 `app_user` (credenciais — tabela do módulo Users), `user_session`, `known_device`, `device_user`,

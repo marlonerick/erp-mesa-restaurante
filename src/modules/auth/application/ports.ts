@@ -40,7 +40,6 @@ export interface DeviceRecord {
 
 export interface PurgeLimits {
   readonly sessionsEndedBefore: Date;
-  readonly grantsCreatedBefore: Date;
   readonly rateLimitWindowsBefore: Date;
   readonly deviceUsersBefore: Date;
 }
@@ -74,9 +73,11 @@ export interface AuthRepository {
   /** Usuários que entraram COM SENHA no aparelho desde `since` (RN-AUTH-11). */
   listDeviceUserIds(tx: Transaction, deviceId: Id, since: Date): Promise<Id[]>;
 
-  rateLimitHits(tx: Transaction, key: string, windowStart: Date): Promise<number>;
-  rateLimitRegister(tx: Transaction, key: string, windowStart: Date): Promise<void>;
-  rateLimitClear(tx: Transaction, key: string): Promise<void>;
+  /** Reserva uma tentativa ANTES de conferir e devolve o total da janela (já contando esta). */
+  rateLimitReserve(tx: Transaction, key: string, windowStart: Date): Promise<number>;
+  /** Devolve uma tentativa reservada (ex.: login certo não conta contra o IP). */
+  rateLimitRelease(tx: Transaction, key: string, windowStart: Date): Promise<void>;
+  rateLimitClear(tx: Transaction, key: string, windowStart: Date): Promise<void>;
 
   purge(tx: Transaction, limits: PurgeLimits): Promise<Record<string, number>>;
 }

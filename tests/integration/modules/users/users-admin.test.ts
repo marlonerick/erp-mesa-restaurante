@@ -73,7 +73,7 @@ describe('administração de usuários', () => {
     );
     expect(
       await failureOf(services.users.setRoles(ctx, { userId: waiterId, roleCodes: ['GARCOM'] })),
-    ).toMatchObject({ code: 'ROLE_ASSIGNMENT_NOT_ALLOWED' });
+    ).toMatchObject({ code: 'USER_MANAGEMENT_NOT_ALLOWED' }); // barrado antes pela guarda B1
   });
 
   it('ninguém altera os próprios perfis nem desativa a si mesmo', async () => {

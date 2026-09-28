@@ -1,7 +1,7 @@
 import { recordAudit } from '@/modules/audit';
 import type { StoreInfo } from '@/modules/organizations';
-import { clearPinFailures, recordPinFailure, type UserRecord } from '@/modules/users';
-import type { Transaction } from '@/shared/db/transaction';
+import { clearPinFailures, reservePinAttempt, type UserRecord } from '@/modules/users';
+import { runInTransaction, type Transaction } from '@/shared/db/transaction';
 import { DomainError, type Id, newId } from '@/shared/kernel';
 import { generateSecretToken, hashToken } from '@/shared/security/tokens';
 import { PIN_MAX_ATTEMPTS } from '../domain/pin-policy';
@@ -46,24 +46,38 @@ export const authErrors = {
 export type PinCheck = 'OK' | 'INVALID' | 'LOCKED' | 'NOT_SET';
 
 /**
- * Confere o PIN. Erro soma uma falha (e trava no 5º erro — RN-AUTH-12); acerto zera o contador.
- * Quem chama deve CONFIRMAR a transação antes de devolver o erro, para a falha ficar gravada.
+ * Confere o PIN com "reserva antes de conferir" (RN-AUTH-12, achado I1 da revisão):
+ * 1) transação curta soma a tentativa (ou trava, se já houve 5); 2) Argon2 FORA do banco;
+ * 3) acerto zera o contador. Tentativas simultâneas: no máximo 5 conferências.
  */
-export async function checkPin(
+export async function verifyPin(
   deps: AuthDependencies,
-  tx: Transaction,
   user: UserRecord,
   pin: string,
   now: Date,
 ): Promise<PinCheck> {
-  if (user.pinLockedAt !== null) return 'LOCKED';
   if (user.pinHash === null) return 'NOT_SET';
-  if (await deps.hasher.verify(user.pinHash, pin)) {
-    if (user.failedPinAttempts > 0) await clearPinFailures(tx, user.id);
-    return 'OK';
-  }
-  const { locked } = await recordPinFailure(tx, user.id, now, PIN_MAX_ATTEMPTS);
-  return locked ? 'LOCKED' : 'INVALID';
+  const { reserved } = await runInTransaction(deps.db, (tx) =>
+    reservePinAttempt(tx, user.id, now, PIN_MAX_ATTEMPTS),
+  );
+  if (!reserved) return 'LOCKED';
+  if (!(await deps.hasher.verify(user.pinHash, pin))) return 'INVALID';
+  await runInTransaction(deps.db, (tx) => clearPinFailures(tx, user.id));
+  return 'OK';
+}
+
+/**
+ * Reserva uma tentativa no contador `key` da janela atual e diz se ainda está dentro do limite.
+ * Usado antes de conferir senhas (login, senha atual) — achados B2 e I4 da revisão.
+ */
+export async function reserveAttempt(
+  deps: AuthDependencies,
+  tx: Transaction,
+  key: string,
+  limit: number,
+  windowStart: Date,
+): Promise<boolean> {
+  return (await deps.repo.rateLimitReserve(tx, key, windowStart)) <= limit;
 }
 
 export function pinError(result: Exclude<PinCheck, 'OK'>): DomainError {
@@ -137,13 +151,18 @@ export async function recordLoginFailure(
   tx: Transaction,
   input: {
     user: UserRecord | null;
-    attemptedUsername: string;
+    /**
+     * Só um nome JÁ VALIDADO pelo formato de usuário, ou null. Texto livre pode ser uma senha
+     * digitada no campo errado — e a auditoria é para sempre (sugestão 7 da revisão).
+     */
+    attemptedUsername: string | null;
     reason: string;
     method: LoginMethod;
     meta: RequestMeta;
     now: Date;
   },
 ): Promise<void> {
+  const username = input.attemptedUsername ?? '(formato inválido)';
   await recordAudit(tx, {
     event: 'LOGIN_FAILED',
     occurredAt: input.now,
@@ -151,12 +170,8 @@ export async function recordLoginFailure(
     storeId: null,
     actorUserId: input.user?.id ?? null,
     entityType: 'app_user',
-    entityId: input.user?.id ?? input.attemptedUsername.slice(0, 64),
-    after: {
-      reason: input.reason,
-      method: input.method,
-      username: input.attemptedUsername.slice(0, 50),
-    },
+    entityId: input.user?.id ?? username,
+    after: { reason: input.reason, method: input.method, username },
     ip: input.meta.ip,
     userAgent: input.meta.userAgent,
     requestId: input.meta.requestId,

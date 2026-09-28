@@ -18,6 +18,8 @@ Todos os perfis; GERENTE/ADMIN como autorizadores.
 - **RN-AUTHZ-05** — **Anti-escalada:** só se atribui um perfil se quem atribui possuir, na mesma loja, **todas** as permissões daquele perfil; e só em lojas a que tem acesso. Ninguém altera os próprios perfis.
 - **RN-AUTHZ-06** — **Autorização elevada:** quando falta uma permissão, outro usuário que a possui (na mesma loja) digita **usuário + PIN** no aparelho atual. Isso gera uma autorização de **uso único**, válida por **60 s**, presa à sessão de quem pediu e à permissão pedida.
 - **RN-AUTHZ-07** — A autorização elevada é auditada (`ELEVATED_AUTH_GRANTED`) com quem pediu e quem autorizou. PINs errados contam para o travamento de PIN do autorizador (RN-AUTH-12).
+- **RN-AUTHZ-09** — *Quem age está acima do alvo* (revisão da Etapa 2): para renomear, trocar perfis, redefinir senha ou desativar alguém, quem age precisa ter — num escopo que inclui cada perfil do alvo (outra loja, empresa ou organização) — todas as permissões daquele perfil. Gerente de loja não mexe no ADMIN da organização nem em quem é gerente em outra loja (`USER_MANAGEMENT_NOT_ALLOWED`).
+- **RN-AUTHZ-10** — Na autorização do gerente, usuário inexistente, de outra organização e PIN errado recebem a MESMA resposta (`INVALID_AUTHORIZATION`) e a mesma demora; falhas vão para a auditoria. Autorizador com senha provisória não autoriza.
 - **RN-AUTHZ-08** — Limite de desconto por perfil (`max_discount_bp`): ADMIN/GERENTE 100%, CAIXA 10%, GARCOM 0%, COZINHA 0% (Q-07, usado na Etapa 8).
 
 ## 4. Entidades
@@ -35,7 +37,9 @@ stateDiagram-v2
 | Situação | Código | HTTP | Mensagem |
 |---|---|---|---|
 | Sem permissão | `FORBIDDEN` | 403 | Você não tem permissão para esta ação. |
-| Autorizador sem a permissão | `AUTHORIZER_NOT_ALLOWED` | 403 | Este usuário não pode autorizar esta ação. |
+| Autorizador sem a permissão (PIN correto) ou com senha provisória | `AUTHORIZER_NOT_ALLOWED` | 403 | Este usuário não pode autorizar esta ação. |
+| Autorizador inexistente, de outra organização ou PIN errado | `INVALID_AUTHORIZATION` | 401 | Usuário ou PIN do autorizador inválidos. |
+| Alvo acima de quem age / em outra loja | `USER_MANAGEMENT_NOT_ALLOWED` | 403 | Você não pode alterar este usuário: ele tem perfis acima dos seus ou em outra loja. |
 | Autorização usada/expirada/de outra sessão | `ELEVATED_GRANT_INVALID` | 403 | A autorização expirou ou já foi usada. Peça novamente. |
 | Atribuição de perfil proibida | `ROLE_ASSIGNMENT_NOT_ALLOWED` | 403 | Você não pode atribuir este perfil. |
 | Loja fora do alcance do usuário | `STORE_ACCESS_DENIED` | 403 | Você não tem acesso a esta loja. |

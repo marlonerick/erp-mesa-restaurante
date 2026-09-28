@@ -47,6 +47,19 @@ describe('parseEnv', () => {
     }
   });
 
+  it('em produção exige APP_ORIGIN em https, exceto no próprio computador', () => {
+    const production = { ...valid, NODE_ENV: 'production' };
+    expect(() => parseEnv({ ...production, APP_ORIGIN: 'http://erp.exemplo.com.br' })).toThrow(
+      /APP_ORIGIN/,
+    );
+    expect(parseEnv({ ...production, APP_ORIGIN: 'https://erp.exemplo.com.br' }).APP_ORIGIN).toBe(
+      'https://erp.exemplo.com.br',
+    );
+    expect(parseEnv({ ...production, APP_ORIGIN: 'http://localhost:3100' }).APP_ORIGIN).toBe(
+      'http://localhost:3100',
+    );
+  });
+
   it('rejeita nível de log desconhecido', () => {
     expect(() => parseEnv({ ...valid, LOG_LEVEL: 'verbose' })).toThrow(/LOG_LEVEL/);
   });

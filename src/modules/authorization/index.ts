@@ -14,6 +14,7 @@ import {
   grantStoreRoleUnchecked as grantStoreRoleUseCase,
   replaceStoreRoles as replaceStoreRolesUseCase,
 } from './application/role-assignment';
+import { assertCanManageUser as assertCanManageUserUseCase } from './application/user-management';
 import { authorizationRepository as repo } from './infrastructure/authorization-repository';
 
 export { type AuthorizationOutcome, ELEVATED_GRANT_TTL_SECONDS };
@@ -52,6 +53,13 @@ export const grantStoreRoleUnchecked = (
 
 export const saveElevatedGrant = (tx: Transaction, grant: NewElevatedGrant) =>
   repo.insertElevatedGrant(tx, grant);
+
+export const purgeExpiredElevatedGrants = (tx: Transaction, before: Date) =>
+  repo.purgeElevatedGrants(tx, before);
+
+/** Guarda "quem age está acima do alvo" para alterar, redefinir senha ou desativar usuários. */
+export const assertCanManageUser = (tx: Transaction, ctx: RequestContext, targetUserId: Id) =>
+  assertCanManageUserUseCase(repo, tx, ctx, targetUserId);
 
 export const authorizeOrElevate = (
   tx: Transaction,

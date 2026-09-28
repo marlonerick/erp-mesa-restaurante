@@ -1,5 +1,10 @@
 import { recordAuditFromContext } from '@/modules/audit';
-import { getStoreRoleCodes, getUsersInStore, replaceStoreRoles } from '@/modules/authorization';
+import {
+  assertCanManageUser,
+  getStoreRoleCodes,
+  getUsersInStore,
+  replaceStoreRoles,
+} from '@/modules/authorization';
 import { MYSQL_ERRNO, mysqlErrno } from '@/shared/db/mysql-errors';
 import { runInTransaction, type Transaction } from '@/shared/db/transaction';
 import {
@@ -53,6 +58,21 @@ async function findVisibleUser(
   if (user?.organizationId !== ctx.organizationId) {
     throw notFound();
   }
+  return user;
+}
+
+/**
+ * Usuário que quem age pode ALTERAR: visível na loja E abaixo de quem age em todos os escopos
+ * (achado B1 da revisão — gerente não mexe no ADMIN nem em gerente de outra loja).
+ */
+async function findManageableUser(
+  deps: UsersDependencies,
+  tx: Transaction,
+  ctx: RequestContext,
+  userId: Id,
+): Promise<UserRecord> {
+  const user = await findVisibleUser(deps, tx, ctx, userId);
+  await assertCanManageUser(tx, ctx, user.id);
   return user;
 }
 
@@ -163,7 +183,7 @@ export async function renameUser(
   requirePermission(ctx, 'users.update');
   const name = normalizeName(input.name);
   await runInTransaction(deps.db, async (tx) => {
-    const user = await findVisibleUser(deps, tx, ctx, input.userId);
+    const user = await findManageableUser(deps, tx, ctx, input.userId);
     if (user.name === name) return;
     await deps.repo.updateName(tx, user.id, name);
     await recordAuditFromContext(tx, ctx, 'USER_UPDATED', {
@@ -189,7 +209,7 @@ export async function setUserRoles(
     );
   }
   await runInTransaction(deps.db, async (tx) => {
-    const user = await findVisibleUser(deps, tx, ctx, input.userId);
+    const user = await findManageableUser(deps, tx, ctx, input.userId);
     await replaceStoreRoles(tx, ctx, user.id, input.roleCodes);
   });
 }
@@ -200,12 +220,18 @@ export async function resetUserPassword(
   input: { userId: Id; temporaryPassword: string },
 ): Promise<void> {
   requirePermission(ctx, 'users.update');
+  // 1) confere quem é o alvo; 2) Argon2 FORA da transação (não segura conexão do banco);
+  // 3) grava, conferindo de novo a permissão sobre o alvo
+  const user = await runInTransaction(deps.db, (tx) =>
+    findManageableUser(deps, tx, ctx, input.userId),
+  );
+  validateNewPassword(input.temporaryPassword, user.username);
+  const passwordHash = await deps.hasher.hash(input.temporaryPassword);
   await runInTransaction(deps.db, async (tx) => {
-    const user = await findVisibleUser(deps, tx, ctx, input.userId);
-    validateNewPassword(input.temporaryPassword, user.username);
+    await findManageableUser(deps, tx, ctx, user.id);
     const now = ctx.clock.now();
     await deps.repo.updatePassword(tx, user.id, {
-      passwordHash: await deps.hasher.hash(input.temporaryPassword),
+      passwordHash,
       mustChangePassword: true,
       changedAt: now,
     });
@@ -214,7 +240,7 @@ export async function resetUserPassword(
     await recordAuditFromContext(tx, ctx, 'USER_UPDATED', {
       entityType: 'app_user',
       entityId: user.id,
-      after: { temporaryPasswordSet: true },
+      after: { change: 'PASSWORD_RESET' },
     });
   });
 }
@@ -233,7 +259,7 @@ export async function disableUser(
     );
   }
   await runInTransaction(deps.db, async (tx) => {
-    const user = await findVisibleUser(deps, tx, ctx, input.userId);
+    const user = await findManageableUser(deps, tx, ctx, input.userId);
     if (user.status === 'DESATIVADO') return;
     const now = ctx.clock.now();
     await deps.repo.disable(tx, user.id, now);

@@ -24,6 +24,23 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/**
+ * Em produção, APP_ORIGIN precisa ser https (senão os cookies saem sem "Secure") — exceto no
+ * próprio computador, usado pelos testes E2E (sugestão 4 da revisão).
+ */
+function assertSecureOrigin(env: Env): void {
+  const origin = new URL(env.APP_ORIGIN);
+  if (
+    env.NODE_ENV === 'production' &&
+    origin.protocol !== 'https:' &&
+    !LOCAL_HOSTS.has(origin.hostname)
+  ) {
+    throw new InvalidEnvironmentError(['APP_ORIGIN']);
+  }
+}
+
 export class InvalidEnvironmentError extends Error {
   constructor(readonly variables: readonly string[]) {
     super(`Variáveis de ambiente inválidas ou ausentes: ${variables.join(', ')}`);
@@ -38,6 +55,7 @@ export function parseEnv(source: Readonly<Record<string, string | undefined>>): 
     const variables = [...new Set(result.error.issues.map((issue) => String(issue.path[0])))];
     throw new InvalidEnvironmentError(variables);
   }
+  assertSecureOrigin(result.data);
   return result.data;
 }
 

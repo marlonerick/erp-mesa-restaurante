@@ -21,8 +21,10 @@ export function auth(): AuthService {
 /** IP, navegador e requestId da requisição atual — para sessão e auditoria. */
 export async function requestMeta(): Promise<RequestMeta> {
   const h = await headers();
+  // Atrás de proxy confiável, o ÚLTIMO endereço do X-Forwarded-For é o que o NOSSO proxy viu; os
+  // anteriores vêm do cliente e podem ser falsos (sugestão 5 da revisão)
   const forwarded = getEnv().TRUST_PROXY
-    ? (h.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null)
+    ? (h.get('x-forwarded-for')?.split(',').at(-1)?.trim() ?? null)
     : null;
   return {
     ip: forwarded !== null && forwarded.length > 0 ? forwarded.slice(0, 45) : null,

@@ -320,7 +320,8 @@ describe('autorização do gerente — regras de borda', () => {
           permission: 'orders.cancel',
         }),
       );
-    expect(await ask('000001')).toMatchObject({ code: 'INVALID_PIN' });
+    // Mensagem genérica: não revela se o usuário existe (sugestão 1 da revisão)
+    expect(await ask('000001')).toMatchObject({ code: 'INVALID_AUTHORIZATION' });
     for (let i = 0; i < 4; i += 1) await ask('000001');
     expect(await ask('739104')).toMatchObject({ code: 'PIN_LOCKED' });
   });
@@ -344,7 +345,7 @@ describe('autorização do gerente — regras de borda', () => {
           permission: 'orders.cancel',
         }),
       ),
-    ).toMatchObject({ code: 'AUTHORIZER_NOT_ALLOWED' });
+    ).toMatchObject({ code: 'INVALID_AUTHORIZATION' });
   });
 
   it('sem autorização e sem permissão: FORBIDDEN', async () => {

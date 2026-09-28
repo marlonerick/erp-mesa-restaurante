@@ -74,20 +74,20 @@ export const userRepository: UserRepository = {
       .where(eq(appUser.id, id));
   },
 
-  async registerPinFailure(tx, id, { now, maxAttempts }) {
-    // Incremento atômico no banco: duas tentativas simultâneas não se perdem
-    await tx
-      .update(appUser)
-      .set({
-        failedPinAttempts: sql`${appUser.failedPinAttempts} + 1`,
-        pinLockedAt: sql`IF(${appUser.failedPinAttempts} + 1 >= ${maxAttempts}, ${now}, ${appUser.pinLockedAt})`,
-      })
-      .where(eq(appUser.id, id));
+  async reservePinAttempt(tx, id, { now, maxAttempts }) {
+    // O MySQL aplica o SET da esquerda para a direita: primeiro decide a trava com o contador
+    // ANTIGO; depois só soma se o PIN continua destravado. O UPDATE trava a linha, então
+    // tentativas simultâneas do mesmo usuário passam uma de cada vez.
+    await tx.execute(sql`
+      UPDATE ${appUser}
+      SET pin_locked_at = IF(pin_locked_at IS NULL AND failed_pin_attempts >= ${maxAttempts}, ${now}, pin_locked_at),
+          failed_pin_attempts = IF(pin_locked_at IS NULL, failed_pin_attempts + 1, failed_pin_attempts)
+      WHERE id = ${appUser.id.mapToDriverValue(id)}`);
     const [row] = await tx
-      .select({ attempts: appUser.failedPinAttempts, lockedAt: appUser.pinLockedAt })
+      .select({ lockedAt: appUser.pinLockedAt })
       .from(appUser)
       .where(eq(appUser.id, id));
-    return { attempts: row?.attempts ?? 0, locked: (row?.lockedAt ?? null) !== null };
+    return { reserved: row?.lockedAt === null };
   },
 
   async clearPinFailures(tx, id) {

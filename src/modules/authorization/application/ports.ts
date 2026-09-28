@@ -50,6 +50,8 @@ export interface AuthorizationRepository {
     input: { userId: Id; roleId: Id; storeId: Id },
   ): Promise<void>;
   insertElevatedGrant(tx: Transaction, grant: NewElevatedGrant): Promise<void>;
+  /** Limpeza periódica (Q-13b): autorizações do gerente criadas antes de `before`. */
+  purgeElevatedGrants(tx: Transaction, before: Date): Promise<number>;
   /** Marca como usada; devolve o autorizador ou null se inválida/usada/expirada/de outra sessão. */
   consumeElevatedGrant(
     tx: Transaction,

@@ -42,12 +42,16 @@ export interface UserRepository {
     input: { passwordHash: string; mustChangePassword: boolean; changedAt: Date },
   ): Promise<void>;
   updatePin(tx: Transaction, id: Id, pinHash: string): Promise<void>;
-  /** Soma uma falha de PIN e trava ao chegar no limite; devolve a situação atualizada. */
-  registerPinFailure(
+  /**
+   * "Reserva" uma tentativa de PIN ANTES de conferir (RN-AUTH-12): soma 1 de forma atômica; se o
+   * limite já foi atingido, trava o PIN em vez de somar. Tentativas simultâneas passam em fila pela
+   * trava da linha, então no máximo `maxAttempts` conferências acontecem.
+   */
+  reservePinAttempt(
     tx: Transaction,
     id: Id,
     input: { now: Date; maxAttempts: number },
-  ): Promise<{ attempts: number; locked: boolean }>;
+  ): Promise<{ reserved: boolean }>;
   clearPinFailures(tx: Transaction, id: Id): Promise<void>;
   disable(tx: Transaction, id: Id, now: Date): Promise<void>;
 }
