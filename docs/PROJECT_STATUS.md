@@ -3,14 +3,14 @@
 Última atualização: 2026-09-28
 
 ## Etapa atual
-**Etapa 1 — Fundação** — em andamento (ramo `etapa-01-fundacao`).
+**Etapa 1 — Fundação** — entregue no ramo `etapa-01-fundacao`, **aguardando aprovação do usuário**.
 
 ## Progresso do MVP
 
 | Etapa | Nome | Status |
 |---|---|---|
 | 0 | Fase 0 — Análise e arquitetura | **Aprovada** em 2026-09-28 |
-| 1 | Fundação | Em andamento |
+| 1 | Fundação | Entregue — aguardando `APROVADO` |
 | 2 | Identidade e acesso | Não iniciada |
 | 3 | Organização e contexto | Não iniciada |
 | 4 | Catálogo | Não iniciada |
@@ -25,15 +25,21 @@
 - Etapa 0: documentação em `/docs`, diagramas em `/maps`, 6 subagentes, 13 ADRs
   (12 aceitos; ADR-0006 aguardando Q-01).
 - Decisões D-1 a D-7 registradas em `docs/requirements/perguntas-abertas.md`.
+- Etapa 1: Next.js 16, TS 6 estrito, lint com fronteiras de camadas, MySQL 8.4 em Docker, kernel
+  (Money, UnitCost, Quantity, Percentage, Id, Clock), transações, idempotência, padrão de erro,
+  logger, requestId, `/health` e `/ready`, E2E, BDD em português, CI. Detalhes: `docs/weeks/etapa-01.md`.
 
 ## Em andamento
-- Etapa 1 — Fundação (plano aprovado em 2026-09-28).
+- Revisão da Etapa 1 pelo usuário.
 
 ## Bloqueado
 - ADR-0006 (momento da baixa de estoque) — aguarda Q-01; bloqueia a Etapa 5.
 
 ## Testes
-Nenhum ainda.
+- Vitest: 171 testes passando (unitários, propriedades, BDD de domínio, arquitetura e integração
+  com MySQL 8.4 real). Cobertura do kernel: 96,8%.
+- Playwright: 10 testes passando (celular, tablet, desktop + BDD).
+- CI: configurado; ainda não executado no GitHub (ramo não enviado).
 
 ## Bugs
 Nenhum.
@@ -41,6 +47,9 @@ Nenhum.
 ## Débitos técnicos
 - Migrar para TypeScript 7 quando o `typescript-eslint` suportar (D-1).
 - Avaliar Drizzle 1.0 quando sair a versão estável (D-2).
+- Revisar até 2027-03-31 a exceção GHSA-67mh-4wv8-2f99 (esbuild via drizzle-kit, só desenvolvimento).
+- Job de limpeza da tabela de idempotência (retenção de 7 dias) — entra quando houver agendador.
+- CSP completa com nonce — Etapa 2.
 
 ## Riscos principais
 R-01 (piloto sem fiscal), R-03 (pagamento duplicado), R-06 (isolamento entre lojas),

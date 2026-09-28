@@ -63,7 +63,25 @@
 Valores de retenção são proposta — confirmar com o usuário (Q-13). Descarte: job de limpeza
 agendado; auditoria nunca é alterada, apenas expurgada após o prazo.
 
-## 7. Revisão de segurança por etapa
+## 7. Cabeçalhos e rastreio (Etapa 1)
+
+- `next.config.ts`: `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options: DENY`,
+  `Permissions-Policy`, CSP parcial (`frame-ancestors 'none'; base-uri; form-action; object-src`),
+  HSTS em produção, sem `X-Powered-By`. **CSP completa com nonce: Etapa 2.**
+- `src/proxy.ts`: todo request recebe `x-request-id` (reaproveitado só se tiver formato seguro,
+  evitando injeção em logs).
+
+## 8. Vulnerabilidades aceitas
+
+Registro em `osv-scanner.toml`, sempre com justificativa e data de revisão.
+
+| ID | Pacote | Motivo | Revisar até |
+|---|---|---|---|
+| GHSA-67mh-4wv8-2f99 | esbuild ≤ 0.24.2 (via drizzle-kit, só desenvolvimento) | A falha exige o servidor de desenvolvimento do esbuild (`--serve`), que não usamos; não vai para produção. A "correção" do npm rebaixaria o drizzle-kit | 2027-03-31 |
+
+No CI: `npm audit --omit=dev --audit-level=high` (código de produção) e OSV-Scanner em todo o lockfile.
+
+## 9. Revisão de segurança por etapa
 
 Checklist do `reviewer` (fechamento de cada etapa): autorização em todos os casos de uso novos,
 teste de isolamento, validação de entrada, idempotência onde aplicável, segredos, logs sem

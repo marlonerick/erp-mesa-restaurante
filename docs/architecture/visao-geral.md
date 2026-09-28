@@ -20,7 +20,10 @@ Sem microserviços, filas ou cache distribuído no MVP. Cada módulo tem frontei
 | `infrastructure/` | Repositórios (Drizzle), provedores externos, implementações das portas | `domain/`, `application/` (portas), ORM |
 
 Regra de dependência: setas apontam para dentro (`domain` não importa nada de fora).
-Verificada automaticamente com `eslint-plugin-boundaries` (ou `dependency-cruiser`) no CI.
+Verificada automaticamente pela regra nativa `no-restricted-imports` do ESLint (`eslint.config.js`),
+no commit e no CI; `tests/unit/architecture/boundaries.test.ts` prova que as importações proibidas
+são bloqueadas. (Na Etapa 1 o `eslint-plugin-boundaries` foi descartado: exigiria mais uma
+dependência só para resolver o atalho `@/`.)
 
 ## 3. Frontend
 
@@ -105,12 +108,13 @@ erp-mesa-restaurante/
 │   └── workflows/ci.yml            # lint → typecheck → unit → integration → e2e → audit → build
 ├── docker/
 │   ├── compose.dev.yml             # MySQL 8.4 dev
-│   └── mysql/conf.d/               # my.cnf (utf8mb4, timezone UTC, sql_mode estrito)
+│   └── mysql/init/                 # cria usuários app (DML) e migrator (DDL); opções do MySQL
+│                                   # vão na linha de comando do compose (no Windows, .cnf montado é ignorado)
 ├── docs/                           # ver docs/README.md
 ├── maps/                           # diagramas Mermaid
 ├── drizzle/                        # migrations SQL versionadas (geradas e revisadas)
 ├── public/
-├── scripts/                        # seed de desenvolvimento, backup/restore
+├── scripts/                        # migrate, seed de desenvolvimento, preparo do standalone, backup/restore
 ├── src/
 │   ├── app/
 │   │   ├── (auth)/login/
@@ -126,9 +130,9 @@ erp-mesa-restaurante/
 │   │   │   ├── financeiro/
 │   │   │   ├── relatorios/
 │   │   │   └── admin/              # empresa, lojas, terminais, usuários, perfis, configurações
+│   │   ├── health/route.ts         # liveness (D-5)
+│   │   ├── ready/route.ts          # readiness: banco respondendo (D-5)
 │   │   ├── api/
-│   │   │   ├── health/route.ts
-│   │   │   ├── ready/route.ts
 │   │   │   └── poll/               # kds, tables (leituras com cursor)
 │   │   └── layout.tsx
 │   ├── modules/
@@ -148,24 +152,27 @@ erp-mesa-restaurante/
 │   │   ├── reports/                # somente leitura (query services)
 │   │   └── audit/
 │   ├── shared/
-│   │   ├── kernel/                 # Money, Quantity, Percentage, Id, Clock, Result, DomainError
+│   │   ├── kernel/                 # Money, UnitCost, Quantity (+ unidades), Percentage, Id, Clock, DomainError
+│   │   ├── config/                 # variáveis de ambiente validadas (Zod)
+│   │   ├── http/                   # requestId, readiness
 │   │   ├── auth/                   # leitura da sessão, RequestContext
 │   │   ├── rbac/                   # authorize(), catálogo de permissões
 │   │   ├── audit/                  # porta AuditLogger
-│   │   ├── db/                     # conexão, transação (UnitOfWork), schema Drizzle agregado
-│   │   ├── errors/                 # mapeamento DomainError → resposta de erro
+│   │   ├── db/                     # conexão, runInTransaction (unidade de trabalho), UUID binário, schema agregado
+│   │   ├── errors/                 # mapeamento DomainError/Zod → resposta de erro, ActionResult
 │   │   ├── idempotency/
 │   │   ├── logger/                 # Pino + redaction
-│   │   ├── operational-day/
-│   │   └── units/                  # g, ml, un e conversões
+│   │   └── operational-day/        # Etapa 3
+│   ├── proxy.ts                    # Next 16 "proxy" (antigo middleware): requestId
 │   └── ui/                         # componentes reutilizáveis (shadcn/ui + próprios)
 ├── tests/
-│   ├── unit/                       # espelha src/modules/*/domain e application
+│   ├── unit/                       # espelha src/modules/*/domain e application; architecture/ (fronteiras)
 │   ├── integration/                # repositórios e casos de uso contra MySQL real
 │   ├── e2e/                        # Playwright
 │   ├── features/<modulo>/*.feature # BDD em português
 │   └── support/                    # factories, fixtures, Testcontainers, FakeClock
 ├── .env.example
+├── osv-scanner.toml                # exceções de vulnerabilidade aceitas, com justificativa
 ├── CLAUDE.md
 └── README.md
 ```

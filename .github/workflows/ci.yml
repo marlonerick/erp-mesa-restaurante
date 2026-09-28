@@ -1,0 +1,80 @@
+# Esteira de integração contínua (README B.12):
+# lint → typecheck → unit → integration (MySQL) → e2e → verificação de dependências → build
+# Qualquer falha bloqueia o merge na branch principal.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pipeline:
+    name: Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: 'true'
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v5
+
+      - name: Node.js 24
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Formatação
+        run: npm run format:check
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Testes unitários (com cobertura mínima do kernel)
+        run: npx vitest run --project unit --coverage
+
+      - name: Testes de integração (MySQL 8.4 real via Testcontainers)
+        run: npm run test:integration
+
+      - name: Subir MySQL para E2E
+        run: npm run db:up
+
+      - name: Instalar navegador do Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Testes E2E e BDD
+        run: npm run test:e2e
+
+      - name: Relatório do Playwright (em caso de falha)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
+
+      - name: Verificação de dependências — npm audit (produção)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Verificação de dependências — OSV-Scanner
+        run: >
+          docker run --rm -v "$PWD:/src"
+          ghcr.io/google/osv-scanner@sha256:afd838850ac1a0fcc15ff4a041dc9ba11123c3f0d2666217a5f0fcf9222b55fa
+          scan source --config=/src/osv-scanner.toml --lockfile=/src/package-lock.json
+
+      - name: Build de produção
+        run: npm run build

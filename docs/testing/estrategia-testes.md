@@ -42,8 +42,15 @@ Cobertura mínima (gate de CI, a partir da Etapa 2): 90% de linhas/branches em `
 
 - `FakeClock` (relógio injetável) para KDS, expiração de sessão e virada do dia operacional.
 - Factories por agregado (`aStore()`, `anOrder().withItems(...)`) em `tests/support`.
-- Banco de integração: um container por execução, migrations aplicadas, cada teste em transação
-  com rollback ou truncamento por suite (decidir na Etapa 1).
+- Banco de integração (decidido na Etapa 1): **um container MySQL 8.4 por execução** da suíte
+  (`tests/support/mysql-global-setup.ts`), migrations aplicadas como root e testes rodando com o
+  usuário da aplicação (apenas DML). **Sem truncamento**: cada teste usa uma loja (`store_id`)
+  própria gerada com `newId()`, o que isola os dados e ainda exercita o isolamento multi-tenant.
+- E2E: banco `erp_e2e` no MySQL do compose; o Playwright aplica as migrations, compila e sobe o
+  **servidor standalone de produção** antes dos testes.
+- BDD: `.feature` em `tests/features/`. Na camada de domínio com `@amiceli/vitest-cucumber`
+  (`loadFeature(..., { language: 'pt' })`, arquivos `*.feature.test.ts`); no navegador com
+  `playwright-bdd` (passos em `tests/e2e/steps/`).
 - Dados fictícios somente em seed de desenvolvimento e testes.
 
 ## 6. Cenários BDD principais (a detalhar nos SDDs)

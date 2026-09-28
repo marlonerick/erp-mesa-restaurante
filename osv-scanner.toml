@@ -1,0 +1,7 @@
+# Vulnerabilidades conhecidas aceitas conscientemente (docs/security/estrategia-seguranca.md §8).
+# Cada exceção precisa de justificativa e data de revisão.
+
+[[IgnoredVulns]]
+id = "GHSA-67mh-4wv8-2f99"
+ignoreUntil = 2027-03-31
+reason = "esbuild <=0.24.2 (dependência de desenvolvimento do drizzle-kit): a falha só afeta o servidor de desenvolvimento do esbuild (esbuild --serve), que não usamos; não vai para produção."

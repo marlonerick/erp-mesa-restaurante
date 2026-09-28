@@ -51,21 +51,37 @@ Rate limit: implementação própria em tabela MySQL (sem Redis) — ver ADR-000
 | Vitest | Unit e integração | Rápido, TS nativo | Baixo | — | Grátis | Obrigatória |
 | Testcontainers (MySQL) | MySQL real nos testes | Sem mocks de banco | Exige Docker no CI | Docker | Grátis | Obrigatória |
 | Playwright | E2E | Multi-browser, viewport móvel/tablet | Flakiness | — | Grátis | Obrigatória |
-| playwright-bdd | Executar `.feature` no E2E | Gherkin em português executável | Acoplamento a Playwright | Playwright | Grátis | Proposta |
-| @amiceli/vitest-cucumber | Executar `.feature` na camada de domínio/aplicação | BDD sem browser, rápido | Projeto pequeno | Vitest | Grátis | Proposta (validar na Etapa 1; alternativa: cenários BDD espelhados em `describe` com link ao `.feature`) |
-| fast-check | Testes de propriedade | Money/Quantity/arredondamento | Baixo | — | Grátis | Proposta |
-| ESLint + typescript-eslint | Lint | Regras de tipo, `no-explicit-any` | Baixo | — | Grátis | Obrigatória |
-| eslint-plugin-boundaries | Fronteiras de camadas/módulos | Impede import proibido | Configuração inicial | ESLint | Grátis | Proposta |
-| Prettier | Formatação | Diffs limpos | Baixo | — | Grátis | Proposta |
-| commitlint + husky/lefthook | Conventional Commits | Histórico legível | Baixo | — | Grátis | Proposta |
-| `npm audit` + OSV-Scanner | Verificação de dependências | Vulnerabilidades conhecidas | Falsos positivos | — | Grátis | Obrigatória (CI) |
+| playwright-bdd | Executar `.feature` no E2E | Gherkin em português executável | Acoplamento a Playwright | Playwright | Grátis | Instalada — experimento da Etapa 1 aprovado tecnicamente (decisão final com o usuário) |
+| @amiceli/vitest-cucumber | Executar `.feature` na camada de domínio/aplicação | BDD sem browser, rápido | Projeto pequeno | Vitest | Grátis | Instalada — experimento da Etapa 1 aprovado tecnicamente (decisão final com o usuário) |
+| fast-check | Testes de propriedade | Money/Quantity/arredondamento | Baixo | — | Grátis | Instalada |
+| ESLint + typescript-eslint | Lint e fronteiras de camadas (`no-restricted-imports`) | Regras de tipo, `no-explicit-any` | Baixo | — | Grátis | Obrigatória |
+| ~~eslint-plugin-boundaries~~ | — | — | — | — | — | **Descartada na Etapa 1**: exigiria `eslint-import-resolver-typescript`; a regra nativa cobre o mesmo |
+| Prettier | Formatação | Diffs limpos | Baixo | — | Grátis | Instalada |
+| commitlint + lefthook | Conventional Commits e verificações antes do commit/push | Histórico legível | Baixo | — | Grátis | Instalada (D-6) |
+| `npm audit` + OSV-Scanner | Verificação de dependências | Vulnerabilidades conhecidas | Falsos positivos | Docker (OSV) | Grátis | Obrigatória (CI); exceções em `osv-scanner.toml` |
 
 ## CI/CD e operação
 
 | Nome | Objetivo | Benefício | Risco | Dependências | Custo | Necessidade |
 |---|---|---|---|---|---|---|
-| GitHub Actions | CI | Docker disponível no runner | Depende do host do repo | GitHub | Grátis (limites) | Proposta (pergunta Q-11) |
+| GitHub Actions | CI (`.github/workflows/ci.yml`) | Docker disponível no runner | Depende do host do repo | GitHub | Grátis (limites) | Aprovada (Q-11) |
 | Docker / Docker Compose | MySQL dev e E2E; imagem de produção | Paridade de ambientes | Baixo | — | Grátis | Obrigatória |
+
+## Versões instaladas (Etapa 1, 2026-09-28)
+
+Fixadas com `save-exact` no `package.json`; o `package-lock.json` é a referência.
+
+| Uso | Pacotes |
+|---|---|
+| Aplicação | next 16.3.6, react / react-dom 19.3.0, drizzle-orm 0.45.3, mysql2 3.24.4, zod 4.6.5, pino 10.3.1, uuid 14.0.2 |
+| Linguagem e build | typescript 6.0.3, tailwindcss 4.3.3, @tailwindcss/postcss 4.3.3, drizzle-kit 0.31.11 |
+| Testes | vitest 5.0.2, @vitest/coverage-v8 5.0.2, @testcontainers/mysql 12.1.0, @playwright/test 1.63.0, playwright-bdd 9.2.1, @amiceli/vitest-cucumber 8.0.0, fast-check 4.10.2 |
+| Qualidade | eslint 10.11.0, @eslint/js 10.0.1, typescript-eslint 8.70.1, @next/eslint-plugin-next 16.3.6, eslint-plugin-react-hooks 7.1.1, eslint-config-prettier 10.1.8, globals 17.12.0, prettier 3.9.9 |
+| Git | lefthook 2.1.14, @commitlint/cli 21.2.3, @commitlint/config-conventional 21.2.3 |
+| Tipos | @types/node 24.19.0, @types/react 19.3.0, @types/react-dom 19.3.0 |
+
+Pacotes complementares (tipos, plugins e presets) são partes obrigatórias das ferramentas aprovadas.
+Evitados de propósito: `dotenv` e `tsx` — o Node 24 já lê `.env` (`--env-file`) e executa TypeScript.
 
 ## Explicitamente fora do MVP
 
