@@ -1,4 +1,4 @@
-import { getStore } from '@/modules/organizations';
+import { getStoreAnyStatus } from '@/modules/organizations';
 import type { Transaction } from '@/shared/db/transaction';
 import { DomainError, type Id, type Permission, type RequestContext } from '@/shared/kernel';
 import { canAssignRole, resolveStorePermissions } from '../domain/effective-permissions';
@@ -26,7 +26,9 @@ async function actorPermissionsOver(
         ),
       );
     case 'STORE': {
-      const store = await getStore(tx, target.scopeId);
+      // Inclui loja desativada: o perfil antigo ainda precisa ser "alcançável" por quem está acima
+      // (senão nem o ADMIN conseguiria desativar quem trabalhou numa loja fechada)
+      const store = await getStoreAnyStatus(tx, target.scopeId);
       return store ? resolveStorePermissions(actorGrants, store) : new Set();
     }
   }

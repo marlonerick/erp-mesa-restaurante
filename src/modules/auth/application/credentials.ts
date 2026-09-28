@@ -24,7 +24,7 @@ import {
   rateLimitWindowStart,
 } from '../domain/rate-limit-policy';
 import type { AuthDependencies } from './ports';
-import { authErrors, pinError, recordLoginFailure, reserveAttempt, verifyPin } from './shared';
+import { authErrors, recordLoginFailure, reserveAttempt, verifyPin } from './shared';
 
 const unauthenticated = () =>
   new DomainError('UNAUTHENTICATED', 'Sua sessão terminou. Entre novamente.', 'UNAUTHENTICATED');
@@ -156,6 +156,10 @@ export async function requestElevation(
 
   const pin = await verifyPin(deps, found, input.pin, now);
   if (pin !== 'OK') {
+    // Travado ou sem PIN respondem sem rodar o Argon2: roda o hash falso para a demora ser igual
+    if (pin === 'LOCKED' || pin === 'NOT_SET') {
+      await deps.hasher.verify(await dummyPasswordHash(deps.hasher), input.pin);
+    }
     await runInTransaction(deps.db, (tx) =>
       recordLoginFailure(tx, {
         user: found,
@@ -166,7 +170,8 @@ export async function requestElevation(
         now,
       }),
     );
-    throw pin === 'INVALID' || pin === 'NOT_SET' ? invalidAuthorization() : pinError(pin);
+    // Resposta única para qualquer falha: não revela se a pessoa existe, se tem PIN ou se travou
+    throw invalidAuthorization();
   }
 
   return runInTransaction(deps.db, async (tx) => {

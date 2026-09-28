@@ -52,6 +52,12 @@ export interface UserRepository {
     id: Id,
     input: { now: Date; maxAttempts: number },
   ): Promise<{ reserved: boolean }>;
+  /** Trava o PIN se as tentativas já chegaram ao limite; devolve se está travado. */
+  lockPinIfExhausted(
+    tx: Transaction,
+    id: Id,
+    input: { now: Date; maxAttempts: number },
+  ): Promise<boolean>;
   clearPinFailures(tx: Transaction, id: Id): Promise<void>;
   disable(tx: Transaction, id: Id, now: Date): Promise<void>;
 }

@@ -24,6 +24,8 @@ export const findUsersByIds = (tx: Transaction, ids: readonly Id[]): Promise<Use
 export const countUsers = (tx: Transaction) => repo.countAll(tx);
 export const reservePinAttempt = (tx: Transaction, id: Id, now: Date, maxAttempts: number) =>
   repo.reservePinAttempt(tx, id, { now, maxAttempts });
+export const lockPinIfExhausted = (tx: Transaction, id: Id, now: Date, maxAttempts: number) =>
+  repo.lockPinIfExhausted(tx, id, { now, maxAttempts });
 export const clearPinFailures = (tx: Transaction, id: Id) => repo.clearPinFailures(tx, id);
 export const storePasswordHash = (
   tx: Transaction,

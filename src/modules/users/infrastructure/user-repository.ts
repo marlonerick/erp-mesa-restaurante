@@ -1,4 +1,4 @@
-import { count, eq, inArray, sql } from 'drizzle-orm';
+import { and, count, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
 import { appUser } from '@/shared/db/schema';
 import type { UserRepository } from '../application/ports';
 
@@ -88,6 +88,24 @@ export const userRepository: UserRepository = {
       .from(appUser)
       .where(eq(appUser.id, id));
     return { reserved: row?.lockedAt === null };
+  },
+
+  async lockPinIfExhausted(tx, id, { now, maxAttempts }) {
+    await tx
+      .update(appUser)
+      .set({ pinLockedAt: now })
+      .where(
+        and(
+          eq(appUser.id, id),
+          isNull(appUser.pinLockedAt),
+          gte(appUser.failedPinAttempts, maxAttempts),
+        ),
+      );
+    const [row] = await tx
+      .select({ lockedAt: appUser.pinLockedAt })
+      .from(appUser)
+      .where(eq(appUser.id, id));
+    return (row?.lockedAt ?? null) !== null;
   },
 
   async clearPinFailures(tx, id) {

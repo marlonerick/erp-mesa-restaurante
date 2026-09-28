@@ -36,7 +36,7 @@
 - ADR-0006 (momento da baixa de estoque) — aguarda Q-01; bloqueia a Etapa 5.
 
 ## Testes
-- Vitest: 374 testes (220 unitários + 154 de integração com MySQL 8.4 real). Cobertura do kernel: 96,8%.
+- Vitest: 400 testes (244 unitários + 156 de integração com MySQL 8.4 real). Cobertura do kernel: 96,8%.
 - Playwright: 37 testes (celular, tablet, desktop + BDD).
 
 ## Bugs

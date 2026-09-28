@@ -3,6 +3,7 @@ import type { Transaction } from '@/shared/db/transaction';
 import type { Id } from '@/shared/kernel';
 import {
   findActiveStore,
+  findStoreAnyStatus,
   insertCompany,
   insertOrganization,
   insertStore,
@@ -14,6 +15,11 @@ export type { StoreInfo } from './infrastructure/store-repository';
 
 export function getStore(tx: Transaction, storeId: Id): Promise<StoreInfo | null> {
   return findActiveStore(tx, storeId);
+}
+
+/** Inclui lojas desativadas (ex.: conferir perfis antigos de uma pessoa). */
+export function getStoreAnyStatus(tx: Transaction, storeId: Id): Promise<StoreInfo | null> {
+  return findStoreAnyStatus(tx, storeId);
 }
 
 export function listStores(tx: Transaction, organizationId: Id): Promise<StoreInfo[]> {

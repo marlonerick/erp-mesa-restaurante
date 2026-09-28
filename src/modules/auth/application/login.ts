@@ -104,7 +104,11 @@ export async function login(
         LOGIN_FAILURES_PER_USER,
         window,
       );
+      // O IP só é reservado se o usuário ainda pode tentar: tentativas já recusadas pelo limite do
+      // usuário não somam no IP — senão um garçom insistindo bloquearia o restaurante inteiro,
+      // que costuma sair pelo mesmo IP (achado I-A da reverificação)
       const ipAllowed =
+        !userAllowed ||
         meta.ip === null ||
         (await reserveAttempt(deps, tx, ipKey(meta.ip), LOGIN_FAILURES_PER_IP, window));
       if (!userAllowed || !ipAllowed) {

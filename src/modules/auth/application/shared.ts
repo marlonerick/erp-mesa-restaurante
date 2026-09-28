@@ -1,6 +1,11 @@
 import { recordAudit } from '@/modules/audit';
 import type { StoreInfo } from '@/modules/organizations';
-import { clearPinFailures, reservePinAttempt, type UserRecord } from '@/modules/users';
+import {
+  clearPinFailures,
+  lockPinIfExhausted,
+  reservePinAttempt,
+  type UserRecord,
+} from '@/modules/users';
 import { runInTransaction, type Transaction } from '@/shared/db/transaction';
 import { DomainError, type Id, newId } from '@/shared/kernel';
 import { generateSecretToken, hashToken } from '@/shared/security/tokens';
@@ -61,7 +66,13 @@ export async function verifyPin(
     reservePinAttempt(tx, user.id, now, PIN_MAX_ATTEMPTS),
   );
   if (!reserved) return 'LOCKED';
-  if (!(await deps.hasher.verify(user.pinHash, pin))) return 'INVALID';
+  if (!(await deps.hasher.verify(user.pinHash, pin))) {
+    // O 5º erro já trava (e a tela "Quem está usando?" passa a mostrar o bloqueio)
+    const locked = await runInTransaction(deps.db, (tx) =>
+      lockPinIfExhausted(tx, user.id, now, PIN_MAX_ATTEMPTS),
+    );
+    return locked ? 'LOCKED' : 'INVALID';
+  }
   await runInTransaction(deps.db, (tx) => clearPinFailures(tx, user.id));
   return 'OK';
 }

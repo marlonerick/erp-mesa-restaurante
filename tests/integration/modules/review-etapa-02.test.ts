@@ -25,6 +25,15 @@ const failureOf = (promise: Promise<unknown>) =>
     (error: unknown) => error,
   );
 
+/** Códigos de erro das tentativas recusadas (ex.: nenhuma pode ser deadlock ou erro interno). */
+function rejectionCodes(results: PromiseSettledResult<unknown>[]): Set<string> {
+  return new Set(
+    results
+      .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+      .map((r) => String((r.reason as { code?: unknown }).code)),
+  );
+}
+
 /** Hasher real que conta quantas conferências (verify) aconteceram. */
 function countingHasher(): PasswordHasher & { verifications: number } {
   const hasher = {
@@ -131,7 +140,7 @@ describe('B2 — limite de tentativas vale para tentativas simultâneas', () => 
     });
     const hasher = countingHasher();
     const auth = authService({ db, hasher, clock: new FakeClock(TEST_START) });
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
       Array.from({ length: 20 }, (_, i) =>
         auth.login(
           { username, password: `errada-${String(i)}`, sharedDevice: false, deviceToken: null },
@@ -140,6 +149,57 @@ describe('B2 — limite de tentativas vale para tentativas simultâneas', () => 
       ),
     );
     expect(hasher.verifications).toBeLessThanOrEqual(5);
+    // Toda recusa é a esperada — nenhuma por deadlock ou erro interno (achado I-B)
+    expect(
+      [...rejectionCodes(results)].every((c) =>
+        ['INVALID_CREDENTIALS', 'RATE_LIMITED'].includes(c),
+      ),
+    ).toBe(true);
+  });
+
+  it('20 logins certos simultâneos pelo MESMO IP: todos entram (troca de turno — achado I-B)', async () => {
+    const org = await createTestOrganization(db);
+    const usernames = Array.from({ length: 20 }, () => uniqueUsername('turno'));
+    for (const username of usernames) {
+      await createTestUser(db, {
+        organizationId: org.organizationId,
+        username,
+        password: 'Turno@2026',
+        storeRoles: [{ role: 'GARCOM', storeId: org.centro }],
+      });
+    }
+    const auth = authService({ db, clock: new FakeClock(TEST_START) });
+    const ip = `198.51.100.${String(Math.floor(Math.random() * 250) + 1)}`;
+    const results = await Promise.allSettled(
+      usernames.map((username) =>
+        auth.login(
+          { username, password: 'Turno@2026', sharedDevice: false, deviceToken: null },
+          meta(ip),
+        ),
+      ),
+    );
+    expect(results.filter((r) => r.status === 'rejected')).toEqual([]);
+  });
+
+  it('um garçom insistindo depois de bloqueado NÃO bloqueia o IP do restaurante (achado I-A)', async () => {
+    const org = await createTestOrganization(db);
+    const [teimoso, colega] = [uniqueUsername('teimoso'), uniqueUsername('colega')];
+    for (const username of [teimoso, colega]) {
+      await createTestUser(db, {
+        organizationId: org.organizationId,
+        username,
+        password: 'Senha@2026',
+        storeRoles: [{ role: 'GARCOM', storeId: org.centro }],
+      });
+    }
+    const auth = authService({ db, clock: new FakeClock(TEST_START) });
+    const ip = `192.0.2.${String(Math.floor(Math.random() * 250) + 1)}`;
+    const attempt = (username: string, password: string) =>
+      failureOf(
+        auth.login({ username, password, sharedDevice: false, deviceToken: null }, meta(ip)),
+      );
+    for (let i = 0; i < 40; i += 1) await attempt(teimoso, `errada-${String(i)}`);
+    expect(await attempt(colega, 'Senha@2026')).toBeNull();
   });
 
   it('login certo não conta contra o limite do IP (restaurante inteiro sai pelo mesmo IP)', async () => {
@@ -180,12 +240,15 @@ describe('I1 — travamento do PIN sob tentativas simultâneas', () => {
       meta(),
     );
     hasher.verifications = 0;
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
       Array.from({ length: 20 }, () =>
         auth.switchUser({ deviceToken, userId, pin: '000001' }, meta()),
       ),
     );
     expect(hasher.verifications).toBeLessThanOrEqual(5);
+    expect(
+      [...rejectionCodes(results)].every((c) => ['INVALID_PIN', 'PIN_LOCKED'].includes(c)),
+    ).toBe(true);
     expect(
       await failureOf(auth.switchUser({ deviceToken, userId, pin: '482915' }, meta())),
     ).toMatchObject({

@@ -21,6 +21,12 @@ const storeColumns = {
   timezone: store.timezone,
 };
 
+/** Loja em qualquer situação (ativa ou não) — para regras que olham o histórico de perfis. */
+export async function findStoreAnyStatus(tx: Transaction, storeId: Id): Promise<StoreInfo | null> {
+  const [row] = await tx.select(storeColumns).from(store).where(eq(store.id, storeId));
+  return row ?? null;
+}
+
 export async function findActiveStore(tx: Transaction, storeId: Id): Promise<StoreInfo | null> {
   const [row] = await tx
     .select(storeColumns)

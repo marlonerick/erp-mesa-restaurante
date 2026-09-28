@@ -69,12 +69,27 @@ importantes foram reproduzidos por testes (`tests/integration/modules/review-eta
 Também: o limite por IP agora devolve a tentativa em login certo — sem isso, a troca de turno
 (toda a equipe no mesmo IP) bloquearia o restaurante.
 
+2ª revisão (reverificação): **aprovada com ressalvas** — bloqueantes e importantes resolvidos.
+Ressalvas tratadas em seguida:
+
+| # | Achado | Correção |
+|---|---|---|
+| I-A | Regressão: tentativas já recusadas pelo limite do usuário somavam no IP — um garçom insistindo bloquearia o restaurante inteiro | O IP só conta tentativas que realmente conferiram a senha; teste com 40 cliques + colega entrando |
+| I-B | Faltava teste de muitos logins pelo MESMO IP e checagem de que nenhuma recusa é deadlock | Teste de 20 logins simultâneos pelo mesmo IP; testes de concorrência conferem o motivo de cada recusa |
+| S1 | Perfil em loja desativada impedia até o ADMIN de gerenciar a pessoa | Guarda B1 enxerga lojas desativadas |
+| S3 | PIN só aparecia travado na 6ª tentativa | Trava já no 5º erro |
+| S4 | Autorização do gerente ainda revelava PIN travado/sem PIN | Resposta única e tempo constante para qualquer falha |
+| S5 | Filtro da auditoria estreito (pinCode, sessionCookie...) | Filtro por palavra do nome do campo, com teste |
+| S7 | Anti-escalada na remoção sem teste direto | Teste unitário de `replaceStoreRoles` (inclusão, remoção, perfil desconhecido) |
+| S2 | Perfil por empresa não confere a organização da empresa | Registrado: perfis por empresa ainda não existem; tratar quando forem criados |
+| S6 | Aparelho compartilhado não pode ser desmarcado | Decisão: permanente por segurança; para desmarcar, apagar os dados do site no navegador (documentado no SDD) |
+
 ## Testes (2026-09-28)
 
 | Tipo | Resultado |
 |---|---|
-| Unitários (domínio, kernel, arquitetura, CSP) | ✅ 220 |
-| Integração com MySQL 8.4 real (BDD + regras de borda + auditoria + concorrência + achados da revisão) | ✅ 154 |
+| Unitários (domínio, kernel, arquitetura, CSP, auditoria, anti-escalada) | ✅ 244 |
+| Integração com MySQL 8.4 real (BDD + regras de borda + auditoria + concorrência + achados das revisões) | ✅ 156 |
 | E2E no navegador (celular, tablet, desktop) + BDD | ✅ 37 (2 execuções seguidas, sem instabilidade) |
 | Cobertura do kernel | ✅ 96,8% |
 
@@ -91,6 +106,6 @@ edição, senha, desativação, perfis); auditoria imutável garantida por trigg
 - [x] Testes unitários, integração (MySQL real), BDD, isolamento entre lojas, E2E
 - [x] Lint, typecheck, build
 - [ ] CI no GitHub (após o push)
-- [ ] Revisão do `reviewer`
+- [x] Revisão do `reviewer` (2 rodadas; achados corrigidos)
 - [x] Docs, mapas e `PROJECT_STATUS.md`
 - [ ] `APROVADO` do usuário

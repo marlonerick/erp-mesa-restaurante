@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { authorizeOrElevate } from '@/modules/authorization';
-import { auditLog, deviceUser, userSession } from '@/shared/db/schema';
+import { appUser, auditLog, deviceUser, userSession } from '@/shared/db/schema';
 import { runInTransaction } from '@/shared/db/transaction';
 import { useTestDatabase } from '../../../support/database';
 import { FakeClock } from '../../../support/fake-clock';
@@ -323,7 +323,13 @@ describe('autorização do gerente — regras de borda', () => {
     // Mensagem genérica: não revela se o usuário existe (sugestão 1 da revisão)
     expect(await ask('000001')).toMatchObject({ code: 'INVALID_AUTHORIZATION' });
     for (let i = 0; i < 4; i += 1) await ask('000001');
-    expect(await ask('739104')).toMatchObject({ code: 'PIN_LOCKED' });
+    // Travou, mas a resposta continua genérica (não revela o estado do PIN — sugestão 4)
+    expect(await ask('739104')).toMatchObject({ code: 'INVALID_AUTHORIZATION' });
+    const [row] = await db
+      .select({ lockedAt: appUser.pinLockedAt })
+      .from(appUser)
+      .where(eq(appUser.username, manager));
+    expect(row?.lockedAt).not.toBeNull();
   });
 
   it('gerente de outra organização não autoriza', async () => {
