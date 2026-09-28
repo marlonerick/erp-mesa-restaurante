@@ -14,7 +14,11 @@ export interface StoreScope {
   readonly organizationId: string;
 }
 
-function covers(grant: ScopedGrant, store: StoreScope): boolean {
+/** O escopo do perfil (loja, empresa ou organização) inclui esta loja? */
+export function covers(
+  grant: Pick<ScopedGrant, 'scopeType' | 'scopeId'>,
+  store: StoreScope,
+): boolean {
   switch (grant.scopeType) {
     case 'STORE':
       return grant.scopeId === store.id;

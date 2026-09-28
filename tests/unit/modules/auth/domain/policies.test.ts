@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateNewPassword } from '@/modules/auth/domain/password-policy';
+import { validateNewPassword } from '@/modules/users/domain/password-policy';
 import { validatePin } from '@/modules/auth/domain/pin-policy';
 import {
   ABSOLUTE_LIFETIME_SECONDS,
