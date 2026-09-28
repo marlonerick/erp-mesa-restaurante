@@ -1,0 +1,41 @@
+# MySQL de DESENVOLVIMENTO. As senhas abaixo são fictícias e valem apenas para a máquina local.
+# Produção usa MySQL gerenciado com segredos em variáveis de ambiente (ADR-0011).
+name: erp-restaurante
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: erp-mysql-dev
+    restart: unless-stopped
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: root_dev_only
+      MYSQL_DATABASE: erp_dev
+      # Bancos e usuários extras criados por init/01-usuarios.sh
+      EXTRA_DATABASES: erp_e2e
+      APP_DB_USER: erp_app
+      APP_DB_PASSWORD: app_dev_only
+      MIGRATOR_DB_USER: erp_migrator
+      MIGRATOR_DB_PASSWORD: migrator_dev_only
+    # Opções passadas por linha de comando (no Windows, arquivos .cnf montados são ignorados
+    # pelo MySQL por aparecerem como graváveis por todos)
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+00:00
+      - --sql-mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION,ONLY_FULL_GROUP_BY
+      - --transaction-isolation=REPEATABLE-READ
+      - --skip-name-resolve
+    volumes:
+      - erp-mysql-data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -uroot -p"$$MYSQL_ROOT_PASSWORD" --silent']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+volumes:
+  erp-mysql-data:
