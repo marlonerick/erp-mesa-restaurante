@@ -1,0 +1,14 @@
+node_modules
+.next
+coverage
+test-results
+playwright-report
+.features-gen
+drizzle/meta
+package-lock.json
+# Documentação é escrita à mão; não reformatar automaticamente
+docs
+maps
+README.md
+CLAUDE.md
+.claude
