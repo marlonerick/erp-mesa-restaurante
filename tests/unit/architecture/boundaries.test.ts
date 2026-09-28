@@ -95,6 +95,11 @@ describe('fronteiras de arquitetura (docs/architecture/visao-geral.md §2)', () 
       'src/modules/payments/application/pay.ts',
       "import '@/modules/orders';",
     ],
+    [
+      'interface → porta web de outro módulo',
+      'src/modules/users/interface/actions.ts',
+      "import '@/modules/auth/web';",
+    ],
     ['infrastructure → ORM', 'src/modules/orders/infrastructure/repo.ts', "import 'drizzle-orm';"],
     [
       'tela → interface de módulo',

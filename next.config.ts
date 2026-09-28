@@ -2,8 +2,8 @@ import type { NextConfig } from 'next';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Cabeçalhos de segurança básicos (README B.8). A CSP completa, com nonce para scripts,
-// entra na Etapa 2 junto com o login; aqui só vão diretivas que não quebram o Next.
+// Cabeçalhos de segurança fixos (README B.8). A CSP com nonce é gerada por requisição em
+// src/proxy.ts (Etapa 2).
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
@@ -11,10 +11,6 @@ const securityHeaders = [
   {
     key: 'Permissions-Policy',
     value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
-  },
-  {
-    key: 'Content-Security-Policy',
-    value: "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
   },
   ...(isProduction
     ? [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' }]
@@ -27,7 +23,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   // Bibliotecas Node que não devem ser empacotadas pelo bundler
-  serverExternalPackages: ['pino', 'mysql2'],
+  serverExternalPackages: ['pino', 'mysql2', '@node-rs/argon2'],
   headers() {
     return Promise.resolve([{ source: '/:path*', headers: securityHeaders }]);
   },

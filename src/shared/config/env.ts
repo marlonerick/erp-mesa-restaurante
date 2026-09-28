@@ -10,6 +10,16 @@ const envSchema = z.object({
   MIGRATOR_DATABASE_URL: mysqlUrl.optional(),
   DB_POOL_SIZE: z.coerce.number().int().min(1).max(100).default(10),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  /** Endereço público do sistema. Com https://, os cookies ficam "Secure" e com prefixo __Host-. */
+  APP_ORIGIN: z.url().default('http://localhost:3000'),
+  /**
+   * Só "true" atrás de um proxy/balanceador que SOBRESCREVE o cabeçalho X-Forwarded-For.
+   * Sem isso o IP poderia ser falsificado pelo navegador para driblar o limite de tentativas.
+   */
+  TRUST_PROXY: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
 });
 
 export type Env = z.infer<typeof envSchema>;

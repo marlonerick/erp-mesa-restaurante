@@ -36,8 +36,10 @@ const loggerPatterns = [
 ];
 const crossModulePatterns = [
   {
-    regex: '^@/modules/[^/]+/.+',
-    message: 'Use apenas a API pública do outro módulo: "@/modules/<modulo>".',
+    // Portas públicas: "@/modules/<modulo>" (núcleo) e "@/modules/<modulo>/web" (adaptadores Next)
+    regex: '^@/modules/[^/]+/(?!web$).+',
+    message:
+      'Use apenas a API pública do outro módulo: "@/modules/<modulo>" ou "@/modules/<modulo>/web".',
   },
   {
     regex:
