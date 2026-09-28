@@ -37,8 +37,9 @@ export default defineConfig({
     { name: 'bdd', testDir: bddTestDir, use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: {
-    // Aplica migrations no banco de E2E, compila e sobe o servidor de produção
-    command: 'node scripts/migrate.ts && npm run build && npm run start',
+    // Aplica migrations no banco de E2E, cria a equipe fictícia (se vazio), compila e sobe o
+    // servidor de produção
+    command: 'node scripts/migrate.ts && npm run db:seed && npm run build && npm run start',
     url: `${baseURL}/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 300_000,
@@ -49,6 +50,9 @@ export default defineConfig({
       DATABASE_URL: e2eDatabaseUrl,
       MIGRATOR_DATABASE_URL: e2eMigratorUrl,
       LOG_LEVEL: 'warn',
+      APP_ORIGIN: baseURL,
+      // O seed é recusado em produção; aqui é o banco descartável de E2E
+      ALLOW_DEMO_SEED: 'true',
     },
   },
 });

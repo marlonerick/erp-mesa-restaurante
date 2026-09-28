@@ -85,14 +85,20 @@ export async function openSession(
     user: UserRecord;
     store: StoreInfo;
     device: DeviceRecord;
+    /** Aparelho criado agora: não há sessão dele para encerrar. */
+    deviceIsNew?: boolean;
     method: LoginMethod;
     meta: RequestMeta;
     now: Date;
   },
 ): Promise<{ token: string; sessionId: Id }> {
   const { user, store, device, method, meta, now } = input;
-  // Um aparelho, uma sessão ativa: quem estava usando sai (RN-AUTH-11)
-  await deps.repo.revokeDeviceSessions(tx, device.id, 'TROCA_USUARIO', now);
+  // Um aparelho, uma sessão ativa: quem estava usando sai (RN-AUTH-11). Em aparelho novo o UPDATE
+  // seria inútil e "trancaria" o fim do índice (gap lock), causando deadlock entre logins
+  // simultâneos — os ids UUIDv7 são crescentes e todos disputariam o mesmo trecho.
+  if (!input.deviceIsNew) {
+    await deps.repo.revokeDeviceSessions(tx, device.id, 'TROCA_USUARIO', now);
+  }
 
   const token = generateSecretToken();
   const sessionId = newId();

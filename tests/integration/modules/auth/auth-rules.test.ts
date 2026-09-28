@@ -122,6 +122,27 @@ describe('login — regras de borda', () => {
   });
 });
 
+describe('troca de turno: muitos logins ao mesmo tempo', () => {
+  it('20 pessoas entrando simultaneamente em aparelhos novos: todas conseguem (sem deadlock)', async () => {
+    const org = await createTestOrganization(db);
+    const usernames = Array.from({ length: 20 }, () => uniqueUsername('turno'));
+    for (const username of usernames) {
+      await createTestUser(db, {
+        organizationId: org.organizationId,
+        username,
+        password: 'Turno@2026',
+        storeRoles: [{ role: 'GARCOM', storeId: org.centro }],
+      });
+    }
+    const services = testServices(db);
+    const results = await Promise.allSettled(
+      usernames.map((username) => loginAs(services, username, 'Turno@2026')),
+    );
+    const failures = results.filter((r) => r.status === 'rejected');
+    expect(failures).toEqual([]);
+  });
+});
+
 describe('troca rápida — regras de borda', () => {
   it('quem entrou com senha há mais de 7 dias não pode trocar por PIN', async () => {
     const { services, username, userId, clock } = await scenario({ pin: '482915' });

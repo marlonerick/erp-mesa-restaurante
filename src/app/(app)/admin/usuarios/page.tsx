@@ -22,9 +22,47 @@ export default async function UsersPage() {
         <p className="text-tinta-suave">Equipe com acesso à loja {storeName}.</p>
       </div>
 
-      <table className="w-full border-collapse text-left">
+      {/* Celular: lista (linha inteira é o alvo de toque). Computador: tabela. Cada estrutura
+          com a semântica correta — mudar o display de <tr> apaga a tabela para leitores de tela. */}
+      <ul className="flex flex-col border-t border-borda sm:hidden" aria-label="Usuários da loja">
+        {users.map((user) => {
+          const content = (
+            <>
+              <span className="flex flex-col">
+                <span className="font-semibold">{user.name}</span>
+                <span className="text-tinta-suave">{user.username}</span>
+                <span>
+                  {user.roles.map(roleLabel).join(', ')}
+                  {user.status === 'DESATIVADO' ? (
+                    <span className="font-semibold text-alerta"> (desativado)</span>
+                  ) : null}
+                </span>
+              </span>
+              <span className="font-semibold text-azulejo">
+                {user.id === context.userId ? '' : 'Editar'}
+              </span>
+            </>
+          );
+          return (
+            <li key={user.id} className="border-b border-borda">
+              {user.id === context.userId ? (
+                <div className="flex items-center justify-between gap-3 py-3">{content}</div>
+              ) : (
+                <Link
+                  href={`/admin/usuarios/${user.id}`}
+                  className="flex items-center justify-between gap-3 py-3 hover:bg-azulejo-claro"
+                >
+                  {content}
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      <table className="hidden w-full border-collapse text-left sm:table">
         <caption className="sr-only">Usuários da loja</caption>
-        <thead className="hidden border-b-2 border-tinta sm:table-header-group">
+        <thead className="border-b-2 border-tinta">
           <tr>
             <th scope="col" className="py-2 pr-4">
               Nome
@@ -45,21 +83,18 @@ export default async function UsersPage() {
         </thead>
         <tbody>
           {users.map((user) => (
-            <tr
-              key={user.id}
-              className="flex flex-col border-b border-borda py-3 sm:table-row sm:py-0"
-            >
-              <td className="font-semibold sm:py-3 sm:pr-4">{user.name}</td>
-              <td className="text-tinta-suave sm:py-3 sm:pr-4">{user.username}</td>
-              <td className="sm:py-3 sm:pr-4">{user.roles.map(roleLabel).join(', ')}</td>
-              <td className="sm:py-3 sm:pr-4">
+            <tr key={user.id} className="border-b border-borda">
+              <td className="py-3 pr-4 font-semibold">{user.name}</td>
+              <td className="py-3 pr-4 text-tinta-suave">{user.username}</td>
+              <td className="py-3 pr-4">{user.roles.map(roleLabel).join(', ')}</td>
+              <td className="py-3 pr-4">
                 {user.status === 'ATIVO' ? (
                   'Ativo'
                 ) : (
                   <span className="font-semibold text-alerta">Desativado</span>
                 )}
               </td>
-              <td className="sm:py-3">
+              <td className="py-3">
                 {user.id === context.userId ? (
                   <span className="inline-flex min-h-12 items-center text-tinta-suave">Você</span>
                 ) : (

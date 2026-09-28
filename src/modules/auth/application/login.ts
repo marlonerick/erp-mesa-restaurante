@@ -53,18 +53,18 @@ async function resolveDevice(
   deviceToken: string | null,
   shared: boolean,
   now: Date,
-): Promise<{ device: DeviceRecord; token: string }> {
+): Promise<{ device: DeviceRecord; token: string; isNew: boolean }> {
   const existing = deviceToken
     ? await deps.repo.findDeviceByTokenHash(tx, hashToken(deviceToken))
     : null;
   if (existing && deviceToken) {
     await deps.repo.updateDevice(tx, existing.id, { shared, now });
-    return { device: { id: existing.id, shared }, token: deviceToken };
+    return { device: { id: existing.id, shared }, token: deviceToken, isNew: false };
   }
   const token = generateSecretToken();
   const id = newId();
   await deps.repo.insertDevice(tx, { id, tokenHash: hashToken(token), shared, now });
-  return { device: { id, shared }, token };
+  return { device: { id, shared }, token, isNew: true };
 }
 
 /**
@@ -82,8 +82,9 @@ export async function login(
   const window = rateLimitWindowStart(now, LOGIN_WINDOW_SECONDS);
 
   const outcome = await runInTransaction(deps.db, async (tx): Promise<Outcome> => {
+    const userHits = await deps.repo.rateLimitHits(tx, userKey(attempted), window);
     const blocked =
-      (await deps.repo.rateLimitHits(tx, userKey(attempted), window)) >= LOGIN_FAILURES_PER_USER ||
+      userHits >= LOGIN_FAILURES_PER_USER ||
       (meta.ip !== null &&
         (await deps.repo.rateLimitHits(tx, ipKey(meta.ip), window)) >= LOGIN_FAILURES_PER_IP);
     if (blocked) {
@@ -131,23 +132,24 @@ export async function login(
       return { ok: false, error: authErrors.noStoreAccess() };
     }
 
-    await deps.repo.rateLimitClear(tx, userKey(user.username));
+    // Só apaga o contador se houver falhas: um DELETE sem linhas ainda "tranca" a faixa do índice
+    // (gap lock) e causava deadlock entre logins simultâneos de pessoas diferentes
+    if (userHits > 0) await deps.repo.rateLimitClear(tx, userKey(user.username));
     // Entrar com a senha destrava o PIN (RN-AUTH-12)
     if (user.pinLockedAt !== null || user.failedPinAttempts > 0)
       await clearPinFailures(tx, user.id);
 
-    const { device, token: deviceToken } = await resolveDevice(
-      deps,
-      tx,
-      input.deviceToken,
-      input.sharedDevice,
-      now,
-    );
+    const {
+      device,
+      token: deviceToken,
+      isNew: deviceIsNew,
+    } = await resolveDevice(deps, tx, input.deviceToken, input.sharedDevice, now);
     await deps.repo.upsertDeviceUser(tx, device.id, user.id, now);
     const { token } = await openSession(deps, tx, {
       user,
       store,
       device,
+      deviceIsNew,
       method: 'PASSWORD',
       meta,
       now,
