@@ -18,7 +18,7 @@ padrão que será adotada se você responder "use a proposta".
 | Q-11 | ~~Onde fica o repositório Git?~~ **Respondida (2026-09-28):** GitHub `marlonerick/erp-mesa-restaurante`, já com o primeiro commit; CI com GitHub Actions | — | — |
 | Q-12 | ~~Duração de sessão e aparelhos compartilhados?~~ **Respondida (2026-09-28):** sessão expira após **12 h sem uso** e, no máximo, **7 dias** (depois exige login de novo). Celulares e tablets **serão compartilhados** entre garçons → a Etapa 2 precisa de troca rápida de usuário no mesmo aparelho | — | — |
 | Q-13 | ~~Retenção de dados?~~ **Respondida (2026-09-28):** os dados ficam guardados **para sempre** no banco (vendas, caixa, estoque, auditoria). Ver Q-13b | — | — |
-| Q-13b | LGPD: dados pessoais técnicos (IP e navegador das **sessões expiradas**) podem ser apagados após 90 dias, e os **logs da aplicação** (arquivos fora do banco) mantidos por 90 dias? A lei pede guardar dado pessoal só enquanto for necessário; vendas e auditoria continuam para sempre | Sim | Etapa 2 |
+| Q-13b | ~~Apagar dados técnicos de sessões expiradas e logs após 90 dias?~~ **Aprovada (2026-09-28):** sim, via `npm run maintenance:purge`; vendas e auditoria continuam para sempre | — | — |
 | Q-14 | No KDS, "iniciar/pronto" é por **ticket inteiro** ou **por item**? Tempos de alerta (ex.: amarelo 10 min, vermelho 20 min)? | Por item, com atalho "tudo" no ticket; 10/20 min configurável | Etapa 7 |
 | Q-15 | Dispositivos do piloto: garçons usam celular próprio ou da casa? KDS em TV, monitor ou tablet? | Celulares da casa; KDS em tablet ≥ 10" ou monitor touch | Etapa 6 |
 | Q-16 | Fechamento cego: o operador informa só o **dinheiro** ou também os totais de cartão e PIX conferidos? | Dinheiro obrigatório; cartão/PIX opcional | Etapa 8 |
@@ -46,6 +46,13 @@ padrão que será adotada se você responder "use a proposta".
 | D-8 | Commits no formato `tipo(semana-N): etapa N - o que foi feito` (semana N = etapa N), verificado pelo commitlint |
 | D-9 | Trabalho e push **direto na `main`** enquanto o projeto não está em produção; depois, ramos + PR |
 | D-10 | BDD com as **duas** ferramentas: `@amiceli/vitest-cucumber` (regras de negócio) e `playwright-bdd` (navegador) |
+| E2-1 | Tabelas básicas `organization`, `company` e `store` criadas já na Etapa 2 (cadastro completo segue na Etapa 3) |
+| E2-2 | Troca rápida: "Quem está usando?" lista quem entrou com senha no aparelho nos últimos 7 dias; nome + PIN; troca encerra a sessão anterior; 5 PINs errados travam o PIN |
+| E2-3 | Aparelho compartilhado: sessão encerra após 3 min sem uso (tela volta para "Quem está usando?") |
+| E2-4 | PIN de 6 dígitos, o mesmo para troca rápida e autorização do gerente |
+| E2-5 | Primeiro ADMIN criado pelo comando `npm run admin:create` (sem senha fixa no código) |
+| E2-6 | Auditoria imutável garantida por trigger no MySQL |
+| E2-7 | Dependência `@node-rs/argon2` aprovada |
 | D-11 | Skill do Claude Code **frontend-design** (Anthropic, Apache 2.0) instalada no projeto; find-skills, prisma-database-setup e clerk-backend-api avaliadas e **não** adotadas (ver docs/architecture/ferramentas.md) |
 
 ## Pontos da especificação que interpretei (confirme ou corrija)
