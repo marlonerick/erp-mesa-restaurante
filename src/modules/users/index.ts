@@ -11,7 +11,7 @@ import { userRepository as repo } from './infrastructure/user-repository';
 
 export { validateNewPassword } from './domain/password-policy';
 export { normalizeUsername } from './domain/username';
-export type { UserSummary } from './application/administration';
+export type { UserDetail, UserSummary } from './application/administration';
 export type { RevokeUserSessions, UserRecord, UserStatus } from './application/ports';
 
 // ---- Consultas e alterações de credenciais (usadas pelo módulo Auth) ----
@@ -71,6 +71,7 @@ export function userAdministration(
   };
   return {
     list: (ctx: RequestContext) => admin.listUsers(deps, ctx),
+    get: (ctx: RequestContext, userId: Id) => admin.getUser(deps, ctx, userId),
     create: (ctx: RequestContext, input: Parameters<typeof admin.createUser>[2]) =>
       admin.createUser(deps, ctx, input),
     rename: (ctx: RequestContext, input: Parameters<typeof admin.renameUser>[2]) =>

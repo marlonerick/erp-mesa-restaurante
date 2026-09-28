@@ -35,7 +35,7 @@ const createSchema = z.object({
   roleCodes,
 });
 
-export async function createUserAction(_previous: FormState, formData: FormData) {
+export async function createUserAction(_previous: FormState | null, formData: FormData) {
   const { context } = await requireSession();
   return run(async () => {
     const input = createSchema.parse(read(formData));
@@ -46,7 +46,7 @@ export async function createUserAction(_previous: FormState, formData: FormData)
 
 const renameSchema = z.object({ userId: z.uuid(), name: z.string().max(120) });
 
-export async function renameUserAction(_previous: FormState, formData: FormData) {
+export async function renameUserAction(_previous: FormState | null, formData: FormData) {
   const { context } = await requireSession();
   return run(async () => {
     const input = renameSchema.parse(read(formData));
@@ -57,7 +57,7 @@ export async function renameUserAction(_previous: FormState, formData: FormData)
 
 const rolesSchema = z.object({ userId: z.uuid(), roleCodes });
 
-export async function setUserRolesAction(_previous: FormState, formData: FormData) {
+export async function setUserRolesAction(_previous: FormState | null, formData: FormData) {
   const { context } = await requireSession();
   return run(async () => {
     const input = rolesSchema.parse(read(formData));
@@ -71,7 +71,7 @@ export async function setUserRolesAction(_previous: FormState, formData: FormDat
 
 const resetSchema = z.object({ userId: z.uuid(), temporaryPassword: z.string().max(128) });
 
-export async function resetPasswordAction(_previous: FormState, formData: FormData) {
+export async function resetPasswordAction(_previous: FormState | null, formData: FormData) {
   const { context } = await requireSession();
   return run(async () => {
     const input = resetSchema.parse(read(formData));
@@ -85,7 +85,7 @@ export async function resetPasswordAction(_previous: FormState, formData: FormDa
 
 const disableSchema = z.object({ userId: z.uuid() });
 
-export async function disableUserAction(_previous: FormState, formData: FormData) {
+export async function disableUserAction(_previous: FormState | null, formData: FormData) {
   const { context } = await requireSession();
   return run(async () => {
     const input = disableSchema.parse(read(formData));

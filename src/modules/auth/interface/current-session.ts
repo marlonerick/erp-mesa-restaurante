@@ -8,7 +8,7 @@ import {
   authService,
   type RequestMeta,
 } from '../index';
-import { readSessionToken } from './cookies';
+import { readDeviceToken, readSessionToken } from './cookies';
 
 let service: AuthService | undefined;
 
@@ -36,6 +36,11 @@ export async function currentSession(
   options: { touch: boolean } = { touch: true },
 ): Promise<AuthenticatedSession | null> {
   return auth().authenticate(await readSessionToken(), await requestMeta(), options);
+}
+
+/** Pessoas que podem trocar de usuário neste aparelho (tela "Quem está usando?"). */
+export async function currentDeviceUsers() {
+  return auth().listDeviceUsers(await readDeviceToken());
 }
 
 /**

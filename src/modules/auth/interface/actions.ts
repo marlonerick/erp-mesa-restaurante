@@ -22,7 +22,10 @@ const loginSchema = z.object({
   sharedDevice: z.literal('on').optional(),
 });
 
-export async function loginAction(_previous: FormState, formData: FormData): Promise<FormState> {
+export async function loginAction(
+  _previous: FormState | null,
+  formData: FormData,
+): Promise<FormState> {
   const meta = await requestMeta();
   let mustChangePassword: boolean;
   try {
@@ -52,7 +55,7 @@ const switchSchema = z.object({
 });
 
 export async function switchUserAction(
-  _previous: FormState,
+  _previous: FormState | null,
   formData: FormData,
 ): Promise<FormState> {
   const meta = await requestMeta();
@@ -94,7 +97,7 @@ const changePasswordSchema = z
   });
 
 export async function changePasswordAction(
-  _previous: FormState,
+  _previous: FormState | null,
   formData: FormData,
 ): Promise<FormState> {
   const session = await requireSession({ allowPasswordChange: true });
@@ -118,7 +121,10 @@ const pinSchema = z
     message: 'A confirmação não confere com o PIN.',
   });
 
-export async function setPinAction(_previous: FormState, formData: FormData): Promise<FormState> {
+export async function setPinAction(
+  _previous: FormState | null,
+  formData: FormData,
+): Promise<FormState> {
   const session = await requireSession();
   try {
     const input = pinSchema.parse(Object.fromEntries(formData));

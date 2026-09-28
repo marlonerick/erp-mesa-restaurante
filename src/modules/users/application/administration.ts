@@ -1,5 +1,5 @@
 import { recordAuditFromContext } from '@/modules/audit';
-import { getUsersInStore, replaceStoreRoles } from '@/modules/authorization';
+import { getStoreRoleCodes, getUsersInStore, replaceStoreRoles } from '@/modules/authorization';
 import { MYSQL_ERRNO, mysqlErrno } from '@/shared/db/mysql-errors';
 import { runInTransaction, type Transaction } from '@/shared/db/transaction';
 import {
@@ -74,6 +74,31 @@ export async function listUsers(
         roles: [...(rolesByUser.get(user.id) ?? [])].sort(),
       }))
       .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  });
+}
+
+export interface UserDetail extends UserSummary {
+  /** Perfis atribuídos diretamente NESTA loja (os únicos editáveis na tela). */
+  readonly storeRoles: readonly string[];
+}
+
+export async function getUser(
+  deps: UsersDependencies,
+  ctx: RequestContext,
+  userId: Id,
+): Promise<UserDetail> {
+  requirePermission(ctx, 'users.read');
+  return runInTransaction(deps.db, async (tx) => {
+    const user = await findVisibleUser(deps, tx, ctx, userId);
+    const roles = (await getUsersInStore(tx, ctx.storeId)).get(user.id) ?? [];
+    return {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      status: user.status,
+      roles: [...roles].sort(),
+      storeRoles: (await getStoreRoleCodes(tx, user.id, ctx.storeId)).sort(),
+    };
   });
 }
 
