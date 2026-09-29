@@ -41,6 +41,12 @@ por PIN, troca rápida em aparelho compartilhado e auditoria imutável.
 3. **Acessibilidade da lista de usuários:** mudar o `display` de `<tr>` apagava a tabela para
    leitores de tela. Agora: tabela no computador, lista no celular.
 4. **Classes CSS que se anulavam** no teclado de PIN (achado na revisão por capturas de tela).
+5. **MySQL do CI caía na criação (intermitente).** O script `docker/mysql/init/01-usuarios.sh` não
+   tinha permissão de execução no Git; o instalador do MySQL então o "colava" dentro de si, e o
+   `set -u` do script vazava e derrubava o instalador (`MYSQL_ONETIME_PASSWORD: unbound variable`).
+   O contêiner reiniciava e às vezes funcionava na segunda vez — por isso a falha ia e voltava.
+   Correção (2026-09-29): corpo do script entre parênteses (processo separado) + arquivo marcado
+   como executável. Testado em contêiner descartável reproduzindo a situação do CI.
 
 ## Revisão do `reviewer` (2026-09-28)
 
@@ -111,7 +117,7 @@ edição, senha, desativação, perfis); auditoria imutável garantida por trigg
 - [x] Migrations revisadas
 - [x] Testes unitários, integração (MySQL real), BDD, isolamento entre lojas, E2E
 - [x] Lint, typecheck, build
-- [x] CI no GitHub (verde em 2026-09-28; a verificação de saúde do MySQL precisou ser reforçada — ver commit "torna robusta a verificação de saúde")
+- [x] CI no GitHub (verde em 2026-09-28; a causa real das falhas intermitentes do MySQL foi corrigida em 2026-09-29 — problema 5)
 - [x] Revisão do `reviewer` (2 rodadas; achados corrigidos)
 - [x] Docs, mapas e `PROJECT_STATUS.md`
 - [ ] `APROVADO` do usuário
