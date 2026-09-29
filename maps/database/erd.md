@@ -4,13 +4,14 @@ Detalhe de colunas, índices e constraints: [docs/database/modelo-de-dados.md](.
 Diagrama dividido por área para legibilidade. PKs `id` são UUIDv7 `BINARY(16)`.
 
 Tabelas já criadas por migration:
-- Etapa 1: `idempotency_record` (a FK para `store` entra na Etapa 3).
+- Etapa 1: `idempotency_record` (FK para `store` adicionada na Etapa 3).
 - Etapa 2: `organization`, `company`, `store` (mínimo), `app_user` (nome físico do "user"),
   `user_session`, `known_device`, `device_user`, `rate_limit_bucket`, `role`, `permission`,
   `role_permission`, `user_role_assignment`, `elevated_grant`, `audit_log` (com triggers de imutabilidade).
+- Etapa 3: `terminal`, `kitchen_station`; configurações em `store`; `version` em `company`.
 
 As demais são o modelo planejado. Nomes da Etapa 2 prevalecem sobre o diagrama abaixo
-(ex.: `session` → `user_session`; `terminal` e `kitchen_station` ainda não existem).
+(ex.: `session` → `user_session`; `terminal.device_id` → `known_device`).
 
 ## Organização, acesso e auditoria
 
@@ -53,6 +54,7 @@ erDiagram
     time operational_day_cutoff
     int service_fee_bp
     enum negative_stock_policy
+    int max_open_cash_sessions
     int version
   }
   terminal {
@@ -60,6 +62,8 @@ erDiagram
     binary store_id FK
     string code
     enum kind
+    binary device_id FK "known_device, único"
+    bool active
   }
   kitchen_station {
     binary id PK

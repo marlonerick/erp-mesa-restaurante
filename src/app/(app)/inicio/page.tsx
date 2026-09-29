@@ -16,17 +16,30 @@ function formatOperationalDate(date: string): string {
   }).format(new Date(`${date}T00:00:00.000Z`));
 }
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ aviso?: string }>;
+}) {
+  const { aviso } = await searchParams;
   const session = await requireSession();
   const { context } = session;
   const firstName = session.userName.split(' ')[0] ?? session.userName;
-  const settings = await loadStoreSettings(context.storeId);
+  const settings = await loadStoreSettings(context);
   const workDay = settings
     ? operationalDate(context.clock.now(), settings.timezone, settings.operationalDayCutoff)
     : null;
 
   return (
     <div className="flex max-w-2xl flex-col gap-8">
+      {aviso === 'loja-indisponivel' ? (
+        <p
+          role="alert"
+          className="rounded-md border-l-4 border-alerta bg-alerta-claro px-4 py-3 font-semibold text-alerta"
+        >
+          Não foi possível trocar de loja: ela foi desativada ou você não tem mais acesso a ela.
+        </p>
+      ) : null}
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold">Olá, {firstName}.</h1>
         <p className="text-lg text-tinta-suave">

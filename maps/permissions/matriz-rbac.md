@@ -9,7 +9,8 @@ Modelo: `Role → Permission (resource.action) → Scope (organization | company
 | users.read | ✅ | ✅ | | | |
 | users.create / users.update / users.disable | ✅ | ✅ (anti-escalada) | | | |
 | stores.read | ✅ | ✅ | ✅ | ✅ | ✅ |
-| stores.manage | ✅ | | | | |
+| stores.manage (empresa, lojas, configurações) | ✅ | | | | |
+| terminals.manage (terminais e vínculo do aparelho — E3-1) | ✅ | ✅ | | | |
 | products.read | ✅ | ✅ | ✅ | ✅ | ✅ |
 | products.create / products.update | ✅ | ✅ | | | |
 | tables.read | ✅ | ✅ | ✅ | ✅ | |
@@ -38,6 +39,8 @@ Observações:
 - Remoção da taxa de serviço: `discounts.apply_above_limit` (proposta) + auditoria `SERVICE_FEE_REMOVED`.
 - Reabrir conta: `payments.cancel` + autorização elevada.
 - Anti-escalada: GERENTE não atribui `ADMIN` nem permissões que não possui.
+- `stores.manage` para **empresa e cadastro de loja** exige perfil de organização (ou da empresa);
+  para alterar uma loja, basta a permissão valer naquela loja (docs/modules/organizations.md §4).
 
 ```mermaid
 flowchart LR

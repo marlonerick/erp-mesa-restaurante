@@ -49,7 +49,10 @@ com 1 clique.
   (a) a loja ativa da própria sessão (troque de loja antes); (b) a última loja ativa da organização.
 - **RN-ORG-07** — Loja desativada some do seletor de lojas e não aceita login. Quem estava nela é
   levado, na próxima requisição, para outra loja ativa em que tenha perfil (a primeira em ordem
-  alfabética); sem nenhuma, a sessão termina. Reativar devolve a loja ao funcionamento.
+  alfabética), com auditoria `STORE_SWITCHED` (motivo `LOJA_INDISPONIVEL`); o mesmo vale para quem
+  perdeu o perfil na loja ativa. Sem nenhuma loja, a sessão é **encerrada no banco** (motivo
+  `SEM_LOJA`) — reativar a loja depois não reabre um cookie antigo. Reativar devolve a loja ao
+  funcionamento.
 
 ### Terminal
 - **RN-ORG-08** — Terminal: código (1–20: letras maiúsculas, números e hífen; único na loja), nome
@@ -57,8 +60,12 @@ com 1 clique.
   vínculo com o aparelho.
 - **RN-ORG-09** — **Vincular aparelho**: "usar este aparelho como o terminal X" vincula o aparelho
   **da sessão atual** (cookie de aparelho, RN-AUTH-13) — nunca um aparelho informado no formulário.
-  Um aparelho é no máximo um terminal: vincular a outro terminal desfaz o vínculo anterior (mesmo de
-  outra loja da organização). Desvincular é permitido a qualquer momento.
+  Em cada organização, um aparelho é no máximo um terminal: vincular a outro terminal desfaz o
+  vínculo anterior (mesmo de outra loja da organização). Terminais de **outra organização** nunca
+  são tocados — um tablet reaproveitado por outro restaurante não derruba o caixa do primeiro.
+  Vincular e desvincular conferem a versão que a tela mostrou (bloqueio otimista) e travam o
+  terminal: ações simultâneas no mesmo terminal fazem uma delas receber "outra pessoa alterou".
+  Desvincular é permitido a qualquer momento.
 - **RN-ORG-10** — Cada loja tem uma estação de cozinha padrão ("Cozinha"). Cadastro de outras
   estações fica para depois do MVP (P1); o KDS (Etapa 7) usa a estação padrão.
 - **RN-ORG-11** — **Terminal da sessão**: calculado a cada requisição a partir do aparelho da sessão
@@ -67,7 +74,8 @@ com 1 clique.
 ### Troca de loja e dia operacional
 - **RN-ORG-12** — **Troca de loja** (módulo Auth): só para loja **ativa** da organização em que a
   pessoa tem algum perfil. A sessão continua a mesma (mesmo aparelho, mesmos prazos); as permissões
-  passam a ser as da nova loja (RN-AUTHZ-02). Auditoria `STORE_SWITCHED` (de → para).
+  passam a ser as da nova loja (RN-AUTHZ-02). Auditoria `STORE_SWITCHED` (de → para). Eventos de loja registram a loja **afetada** (não a da
+  sessão), para a auditoria da loja mostrar o que mudou nela.
 - **RN-ORG-13** — **Dia operacional** de um instante = data local de *(instante no fuso da loja −
   virada)* (ADR-0013). Ex.: virada 05:00 → 01:30 de 15/03 pertence a 14/03; 05:00 de 15/03 já é 15/03.
 
@@ -103,6 +111,7 @@ Perfis: `stores.manage` só ADMIN (inalterado); `terminals.manage` ADMIN e GEREN
 | Sessão sem aparelho identificado | `DEVICE_REQUIRED` | 422 | Não foi possível identificar este aparelho. Saia e entre de novo. |
 | Terminal desativado | `TERMINAL_INACTIVE` | 422 | Este terminal está desativado. |
 | Outra pessoa alterou antes | `CONCURRENT_MODIFICATION` | 409 | Outra pessoa alterou estes dados. Recarregue a página e tente de novo. |
+| A sessão trocou de loja em outra aba (formulários de dados da loja ativa: terminais, perfis de usuário) | `STORE_CHANGED` | 409 | A loja mudou em outra aba. Recarregue a página e confira antes de salvar. |
 | Loja de destino sem acesso/inativa | `STORE_NOT_FOUND` | 404 | Loja não encontrada. (não revela se existe) |
 
 ## 6. Contratos (casos de uso)
@@ -119,17 +128,19 @@ Perfis: `stores.manage` só ADMIN (inalterado); `terminals.manage` ADMIN e GEREN
 | `terminals.create` | `{ code, name, kind }` | `{ id }` | `TERMINAL_CREATED` |
 | `terminals.update` | `{ terminalId, version, code, name, kind }` | ok | `TERMINAL_UPDATED` |
 | `terminals.setStatus` | `{ terminalId, version, active }` | ok | `TERMINAL_DISABLED` / `TERMINAL_ENABLED` |
-| `terminals.bindThisDevice` | `{ terminalId }` | ok | `TERMINAL_BOUND` (desfaz o anterior) |
-| `terminals.unbind` | `{ terminalId }` | ok | `TERMINAL_UNBOUND` |
+| `terminals.bindThisDevice` | `{ terminalId, version }` | ok | `TERMINAL_BOUND` (desfaz o anterior da mesma organização) |
+| `terminals.unbind` | `{ terminalId, version }` | ok | `TERMINAL_UNBOUND` |
 | `auth.switchStore` | `{ storeId }` | ok | `STORE_SWITCHED` |
 | Consulta pública | `getStoreSettings(storeId)`, `findTerminalOfDevice(storeId, deviceId)`, `operationalDate(instante, fuso, virada)` | — | — |
 
 ## 7. Modelo de dados (migration 0003)
 - `store` + `operational_day_cutoff TIME`, `service_fee_bp INT` (CK 0–10000),
   `negative_stock_policy ENUM`, `max_open_cash_sessions SMALLINT` (CK 1–20).
-- `terminal` (id, store_id, code, name, kind, device_id NULL → `known_device`, active, version,
-  timestamps) — UQ (store_id, code); UQ device_id (um aparelho, um terminal).
-- `kitchen_station` (id, store_id, name, is_default, timestamps) — UQ (store_id, name).
+- `terminal` (id, organization_id, store_id, code, name, kind, device_id NULL → `known_device` com
+  ON DELETE SET NULL, active, version, timestamps) — UQ (store_id, code); UQ (organization_id,
+  device_id) — migration 0004, achado B-1 da revisão.
+- `kitchen_station` (id, store_id, name, is_default, default_store_id calculada, timestamps) —
+  UQ (store_id, name); UQ default_store_id (uma estação padrão por loja).
 - FK `idempotency_record.store_id → store` (D-4).
 - `store_sequence` fica para a Etapa 6 (E3-5).
 

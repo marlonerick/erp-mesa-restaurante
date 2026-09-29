@@ -21,6 +21,7 @@ interface Props {
     readonly storeRoles: readonly string[];
   };
   readonly can: { readonly update: boolean; readonly disable: boolean };
+  readonly storeId: string;
 }
 
 function Section({
@@ -38,7 +39,7 @@ function Section({
   );
 }
 
-export function EditUserForms({ user, can }: Props) {
+export function EditUserForms({ user, can, storeId }: Props) {
   const [renameState, rename] = useActionState(renameUserAction, null);
   const [rolesState, setRoles] = useActionState(setUserRolesAction, null);
   const [resetState, reset] = useActionState(resetPasswordAction, null);
@@ -75,6 +76,7 @@ export function EditUserForms({ user, can }: Props) {
               <input type="hidden" name="userId" value={user.id} />
               <FormMessage state={rolesState} />
               <RoleCheckboxes
+                storeId={storeId}
                 selected={user.storeRoles}
                 errors={rolesState?.fieldErrors?.roleCodes}
               />

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireSession } from '@/modules/auth/web';
 import { type FormState, formError, formSuccess } from '@/shared/errors/form-state';
-import { PASSWORD_MAX_LENGTH, parseId, SYSTEM_ROLES } from '@/shared/kernel';
+import { PASSWORD_MAX_LENGTH, parseId, requireSameStore, SYSTEM_ROLES } from '@/shared/kernel';
 import { getLogger } from '@/shared/logger/logger';
 import { usersAdmin } from './service';
 
@@ -34,12 +34,15 @@ const createSchema = z.object({
   username: z.string().max(50),
   temporaryPassword: z.string().max(PASSWORD_MAX_LENGTH, PASSWORD_TOO_LONG),
   roleCodes,
+  expectedStoreId: z.string().max(40),
 });
 
 export async function createUserAction(_previous: FormState | null, formData: FormData) {
   const { context } = await requireSession();
   return run(async () => {
     const input = createSchema.parse(read(formData));
+    // Os perfis valem para a loja ativa: se ela mudou em outra aba, recusa (achado I-5)
+    requireSameStore(context, input.expectedStoreId);
     await usersAdmin().create(context, input);
     return `Usuário ${input.username.trim().toLowerCase()} criado. Entregue a senha provisória a ele.`;
   });
@@ -56,12 +59,13 @@ export async function renameUserAction(_previous: FormState | null, formData: Fo
   });
 }
 
-const rolesSchema = z.object({ userId: z.uuid(), roleCodes });
+const rolesSchema = z.object({ userId: z.uuid(), roleCodes, expectedStoreId: z.string().max(40) });
 
 export async function setUserRolesAction(_previous: FormState | null, formData: FormData) {
   const { context } = await requireSession();
   return run(async () => {
     const input = rolesSchema.parse(read(formData));
+    requireSameStore(context, input.expectedStoreId);
     await usersAdmin().setRoles(context, {
       userId: parseId(input.userId),
       roleCodes: input.roleCodes,

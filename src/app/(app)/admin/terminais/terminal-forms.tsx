@@ -36,8 +36,11 @@ interface TerminalValues {
 export function TerminalForm({
   values,
   terminal,
+  storeId,
 }: {
   readonly values: TerminalValues;
+  /** Loja que a tela mostra: o servidor recusa se a sessão mudou de loja em outra aba. */
+  readonly storeId: string;
   readonly terminal?: { readonly id: string; readonly version: number };
 }) {
   const [state, action] = useActionState(
@@ -48,6 +51,7 @@ export function TerminalForm({
   return (
     <ActionForm key={terminal?.version} action={action} state={state} resetOnSuccess={!terminal}>
       <FormMessage state={state} />
+      <input type="hidden" name="expectedStoreId" value={storeId} />
       {terminal ? (
         <>
           <input type="hidden" name="terminalId" value={terminal.id} />
@@ -86,12 +90,32 @@ export function TerminalForm({
   );
 }
 
+/** Terminal, versão lida (bloqueio otimista) e loja da tela (achados I-2 e I-5). */
+function TerminalRef({
+  terminal,
+  storeId,
+}: {
+  readonly terminal: { readonly id: string; readonly version: number };
+  readonly storeId: string;
+}) {
+  return (
+    <>
+      <input type="hidden" name="terminalId" value={terminal.id} />
+      <input type="hidden" name="version" value={terminal.version} />
+      <input type="hidden" name="expectedStoreId" value={storeId} />
+    </>
+  );
+}
+
 /** Vincular ESTE aparelho ao terminal, ou desfazer o vínculo (RN-ORG-09). */
 export function DeviceBinding({
   terminal,
+  storeId,
 }: {
+  readonly storeId: string;
   readonly terminal: {
     readonly id: string;
+    readonly version: number;
     readonly name: string;
     readonly active: boolean;
     readonly isThisDevice: boolean;
@@ -124,7 +148,7 @@ export function DeviceBinding({
             setLast('bind');
           }}
         >
-          <input type="hidden" name="terminalId" value={terminal.id} />
+          <TerminalRef terminal={terminal} storeId={storeId} />
           <p className="text-tinta-suave">
             Faça isto no próprio aparelho do terminal.
             {terminal.hasDevice ? ' O aparelho anterior deixa de ser este terminal.' : ''} Se este
@@ -143,7 +167,7 @@ export function DeviceBinding({
             setLast('unbind');
           }}
         >
-          <input type="hidden" name="terminalId" value={terminal.id} />
+          <TerminalRef terminal={terminal} storeId={storeId} />
           <SubmitButton pendingText="Desvinculando…" variant="secondary">
             Desvincular aparelho
           </SubmitButton>
@@ -156,8 +180,10 @@ export function DeviceBinding({
 /** Desativar (desfaz o vínculo com o aparelho) ou reativar o terminal. */
 export function TerminalStatus({
   terminal,
+  storeId,
 }: {
   readonly terminal: { readonly id: string; readonly version: number; readonly active: boolean };
+  readonly storeId: string;
 }) {
   const [state, action] = useActionState(setTerminalActiveAction, null);
   return (
@@ -172,8 +198,7 @@ export function TerminalStatus({
       </p>
       <ActionForm key={terminal.version} action={action} state={state}>
         <FormMessage state={state} />
-        <input type="hidden" name="terminalId" value={terminal.id} />
-        <input type="hidden" name="version" value={terminal.version} />
+        <TerminalRef terminal={terminal} storeId={storeId} />
         <input type="hidden" name="active" value={terminal.active ? 'false' : 'true'} />
         <SubmitButton pendingText="Salvando…" variant={terminal.active ? 'danger' : 'secondary'}>
           {terminal.active ? 'Desativar terminal' : 'Reativar terminal'}

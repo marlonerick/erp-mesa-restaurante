@@ -17,7 +17,10 @@ export default async function CompanyPage() {
   if (!hasPermission(context, 'stores.manage')) {
     return <NoPermission />;
   }
-  const companies = await orgAdmin().listCompanies(context);
+  const [companies, canCreate] = await Promise.all([
+    orgAdmin().listCompanies(context),
+    orgAdmin().canCreateCompany(context),
+  ]);
 
   return (
     <div className="flex max-w-lg flex-col gap-10">
@@ -53,7 +56,7 @@ export default async function CompanyPage() {
         </section>
       ))}
 
-      {companies.length > 0 ? (
+      {canCreate ? (
         <details className="border-t-2 border-borda pt-6">
           <summary className="inline-flex min-h-12 cursor-pointer items-center text-lg font-bold text-azulejo">
             Cadastrar outra empresa (outro CNPJ)

@@ -41,15 +41,16 @@ export default async function EditTerminalPage({ params }: { params: Promise<{ i
         </p>
       </div>
 
-      <DeviceBinding terminal={terminal} />
+      <DeviceBinding terminal={terminal} storeId={context.storeId} />
       <section className="flex flex-col gap-4 border-t-2 border-borda pt-6">
         <h2 className="text-2xl font-bold">Dados</h2>
         <TerminalForm
           values={{ code: terminal.code, name: terminal.name, kind: terminal.kind }}
           terminal={{ id: terminal.id, version: terminal.version }}
+          storeId={context.storeId}
         />
       </section>
-      <TerminalStatus terminal={terminal} />
+      <TerminalStatus terminal={terminal} storeId={context.storeId} />
     </div>
   );
 }

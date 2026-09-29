@@ -55,9 +55,9 @@ export function listStores(tx: Transaction, organizationId: Id): Promise<StoreIn
 /** Configurações da loja (RN-ORG-04) — dia operacional, taxa de serviço, estoque, caixas. */
 export async function getStoreSettings(
   tx: Transaction,
-  storeId: Id,
+  scope: { organizationId: Id; storeId: Id },
 ): Promise<StoreSettings | null> {
-  const found = await repo.findStoreRecord(tx, storeId);
+  const found = await repo.findStoreRecord(tx, scope);
   return found
     ? {
         timezone: found.timezone,
@@ -75,10 +75,8 @@ export async function findTerminalOfDevice(
   storeId: Id,
   deviceId: Id,
 ): Promise<{ id: Id; code: string; name: string } | null> {
-  const found = await repo.findTerminalByDevice(tx, deviceId);
-  return found?.active && found.storeId === storeId
-    ? { id: found.id, code: found.code, name: found.name }
-    : null;
+  const found = await repo.findActiveTerminalOfDevice(tx, { storeId, deviceId });
+  return found ? { id: found.id, code: found.code, name: found.name } : null;
 }
 
 // ---- Primeira instalação e seed ----
@@ -145,6 +143,7 @@ export function organizationAdministration(overrides: { db?: Database; access: S
       admin.updateCompany(deps, ctx, input),
     listStores: (ctx: RequestContext) => admin.listManageableStores(deps, ctx),
     getStore: (ctx: RequestContext, storeId: Id) => admin.getManageableStore(deps, ctx, storeId),
+    canCreateCompany: (ctx: RequestContext) => admin.canCreateCompany(deps, ctx),
     createStore: (ctx: RequestContext, input: Args<typeof admin.createStore>) =>
       admin.createStore(deps, ctx, input),
     updateStore: (ctx: RequestContext, input: Args<typeof admin.updateStore>) =>

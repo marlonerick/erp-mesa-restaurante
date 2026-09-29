@@ -1,6 +1,6 @@
 # ADR-0013 — Dia operacional e fuso horário
 
-- Status: **Aceito** em 2026-09-28 (horário de corte a confirmar — Q-05)
+- Status: **Aceito** em 2026-09-28; virada às 05:00 **confirmada** na Q-05 (2026-09-29), configurável por loja
 - Data: 2026-09-27
 - Responsável: domain-spec + architect
 
@@ -19,8 +19,10 @@ e pode haver mais de um terminal.
 - Conta (`customer_order.operational_date`) recebe o dia operacional da sessão de caixa que a fechou.
 - Movimentos de estoque e demais eventos usam a regra do cutoff.
 - Dashboard mostra o dia operacional **corrente** (pela regra do cutoff).
-- Funções puras em `shared/operational-day` com `Clock` injetável; testes cobrindo 23:59, 00:00,
-  cutoff exato e mudança de regras de fuso.
+- Funções puras em `shared/kernel/operational-day.ts` (`operationalDate`, `parseLocalTime`) —
+  no kernel porque o domínio dos módulos (caixa, estoque) vai usá-las; o instante vem do `Clock`
+  injetável. Testes: 23:59, 00:00, 04:59, 05:00, virada do ano, 29/02, outro fuso e propriedade
+  (fast-check) — `tests/features/organizations/dia-operacional.feature`.
 
 ## Consequências
 - (+) Relatórios batem com o caixa físico.

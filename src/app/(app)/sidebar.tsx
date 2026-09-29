@@ -118,6 +118,7 @@ export function Sidebar(props: Props) {
 
       {/* Computador e tablet */}
       <aside
+        id="menu-lateral"
         data-mode={mode}
         aria-label="Menu lateral"
         className={cn(
@@ -132,6 +133,7 @@ export function Sidebar(props: Props) {
           type="button"
           onClick={toggle}
           aria-expanded={!collapsed}
+          aria-controls="menu-lateral"
           className="flex min-h-12 items-center gap-3 border-t border-white/15 px-7 text-sm font-semibold text-white/80 hover:bg-white/10 focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-white"
         >
           <span className="group-data-[mode=collapsed]:hidden group-data-[mode=auto]:max-xl:hidden">
@@ -145,6 +147,34 @@ export function Sidebar(props: Props) {
       </aside>
     </>
   );
+}
+
+/**
+ * Seletor de loja (<details> nativo) que fecha com Esc — devolvendo o foco — e com toque fora.
+ */
+function StoreSwitcher({ children }: { readonly children: React.ReactNode }) {
+  const details = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    function close(returnFocus: boolean) {
+      const element = details.current;
+      if (!element?.open) return;
+      element.open = false;
+      if (returnFocus) element.querySelector('summary')?.focus();
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close(true);
+    };
+    const onPointer = (event: PointerEvent) => {
+      if (!details.current?.contains(event.target as Node)) close(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPointer);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPointer);
+    };
+  }, []);
+  return <details ref={details}>{children}</details>;
 }
 
 /** Texto do item: some visualmente no menu recolhido, mas continua para o leitor de tela. */
@@ -176,7 +206,7 @@ function SidebarContent({
       <div className="azulejo-pattern h-3 shrink-0" />
       <div className={cn('relative border-b border-white/15 px-3 py-3', insetEnd && 'pr-14')}>
         {otherStores.length > 0 ? (
-          <details className="group/lojas">
+          <StoreSwitcher>
             <summary
               title={props.storeName}
               className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-md px-3 hover:bg-white/10 focus-visible:outline-3 focus-visible:outline-white [&::-webkit-details-marker]:hidden"
@@ -205,7 +235,7 @@ function SidebarContent({
                 ))}
               </ul>
             </div>
-          </details>
+          </StoreSwitcher>
         ) : (
           <div className="flex min-h-12 items-center gap-3 px-3" title={props.storeName}>
             {ICONS.lojas}

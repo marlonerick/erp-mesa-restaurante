@@ -42,6 +42,7 @@ export interface TerminalData {
 
 export interface TerminalRecord extends TerminalData {
   readonly id: Id;
+  readonly organizationId: Id;
   readonly storeId: Id;
   readonly deviceId: Id | null;
   readonly active: boolean;
@@ -51,7 +52,11 @@ export interface TerminalRecord extends TerminalData {
 /** O que a aplicação precisa do banco (implementado em infrastructure/). */
 export interface OrganizationsRepository {
   listCompanies(tx: Transaction, organizationId: Id): Promise<CompanyRecord[]>;
-  findCompany(tx: Transaction, companyId: Id): Promise<CompanyRecord | null>;
+  // Buscas por id SEMPRE com o escopo (ADR-0009, camada 2): de outro escopo = inexistente
+  findCompany(
+    tx: Transaction,
+    scope: { organizationId: Id; companyId: Id },
+  ): Promise<CompanyRecord | null>;
   insertCompany(
     tx: Transaction,
     input: CompanyData & { id: Id; organizationId: Id },
@@ -60,7 +65,10 @@ export interface OrganizationsRepository {
   updateCompany(tx: Transaction, id: Id, version: number, data: CompanyData): Promise<boolean>;
 
   listStoresAnyStatus(tx: Transaction, organizationId: Id): Promise<StoreRecord[]>;
-  findStoreRecord(tx: Transaction, storeId: Id): Promise<StoreRecord | null>;
+  findStoreRecord(
+    tx: Transaction,
+    scope: { organizationId: Id; storeId: Id },
+  ): Promise<StoreRecord | null>;
   insertStore(
     tx: Transaction,
     input: StoreData & { id: Id; organizationId: Id; companyId: Id },
@@ -71,14 +79,35 @@ export interface OrganizationsRepository {
   insertDefaultStation(tx: Transaction, storeId: Id): Promise<void>;
 
   listTerminals(tx: Transaction, storeId: Id): Promise<TerminalRecord[]>;
-  findTerminal(tx: Transaction, terminalId: Id): Promise<TerminalRecord | null>;
-  /** Terminal ao qual o aparelho está vinculado, em qualquer loja (RN-ORG-09). */
-  findTerminalByDevice(tx: Transaction, deviceId: Id): Promise<TerminalRecord | null>;
-  insertTerminal(tx: Transaction, input: TerminalData & { id: Id; storeId: Id }): Promise<void>;
+  findTerminal(
+    tx: Transaction,
+    scope: { storeId: Id; terminalId: Id },
+    options?: { forUpdate?: boolean },
+  ): Promise<TerminalRecord | null>;
+  /** Terminal vinculado ao aparelho NESTA organização (com trava — RN-ORG-09, achado B-1). */
+  findTerminalByDevice(
+    tx: Transaction,
+    scope: { organizationId: Id; deviceId: Id },
+  ): Promise<TerminalRecord | null>;
+  /** Terminal ATIVO da loja vinculado ao aparelho (terminal da sessão — RN-ORG-11). */
+  findActiveTerminalOfDevice(
+    tx: Transaction,
+    scope: { storeId: Id; deviceId: Id },
+  ): Promise<TerminalRecord | null>;
+  insertTerminal(
+    tx: Transaction,
+    input: TerminalData & { id: Id; organizationId: Id; storeId: Id },
+  ): Promise<void>;
   updateTerminal(tx: Transaction, id: Id, version: number, data: TerminalData): Promise<boolean>;
   /** Ativa/desativa; desativar também desfaz o vínculo com o aparelho (RN-ORG-08). */
   setTerminalActive(tx: Transaction, id: Id, version: number, active: boolean): Promise<boolean>;
-  setTerminalDevice(tx: Transaction, id: Id, deviceId: Id | null): Promise<void>;
+  /** Vincula se o terminal estiver ativo e na versão lida; false = mudou antes (achado I-2). */
+  bindDevice(
+    tx: Transaction,
+    input: { terminalId: Id; version: number; deviceId: Id },
+  ): Promise<boolean>;
+  /** Desfaz o vínculo só se o aparelho ainda for `deviceId`. */
+  clearDevice(tx: Transaction, input: { terminalId: Id; deviceId: Id }): Promise<boolean>;
 }
 
 export interface StoreScope {
@@ -100,15 +129,15 @@ export interface StoreAccess {
     permission: Permission,
   ): Promise<Set<Id>>;
   /**
-   * A permissão vale para a organização inteira ou, se `companyId` for informado, para toda essa
-   * empresa (perfil de organização ou de empresa)?
+   * Onde a permissão vale de forma AMPLA: na organização inteira (perfil de organização) e/ou em
+   * empresas inteiras (perfil de empresa). Perfil só de loja não conta. Uma consulta só.
    */
-  hasCompanyWidePermission(
+  companyWideScope(
     tx: Transaction,
     userId: Id,
-    scope: { organizationId: Id; companyId: Id | null },
+    organizationId: Id,
     permission: Permission,
-  ): Promise<boolean>;
+  ): Promise<{ organizationWide: boolean; companyIds: ReadonlySet<Id> }>;
 }
 
 export interface OrganizationsDependencies {

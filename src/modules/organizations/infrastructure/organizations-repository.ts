@@ -2,12 +2,7 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import type { AnyMySqlColumn } from 'drizzle-orm/mysql-core';
 import { company, kitchenStation, store, terminal } from '@/shared/db/schema';
 import { newId } from '@/shared/kernel';
-import type {
-  OrganizationsRepository,
-  StoreData,
-  StoreRecord,
-  TerminalRecord,
-} from '../application/ports';
+import type { OrganizationsRepository, StoreData, StoreRecord } from '../application/ports';
 
 // O MySQL devolve TIME como "05:00:00"; o domínio usa "05:00"
 const toLocalTime = (value: string) => value.slice(0, 5);
@@ -52,6 +47,7 @@ const storeValues = (data: StoreData) => ({
 
 const terminalColumns = {
   id: terminal.id,
+  organizationId: terminal.organizationId,
   storeId: terminal.storeId,
   code: terminal.code,
   name: terminal.name,
@@ -73,8 +69,12 @@ export const organizationsRepository: OrganizationsRepository = {
       .orderBy(asc(company.tradeName));
   },
 
-  async findCompany(tx, companyId) {
-    const [row] = await tx.select(companyColumns).from(company).where(eq(company.id, companyId));
+  // Toda busca por id exige o ESCOPO (ADR-0009, camada 2 — achado I-1)
+  async findCompany(tx, { organizationId, companyId }) {
+    const [row] = await tx
+      .select(companyColumns)
+      .from(company)
+      .where(and(eq(company.id, companyId), eq(company.organizationId, organizationId)));
     return row ?? null;
   },
 
@@ -99,8 +99,11 @@ export const organizationsRepository: OrganizationsRepository = {
     return rows.map(toStoreRecord);
   },
 
-  async findStoreRecord(tx, storeId) {
-    const [row] = await tx.select(storeColumns).from(store).where(eq(store.id, storeId));
+  async findStoreRecord(tx, { organizationId, storeId }) {
+    const [row] = await tx
+      .select(storeColumns)
+      .from(store)
+      .where(and(eq(store.id, storeId), eq(store.organizationId, organizationId)));
     return row ? toStoreRecord(row) : null;
   },
 
@@ -149,22 +152,38 @@ export const organizationsRepository: OrganizationsRepository = {
       .orderBy(asc(terminal.code));
   },
 
-  async findTerminal(tx, terminalId) {
-    const [row] = await tx
+  async findTerminal(tx, { storeId, terminalId }, options = {}) {
+    const query = tx
       .select(terminalColumns)
       .from(terminal)
-      .where(eq(terminal.id, terminalId));
+      .where(and(eq(terminal.id, terminalId), eq(terminal.storeId, storeId)));
+    // Com trava: vínculo e desativação do mesmo terminal passam em fila (achado I-2)
+    const [row] = await (options.forUpdate ? query.for('update') : query);
     return row ?? null;
   },
 
-  async findTerminalByDevice(tx, deviceId): Promise<TerminalRecord | null> {
+  async findTerminalByDevice(tx, { organizationId, deviceId }) {
     const [row] = await tx
       .select(terminalColumns)
       .from(terminal)
-      .where(eq(terminal.deviceId, deviceId));
+      .where(and(eq(terminal.organizationId, organizationId), eq(terminal.deviceId, deviceId)))
+      .for('update');
     return row ?? null;
   },
 
+  async findActiveTerminalOfDevice(tx, { storeId, deviceId }) {
+    const [row] = await tx
+      .select(terminalColumns)
+      .from(terminal)
+      .where(
+        and(
+          eq(terminal.storeId, storeId),
+          eq(terminal.deviceId, deviceId),
+          eq(terminal.active, true),
+        ),
+      );
+    return row ?? null;
+  },
   async insertTerminal(tx, input) {
     await tx.insert(terminal).values(input);
   },
@@ -189,10 +208,23 @@ export const organizationsRepository: OrganizationsRepository = {
     return result.affectedRows === 1;
   },
 
-  async setTerminalDevice(tx, id, deviceId) {
-    await tx
+  async bindDevice(tx, { terminalId, version, deviceId }) {
+    // Só vincula terminal ATIVO e na versão que a tela mostrou (outra pessoa não mexeu antes)
+    const [result] = await tx
       .update(terminal)
       .set({ deviceId, version: bumpVersion(terminal.version) })
-      .where(eq(terminal.id, id));
+      .where(
+        and(eq(terminal.id, terminalId), eq(terminal.version, version), eq(terminal.active, true)),
+      );
+    return result.affectedRows === 1;
+  },
+
+  async clearDevice(tx, { terminalId, deviceId }) {
+    // Só desfaz se o aparelho ainda for aquele (não apaga um vínculo feito por outra pessoa)
+    const [result] = await tx
+      .update(terminal)
+      .set({ deviceId: null, version: bumpVersion(terminal.version) })
+      .where(and(eq(terminal.id, terminalId), eq(terminal.deviceId, deviceId)));
+    return result.affectedRows === 1;
   },
 };

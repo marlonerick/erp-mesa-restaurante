@@ -11,7 +11,9 @@ export type RevokeReason =
   | 'TROCA_USUARIO'
   | 'SENHA_ALTERADA'
   | 'SENHA_REDEFINIDA'
-  | 'USUARIO_DESATIVADO';
+  | 'USUARIO_DESATIVADO'
+  /** A pessoa ficou sem nenhuma loja ativa com perfil (RN-ORG-07). */
+  | 'SEM_LOJA';
 
 export interface SessionRecord {
   readonly id: Id;

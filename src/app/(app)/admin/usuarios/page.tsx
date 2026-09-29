@@ -122,7 +122,7 @@ export default async function UsersPage() {
             A pessoa troca a senha provisória no primeiro acesso. Os perfis valem para a loja{' '}
             {storeName}.
           </p>
-          <CreateUserForm />
+          <CreateUserForm storeId={context.storeId} />
         </section>
       ) : null}
     </div>

@@ -160,9 +160,9 @@ describe('terminais — regras de borda (RN-ORG-08, RN-ORG-09)', () => {
       kind: 'CAIXA',
     });
     expect(await failureOf(organizations.getTerminal(praia.ctx, id))).toBe('TERMINAL_NOT_FOUND');
-    expect(await failureOf(organizations.bindThisDevice(praia.ctx, { terminalId: id }))).toBe(
-      'TERMINAL_NOT_FOUND',
-    );
+    expect(
+      await failureOf(organizations.bindThisDevice(praia.ctx, { terminalId: id, version: 0 })),
+    ).toBe('TERMINAL_NOT_FOUND');
     expect(await organizations.listTerminals(praia.ctx)).toEqual([]);
   });
 
@@ -187,7 +187,9 @@ describe('terminais — regras de borda (RN-ORG-08, RN-ORG-09)', () => {
       kind: 'CAIXA',
     });
     expect(
-      await failureOf(organizations.bindThisDevice({ ...ctx, deviceId: null }, { terminalId: id })),
+      await failureOf(
+        organizations.bindThisDevice({ ...ctx, deviceId: null }, { terminalId: id, version: 0 }),
+      ),
     ).toBe('DEVICE_REQUIRED');
   });
 
@@ -200,7 +202,7 @@ describe('terminais — regras de borda (RN-ORG-08, RN-ORG-09)', () => {
       kind: 'CAIXA',
     });
     await organizations.setTerminalActive(ctx, { terminalId: id, version: 0, active: false });
-    expect(await failureOf(organizations.bindThisDevice(ctx, { terminalId: id }))).toBe(
+    expect(await failureOf(organizations.bindThisDevice(ctx, { terminalId: id, version: 0 }))).toBe(
       'TERMINAL_INACTIVE',
     );
   });
@@ -223,7 +225,7 @@ describe('terminais — regras de borda (RN-ORG-08, RN-ORG-09)', () => {
       name: 'Caixa Centro',
       kind: 'CAIXA',
     });
-    await organizations.bindThisDevice(login.ctx, { terminalId: centroTerminal.id });
+    await organizations.bindThisDevice(login.ctx, { terminalId: centroTerminal.id, version: 0 });
 
     await services.auth.switchStore(login.ctx, org.praia);
     const inPraia = await services.auth.authenticate(login.sessionToken, meta());
@@ -233,7 +235,10 @@ describe('terminais — regras de borda (RN-ORG-08, RN-ORG-09)', () => {
       name: 'Caixa Praia',
       kind: 'CAIXA',
     });
-    await organizations.bindThisDevice(inPraia.context, { terminalId: praiaTerminal.id });
+    await organizations.bindThisDevice(inPraia.context, {
+      terminalId: praiaTerminal.id,
+      version: 0,
+    });
 
     await services.auth.switchStore(inPraia.context, org.centro);
     const back = await services.auth.authenticate(login.sessionToken, meta());
@@ -250,7 +255,7 @@ describe('terminais — regras de borda (RN-ORG-08, RN-ORG-09)', () => {
       name: 'Caixa 1',
       kind: 'CAIXA',
     });
-    await organizations.bindThisDevice(ctx, { terminalId: id });
+    await organizations.bindThisDevice(ctx, { terminalId: id, version: 0 });
     const [item] = await organizations.listTerminals(ctx);
     expect(item).toMatchObject({ isThisDevice: true, hasDevice: true, deviceId: null });
   });

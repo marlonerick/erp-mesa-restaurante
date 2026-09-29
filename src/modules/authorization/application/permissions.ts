@@ -47,26 +47,28 @@ export async function storesWithPermission(
 }
 
 /**
- * A permissão vale para a organização inteira (perfil de organização) ou, com `companyId`, para
- * toda a empresa (perfil de empresa)? Perfil só de loja não conta: administrar a empresa ou criar
- * lojas nela é mais amplo que uma loja.
+ * Onde a permissão vale de forma ampla: organização inteira e/ou empresas inteiras. Perfil só de
+ * loja não conta — administrar a empresa ou criar lojas nela é mais amplo que uma loja.
  */
-export async function hasCompanyWidePermission(
+export async function companyWideScope(
   repo: AuthorizationRepository,
   tx: Transaction,
   userId: Id,
-  scope: { organizationId: Id; companyId: Id | null },
+  organizationId: Id,
   permission: Permission,
-): Promise<boolean> {
-  const grants = await repo.listUserGrants(tx, userId);
-  return grants.some(
-    (grant) =>
-      grant.permissions.includes(permission) &&
-      ((grant.scopeType === 'ORGANIZATION' && grant.scopeId === scope.organizationId) ||
-        (grant.scopeType === 'COMPANY' && grant.scopeId === scope.companyId)),
+): Promise<{ organizationWide: boolean; companyIds: ReadonlySet<Id> }> {
+  const grants = (await repo.listUserGrants(tx, userId)).filter((grant) =>
+    grant.permissions.includes(permission),
   );
+  return {
+    organizationWide: grants.some(
+      (grant) => grant.scopeType === 'ORGANIZATION' && grant.scopeId === organizationId,
+    ),
+    companyIds: new Set(
+      grants.filter((grant) => grant.scopeType === 'COMPANY').map((grant) => grant.scopeId),
+    ),
+  };
 }
-
 /** Usuários com algum perfil que vale na loja, e os códigos desses perfis (isolamento RN-USERS-07). */
 export async function usersInStore(
   repo: AuthorizationRepository,

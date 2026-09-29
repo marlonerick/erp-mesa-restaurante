@@ -1,6 +1,20 @@
-# Navegação (proposta)
+# Navegação
 
-Menu filtrado pelas permissões da loja ativa. Seletor de loja no topo (troca em 1 clique).
+Menu lateral (E3-4, implementado na Etapa 3 — `src/app/(app)/sidebar.tsx`), filtrado pelas
+permissões da loja ativa; o servidor bloqueia de novo em cada tela.
+
+| Aparelho | Comportamento |
+|---|---|
+| Computador (≥ 1280 px) | Menu fixo à esquerda, aberto; botão "Recolher menu" deixa só os ícones (lembrado em cookie) |
+| Tablet (768–1279 px) | Começa recolhido (só ícones); "Expandir menu" abre |
+| Celular (< 768 px) | Barra no topo com ☰; o menu abre como gaveta (`<dialog>`: foco preso, Esc fecha) |
+
+Estrutura: seletor de loja no topo (loja ativa + terminal do aparelho; troca em 1 clique —
+RN-ORG-12) · grupos **Operação** (Início; depois Salão, KDS, PDV) e **Administração** (Usuários,
+Empresa, Lojas, Terminais) · rodapé com a conta (Meu PIN, Trocar senha, Trocar usuário, Sair).
+Página atual com `aria-current="page"`. O KDS (Etapa 7) abrirá em tela cheia, sem menu.
+
+Mapa de telas planejado (MVP):
 
 ```mermaid
 flowchart TD
@@ -30,4 +44,6 @@ flowchart TD
 | Dashboard | Desktop | dashboard.read |
 | Catálogo, estoque, fichas | Desktop | products.read / inventory.read / recipes.read |
 | Financeiro, relatórios | Desktop | finance.read / reports.read |
-| Admin | Desktop | users.read / stores.read |
+| Admin — usuários | Desktop | users.read |
+| Admin — empresa e lojas (Etapa 3) | Desktop | stores.manage |
+| Admin — terminais (Etapa 3) | No próprio aparelho | terminals.manage |

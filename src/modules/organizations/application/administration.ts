@@ -118,6 +118,12 @@ function validateCompany(input: CompanyInput): CompanyData {
   };
 }
 
+/** A pessoa administra esta empresa? (perfil de organização ou da própria empresa) */
+const coversCompany = (
+  scope: { organizationWide: boolean; companyIds: ReadonlySet<Id> },
+  companyId: Id,
+) => scope.organizationWide || scope.companyIds.has(companyId);
+
 /** Empresa da organização da sessão que a pessoa administra (perfil de organização ou da empresa). */
 async function findManageableCompany(
   deps: OrganizationsDependencies,
@@ -125,15 +131,15 @@ async function findManageableCompany(
   ctx: RequestContext,
   companyId: Id,
 ): Promise<CompanyRecord> {
-  const found = await deps.repo.findCompany(tx, companyId);
-  if (found?.organizationId !== ctx.organizationId) throw errors.companyNotFound();
-  const allowed = await deps.access.hasCompanyWidePermission(
+  const found = await deps.repo.findCompany(tx, { organizationId: ctx.organizationId, companyId });
+  if (!found) throw errors.companyNotFound();
+  const scope = await deps.access.companyWideScope(
     tx,
     ctx.userId,
-    { organizationId: ctx.organizationId, companyId },
+    ctx.organizationId,
     'stores.manage',
   );
-  if (!allowed) throw errors.forbidden();
+  if (!coversCompany(scope, found.id)) throw errors.forbidden();
   return found;
 }
 
@@ -143,21 +149,30 @@ export async function listCompanies(
 ): Promise<CompanyRecord[]> {
   requirePermission(ctx, 'stores.manage');
   return runInTransaction(deps.db, async (tx) => {
+    const scope = await deps.access.companyWideScope(
+      tx,
+      ctx.userId,
+      ctx.organizationId,
+      'stores.manage',
+    );
     const companies = await deps.repo.listCompanies(tx, ctx.organizationId);
-    const visible: CompanyRecord[] = [];
-    for (const item of companies) {
-      const allowed = await deps.access.hasCompanyWidePermission(
-        tx,
-        ctx.userId,
-        { organizationId: ctx.organizationId, companyId: item.id },
-        'stores.manage',
-      );
-      if (allowed) visible.push(item);
-    }
-    return visible;
+    return companies.filter((item) => coversCompany(scope, item.id));
   });
 }
 
+/** Pode cadastrar empresas novas? (só quem administra a organização inteira) */
+export async function canCreateCompany(
+  deps: OrganizationsDependencies,
+  ctx: RequestContext,
+): Promise<boolean> {
+  if (!ctx.permissions.has('stores.manage')) return false;
+  return runInTransaction(
+    deps.db,
+    async (tx) =>
+      (await deps.access.companyWideScope(tx, ctx.userId, ctx.organizationId, 'stores.manage'))
+        .organizationWide,
+  );
+}
 export async function getCompany(
   deps: OrganizationsDependencies,
   ctx: RequestContext,
@@ -178,15 +193,16 @@ export async function createCompany(
   await mapDuplicate(
     runInTransaction(deps.db, async (tx) => {
       // Empresa nova: só quem administra a organização inteira
-      const allowed = await deps.access.hasCompanyWidePermission(
+      const scope = await deps.access.companyWideScope(
         tx,
         ctx.userId,
-        { organizationId: ctx.organizationId, companyId: null },
+        ctx.organizationId,
         'stores.manage',
       );
-      if (!allowed) throw errors.forbidden();
+      if (!scope.organizationWide) throw errors.forbidden();
       await deps.repo.insertCompany(tx, { id, organizationId: ctx.organizationId, ...data });
       await recordAuditFromContext(tx, ctx, 'COMPANY_CREATED', {
+        storeId: null, // ação da organização, não de uma loja
         entityType: 'company',
         entityId: id,
         after: { ...data },
@@ -217,6 +233,7 @@ export async function updateCompany(
         throw errors.concurrent();
       }
       await recordAuditFromContext(tx, ctx, 'COMPANY_UPDATED', {
+        storeId: null,
         entityType: 'company',
         entityId: current.id,
         before: diff.before,
@@ -262,8 +279,11 @@ async function findManageableStore(
   ctx: RequestContext,
   storeId: Id,
 ): Promise<StoreRecord> {
-  const found = await deps.repo.findStoreRecord(tx, storeId);
-  if (found?.organizationId !== ctx.organizationId) throw errors.storeNotFound();
+  const found = await deps.repo.findStoreRecord(tx, {
+    organizationId: ctx.organizationId,
+    storeId,
+  });
+  if (!found) throw errors.storeNotFound();
   const allowed = await deps.access.storesWithPermission(tx, ctx.userId, [found], 'stores.manage');
   if (!allowed.has(found.id)) throw errors.forbidden();
   return found;
@@ -318,6 +338,7 @@ export async function createStore(
         companyId: owner.id,
       });
       await recordAuditFromContext(tx, ctx, 'STORE_CREATED', {
+        storeId, // a loja afetada, não a da sessão (achado I-3)
         entityType: 'store',
         entityId: storeId,
         after: { companyId: owner.id, ...data },
@@ -346,6 +367,7 @@ export async function updateStore(
         throw errors.concurrent();
       }
       await recordAuditFromContext(tx, ctx, 'STORE_UPDATED', {
+        storeId: current.id,
         entityType: 'store',
         entityId: current.id,
         before: diff.before,
@@ -381,6 +403,7 @@ export async function setStoreStatus(
       ctx,
       input.status === 'INATIVO' ? 'STORE_DISABLED' : 'STORE_ENABLED',
       {
+        storeId: current.id,
         entityType: 'store',
         entityId: current.id,
         before: { status: current.status },
@@ -426,9 +449,10 @@ async function findStoreTerminal(
   tx: Transaction,
   ctx: RequestContext,
   terminalId: Id,
+  options: { forUpdate?: boolean } = {},
 ): Promise<TerminalRecord> {
-  const found = await deps.repo.findTerminal(tx, terminalId);
-  if (found?.storeId !== ctx.storeId) throw errors.terminalNotFound();
+  const found = await deps.repo.findTerminal(tx, { storeId: ctx.storeId, terminalId }, options);
+  if (!found) throw errors.terminalNotFound();
   return found;
 }
 
@@ -463,7 +487,12 @@ export async function createTerminal(
   const id = newId();
   await mapDuplicate(
     runInTransaction(deps.db, async (tx) => {
-      await deps.repo.insertTerminal(tx, { id, storeId: ctx.storeId, ...data });
+      await deps.repo.insertTerminal(tx, {
+        id,
+        organizationId: ctx.organizationId,
+        storeId: ctx.storeId,
+        ...data,
+      });
       await recordAuditFromContext(tx, ctx, 'TERMINAL_CREATED', {
         entityType: 'terminal',
         entityId: id,
@@ -512,7 +541,7 @@ export async function setTerminalActive(
 ): Promise<void> {
   requirePermission(ctx, 'terminals.manage');
   await runInTransaction(deps.db, async (tx) => {
-    const current = await findStoreTerminal(deps, tx, ctx, input.terminalId);
+    const current = await findStoreTerminal(deps, tx, ctx, input.terminalId, { forUpdate: true });
     if (current.version !== input.version) throw errors.concurrent();
     if (current.active === input.active) return;
     if (!(await deps.repo.setTerminalActive(tx, current.id, input.version, input.active))) {
@@ -529,31 +558,46 @@ export async function setTerminalActive(
 
 /**
  * "Usar este aparelho como o terminal X" (RN-ORG-09). O aparelho é o da SESSÃO — nunca vem do
- * formulário. Se o aparelho já era outro terminal (mesmo de outra loja), aquele vínculo é desfeito.
+ * formulário. Se o aparelho já era outro terminal DESTA organização, aquele vínculo é desfeito;
+ * terminais de outra organização nunca são tocados (achado B-1).
+ *
+ * Concorrência (achado I-2): o terminal é lido COM TRAVA e o vínculo só é gravado se o terminal
+ * continuar ativo e na versão que a tela mostrou. Desativar, desvincular ou vincular outro aparelho
+ * ao mesmo tempo faz uma das duas ações receber "outra pessoa alterou".
  */
 export async function bindThisDevice(
   deps: OrganizationsDependencies,
   ctx: RequestContext,
-  input: { terminalId: Id },
+  input: { terminalId: Id; version: number },
 ): Promise<void> {
   requirePermission(ctx, 'terminals.manage');
   const deviceId = ctx.deviceId;
   if (deviceId === null) throw errors.deviceRequired();
   await mapDuplicate(
     runInTransaction(deps.db, async (tx) => {
-      const target = await findStoreTerminal(deps, tx, ctx, input.terminalId);
+      const target = await findStoreTerminal(deps, tx, ctx, input.terminalId, { forUpdate: true });
       if (!target.active) throw errors.terminalInactive();
+      if (target.version !== input.version) throw errors.concurrent();
       if (target.deviceId === deviceId) return;
-      const previous = await deps.repo.findTerminalByDevice(tx, deviceId);
-      if (previous) {
-        await deps.repo.setTerminalDevice(tx, previous.id, null);
+
+      const previous = await deps.repo.findTerminalByDevice(tx, {
+        organizationId: ctx.organizationId,
+        deviceId,
+      });
+      if (previous && (await deps.repo.clearDevice(tx, { terminalId: previous.id, deviceId }))) {
         await recordAuditFromContext(tx, ctx, 'TERMINAL_UNBOUND', {
+          storeId: previous.storeId, // pode ser outra loja da organização (achado I-3)
           entityType: 'terminal',
           entityId: previous.id,
           after: { reason: 'APARELHO_VINCULADO_A_OUTRO_TERMINAL', newTerminalId: target.id },
         });
       }
-      await deps.repo.setTerminalDevice(tx, target.id, deviceId);
+      const bound = await deps.repo.bindDevice(tx, {
+        terminalId: target.id,
+        version: input.version,
+        deviceId,
+      });
+      if (!bound) throw errors.concurrent();
       await recordAuditFromContext(tx, ctx, 'TERMINAL_BOUND', {
         entityType: 'terminal',
         entityId: target.id,
@@ -568,13 +612,16 @@ export async function bindThisDevice(
 export async function unbindTerminal(
   deps: OrganizationsDependencies,
   ctx: RequestContext,
-  input: { terminalId: Id },
+  input: { terminalId: Id; version: number },
 ): Promise<void> {
   requirePermission(ctx, 'terminals.manage');
   await runInTransaction(deps.db, async (tx) => {
-    const target = await findStoreTerminal(deps, tx, ctx, input.terminalId);
+    const target = await findStoreTerminal(deps, tx, ctx, input.terminalId, { forUpdate: true });
+    if (target.version !== input.version) throw errors.concurrent();
     if (target.deviceId === null) return;
-    await deps.repo.setTerminalDevice(tx, target.id, null);
+    if (!(await deps.repo.clearDevice(tx, { terminalId: target.id, deviceId: target.deviceId }))) {
+      throw errors.concurrent();
+    }
     await recordAuditFromContext(tx, ctx, 'TERMINAL_UNBOUND', {
       entityType: 'terminal',
       entityId: target.id,

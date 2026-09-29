@@ -64,7 +64,7 @@ export default async function TerminalsPage() {
         <h2 id="novo-terminal" className="text-2xl font-bold">
           Cadastrar terminal
         </h2>
-        <TerminalForm values={{ code: '', name: '', kind: 'CAIXA' }} />
+        <TerminalForm values={{ code: '', name: '', kind: 'CAIXA' }} storeId={context.storeId} />
       </section>
     </div>
   );

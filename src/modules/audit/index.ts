@@ -21,7 +21,13 @@ type ContextFields = Omit<
   | 'ip'
   | 'userAgent'
   | 'requestId'
->;
+> & {
+  /**
+   * Loja AFETADA pela ação, quando não é a loja da sessão (ex.: admin no Centro desativa a Praia —
+   * a auditoria da Praia precisa mostrar). null = ação da organização (ex.: empresa).
+   */
+  readonly storeId?: AuditEntry['storeId'];
+};
 
 /** Registro de auditoria de uma ação feita por um usuário logado (quem, onde, de onde). */
 export function recordAuditFromContext(

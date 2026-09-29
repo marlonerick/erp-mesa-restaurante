@@ -1,7 +1,7 @@
 import { storeAccess } from '@/modules/authorization';
 import { getDatabase } from '@/shared/db/client';
 import { runInTransaction } from '@/shared/db/transaction';
-import type { Id } from '@/shared/kernel';
+import type { RequestContext } from '@/shared/kernel';
 import {
   getStoreSettings,
   type OrganizationAdministration,
@@ -10,8 +10,10 @@ import {
 } from '../index';
 
 /** Configurações da loja ativa, para as telas (ex.: dia de trabalho no início). */
-export function loadStoreSettings(storeId: Id): Promise<StoreSettings | null> {
-  return runInTransaction(getDatabase().db, (tx) => getStoreSettings(tx, storeId));
+export function loadStoreSettings(ctx: RequestContext): Promise<StoreSettings | null> {
+  return runInTransaction(getDatabase().db, (tx) =>
+    getStoreSettings(tx, { organizationId: ctx.organizationId, storeId: ctx.storeId }),
+  );
 }
 
 let service: OrganizationAdministration | undefined;

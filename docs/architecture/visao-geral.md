@@ -39,7 +39,8 @@ dependência só para resolver o atalho `@/`.)
 ## 4. Backend
 
 - Casos de uso recebem um `RequestContext` imutável:
-  `{ requestId, userId, storeId, companyId, organizationId, terminalId?, permissions, clock }`.
+  `{ requestId, sessionId, userId, organizationId, storeId, deviceId, terminalId, permissions, clock }`.
+  `terminalId` é calculado pelo aparelho da sessão e pela loja ativa (Etapa 3, RN-ORG-11).
   O `storeId` vem **da sessão**, nunca do payload do cliente.
 - Cada caso de uso: valida entrada (Zod na borda) → autoriza (`authorize(ctx, 'orders.create')`)
   → abre transação → carrega agregados com `version` → aplica regra de domínio → persiste →
@@ -162,7 +163,7 @@ erp-mesa-restaurante/
 │   │   ├── errors/                 # mapeamento DomainError/Zod → resposta de erro, ActionResult
 │   │   ├── idempotency/
 │   │   ├── logger/                 # Pino + redaction
-│   │   └── operational-day/        # Etapa 3
+│   │   └── (dia operacional: kernel/operational-day.ts — Etapa 3)
 │   ├── proxy.ts                    # Next 16 "proxy" (antigo middleware): requestId
 │   └── ui/                         # componentes reutilizáveis (shadcn/ui + próprios)
 ├── tests/

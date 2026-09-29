@@ -28,6 +28,21 @@ export function hasPermission(ctx: RequestContext, permission: Permission): bool
   return ctx.permissions.has(permission);
 }
 
+/**
+ * A tela foi aberta nesta loja? Formulários de dados DA LOJA ATIVA enviam a loja que estavam
+ * mostrando: se a pessoa trocou de loja em outra aba, a ação é recusada em vez de gravar na loja
+ * errada sem aviso (achado I-5 da revisão da Etapa 3).
+ */
+export function requireSameStore(ctx: RequestContext, expectedStoreId: string): void {
+  if (expectedStoreId !== ctx.storeId) {
+    throw new DomainError(
+      'STORE_CHANGED',
+      'A loja mudou em outra aba. Recarregue a página e confira antes de salvar.',
+      'CONFLICT',
+    );
+  }
+}
+
 /** Verificação obrigatória no início de todo caso de uso (RN-AUTHZ-03). */
 export function requirePermission(ctx: RequestContext, permission: Permission): void {
   if (!hasPermission(ctx, permission)) {

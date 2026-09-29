@@ -32,14 +32,16 @@ Notação: **PK**, FK →, *UQ* = único, *IX* = índice, *CK* = check.
 | Tabela | Colunas principais | Chaves e constraints |
 |---|---|---|
 | `organization` | id, name, status | PK id |
-| `company` | id, organization_id, legal_name, trade_name, cnpj CHAR(14), status | FK → organization; *UQ* cnpj |
-| `store` | id, organization_id, company_id, name, code, timezone VARCHAR(64) (`America/Sao_Paulo`), operational_day_cutoff TIME (`05:00`), service_fee_bp INT (1000), negative_stock_policy ENUM(`PERMITIR_COM_ALERTA`,`BLOQUEAR`), status, version | FK → company; *UQ* (company_id, code); *CK* service_fee_bp 0–10000 |
-| `terminal` | id, store_id, code, name, kind ENUM(`CAIXA`,`KDS`,`MOVEL`), device_token_hash CHAR(64) NULL, active | FK → store; *UQ* (store_id, code); *UQ* device_token_hash |
-| `kitchen_station` | id, store_id, name, is_default | FK → store; *UQ* (store_id, name) |
-| `store_sequence` | store_id, name, operational_date, value | PK (store_id, name, operational_date) — numeração de contas por dia |
+| `company` | id, organization_id, legal_name, trade_name, cnpj CHAR(14) NULL (opcional — E3-3), status, version | FK → organization; *UQ* cnpj |
+| `store` | id, organization_id, company_id, name, code, timezone VARCHAR(64) (`America/Sao_Paulo`), operational_day_cutoff TIME (`05:00`), service_fee_bp INT (1000), negative_stock_policy ENUM(`PERMITIR_COM_ALERTA`,`BLOQUEAR`), max_open_cash_sessions SMALLINT (1 — Q-05), status, version | FK → company; *UQ* (company_id, code); *CK* service_fee_bp ≤ 10000; *CK* max_open_cash_sessions 1–20 |
+| `terminal` | id, organization_id, store_id, code, name, kind ENUM(`CAIXA`,`KDS`,`MOVEL`), device_id NULL, active, version | FK → organization; FK → store; FK → known_device (ON DELETE SET NULL); *UQ* (store_id, code); *UQ* (organization_id, device_id) |
+| `kitchen_station` | id, store_id, name, is_default, default_store_id (calculada) | FK → store; *UQ* (store_id, name); *UQ* default_store_id (uma padrão por loja) |
+| `store_sequence` | store_id, name, operational_date, value | PK (store_id, name, operational_date) — numeração de contas por dia (**Etapa 6** — E3-5) |
 
-`terminal.device_token_hash`: um dispositivo é "registrado" como terminal por um GERENTE
-(cookie de dispositivo). O terminal da sessão vem desse cookie, não do payload.
+`terminal.device_id`: um aparelho (`known_device`, identificado pelo cookie de aparelho da Etapa 2)
+é "registrado" como terminal por quem tem `terminals.manage` (ADMIN, GERENTE — E3-1). O terminal da
+sessão é calculado a cada requisição pelo aparelho da sessão e pela loja ativa, nunca vem do
+formulário (RN-ORG-09, RN-ORG-11). Implementado na Etapa 3 (migration 0003).
 
 ### 2.2 Auth, Authorization e Users
 

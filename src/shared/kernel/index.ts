@@ -13,7 +13,12 @@ export {
   SYSTEM_ROLES,
   type SystemRole,
 } from './permissions';
-export { hasPermission, type RequestContext, requirePermission } from './request-context';
+export {
+  hasPermission,
+  type RequestContext,
+  requirePermission,
+  requireSameStore,
+} from './request-context';
 export { type BaseUnit, Quantity } from './quantity';
 export { type CostLine, totalCost, UnitCost } from './unit-cost';
 export { type MeasureUnit, toBaseQuantity } from './units';

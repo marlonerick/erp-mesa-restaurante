@@ -67,8 +67,14 @@ describeFeature(feature, ({ Scenario }) => {
     return session;
   }
 
-  const bind = (code: string) =>
-    services.organizations.bindThisDevice(carla.ctx, { terminalId: terminalId(code) });
+  /** Como a tela: lê o terminal (versão) e vincula este aparelho. */
+  async function bind(code: string) {
+    const current = await services.organizations.getTerminal(carla.ctx, terminalId(code));
+    await services.organizations.bindThisDevice(carla.ctx, {
+      terminalId: current.id,
+      version: current.version,
+    });
+  }
 
   Scenario('Gerente registra este aparelho como o Caixa 1', ({ Given, And, When, Then }) => {
     Given('que "carla" é gerente na loja "Centro"', carlaIsManager);

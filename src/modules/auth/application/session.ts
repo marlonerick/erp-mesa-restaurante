@@ -1,6 +1,6 @@
 import { recordAudit, recordAuditFromContext } from '@/modules/audit';
 import { getAccessibleStores, getPermissionsInStore } from '@/modules/authorization';
-import { findTerminalOfDevice, getStore, type StoreInfo } from '@/modules/organizations';
+import { findTerminalOfDevice, type StoreInfo } from '@/modules/organizations';
 import { findUserById, type UserRecord } from '@/modules/users';
 import { runInTransaction, type Transaction } from '@/shared/db/transaction';
 import { DomainError, type Id, type RequestContext } from '@/shared/kernel';
@@ -25,23 +25,45 @@ export interface AuthenticatedSession {
 }
 
 /**
- * Loja em que a sessão vai trabalhar. Se a loja ativa foi desativada, a sessão passa para a primeira
- * loja ativa (ordem alfabética) em que a pessoa tem perfil; sem nenhuma, null (RN-ORG-07).
+ * Loja em que a sessão vai trabalhar (RN-ORG-07). A loja ativa precisa estar ATIVA e a pessoa
+ * precisa ter perfil nela; senão a sessão passa para a primeira loja acessível (ordem alfabética),
+ * com auditoria. Sem nenhuma, a sessão é ENCERRADA no banco — reativar a loja depois não
+ * ressuscita um cookie antigo (achado I-4).
  */
 async function resolveSessionStore(
   deps: AuthDependencies,
   tx: Transaction,
   session: SessionRecord,
   user: UserRecord,
+  meta: RequestMeta,
+  now: Date,
 ): Promise<StoreInfo | null> {
-  const active = await getStore(tx, session.activeStoreId);
-  if (active) return active;
-  const [fallback] = await getAccessibleStores(tx, user.id, user.organizationId);
-  if (!fallback) return null;
+  const stores = await getAccessibleStores(tx, user.id, user.organizationId);
+  const current = stores.find((store) => store.id === session.activeStoreId);
+  if (current) return current;
+
+  const [fallback] = stores;
+  if (!fallback) {
+    await deps.repo.revokeSession(tx, session.id, 'SEM_LOJA', now);
+    return null;
+  }
   await deps.repo.setSessionStore(tx, session.id, fallback.id);
+  await recordAudit(tx, {
+    event: 'STORE_SWITCHED',
+    occurredAt: now,
+    organizationId: user.organizationId,
+    storeId: fallback.id,
+    actorUserId: user.id,
+    entityType: 'user_session',
+    entityId: session.id,
+    before: { storeId: session.activeStoreId },
+    after: { storeId: fallback.id, reason: 'LOJA_INDISPONIVEL' },
+    ip: meta.ip,
+    userAgent: meta.userAgent,
+    requestId: meta.requestId,
+  });
   return fallback;
 }
-
 /**
  * Valida o token do cookie e monta o contexto da requisição. `touch: false` para consultas
  * automáticas (polling), que não contam como uso (RN-AUTH-15). Sessão inválida: null.
@@ -60,7 +82,7 @@ export async function authenticate(
 
     const user = await findUserById(tx, session.userId);
     if (user?.status !== 'ATIVO') return null;
-    const store = await resolveSessionStore(deps, tx, session, user);
+    const store = await resolveSessionStore(deps, tx, session, user, meta, now);
     if (!store) return null;
 
     if (options.touch && shouldTouchSession(session, now)) {

@@ -94,7 +94,15 @@ export const kitchenStation = mysqlTable(
       .references(() => store.id),
     name: varchar('name', { length: 60 }).notNull(),
     isDefault: boolean('is_default').notNull().default(false),
+    /** Coluna calculada: a loja, só na estação padrão — o índice único garante UMA padrão por loja. */
+    defaultStoreId: uuidBinary('default_store_id').generatedAlwaysAs(
+      sql`(if(\`is_default\`, \`store_id\`, NULL))`,
+      { mode: 'stored' },
+    ),
     ...timestamps,
   },
-  (table) => [uniqueIndex('uq_kitchen_station_store_name').on(table.storeId, table.name)],
+  (table) => [
+    uniqueIndex('uq_kitchen_station_store_name').on(table.storeId, table.name),
+    uniqueIndex('uq_kitchen_station_default').on(table.defaultStoreId),
+  ],
 );

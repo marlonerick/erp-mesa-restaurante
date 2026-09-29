@@ -10,7 +10,7 @@ import {
 import type { NewElevatedGrant } from './application/ports';
 import {
   accessibleStores,
-  hasCompanyWidePermission,
+  companyWideScope,
   permissionsInStore,
   storesWithPermission,
   usersInStore,
@@ -41,8 +41,8 @@ export const getUsersInStore = (tx: Transaction, storeId: Id) => usersInStore(re
 export const storeAccess: StoreAccess = {
   storesWithPermission: (tx, userId, stores, permission) =>
     storesWithPermission(repo, tx, userId, stores, permission),
-  hasCompanyWidePermission: (tx, userId, scope, permission) =>
-    hasCompanyWidePermission(repo, tx, userId, scope, permission),
+  companyWideScope: (tx, userId, organizationId, permission) =>
+    companyWideScope(repo, tx, userId, organizationId, permission),
 };
 
 export const getStoreRoleCodes = (tx: Transaction, userId: Id, storeId: Id) =>

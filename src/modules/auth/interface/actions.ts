@@ -87,6 +87,7 @@ export async function logoutAction(): Promise<void> {
 export async function switchStoreAction(formData: FormData): Promise<void> {
   const session = await requireSession();
   const parsed = z.object({ storeId: z.uuid() }).safeParse(Object.fromEntries(formData));
+  let refused = !parsed.success;
   if (parsed.success) {
     try {
       await auth().switchStore(session.context, parseId(parsed.data.storeId));
@@ -96,11 +97,12 @@ export async function switchStoreAction(formData: FormData): Promise<void> {
         { code: error.code, requestId: session.context.requestId },
         'Troca de loja recusada',
       );
+      refused = true;
     }
   }
-  redirect('/inicio');
+  // Recusada: o Início explica (a loja pode ter sido desativada enquanto o menu estava aberto)
+  redirect(refused ? '/inicio?aviso=loja-indisponivel' : '/inicio');
 }
-
 /** Bloqueio do aparelho compartilhado (manual ou após 3 min sem uso — E2-3). */
 export async function lockScreenAction(): Promise<void> {
   await auth().lockScreen(await readSessionToken(), await requestMeta());

@@ -8,7 +8,7 @@ import { FormMessage } from '@/ui/form-message';
 import { SubmitButton } from '@/ui/submit-button';
 import { RoleCheckboxes } from './role-checkboxes';
 
-export function CreateUserForm() {
+export function CreateUserForm({ storeId }: { readonly storeId: string }) {
   const [state, action] = useActionState(createUserAction, null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -46,7 +46,7 @@ export function CreateUserForm() {
         required
         errors={state?.fieldErrors?.temporaryPassword}
       />
-      <RoleCheckboxes errors={state?.fieldErrors?.roleCodes} />
+      <RoleCheckboxes storeId={storeId} errors={state?.fieldErrors?.roleCodes} />
       <SubmitButton pendingText="Cadastrando…">Cadastrar usuário</SubmitButton>
     </form>
   );
