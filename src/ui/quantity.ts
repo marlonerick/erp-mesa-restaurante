@@ -10,13 +10,14 @@ const BIG_UNIT: Readonly<Record<BaseUnit, { label: string; small: string } | nul
 
 /**
  * Quantidade em milésimos da base → texto da tela: 2 500 000 (g) → "2,5 kg"; 850 000 → "850 g";
- * 3 000 (un) → "3 un". Nunca usa float: a divisão por 1000 é só troca de vírgula.
+ * 3 000 (un) → "3 un". Só mostra em kg/L quando é EXATO (gramas inteiras): 1000,5 g continua
+ * "1.000,5 g" — arredondar para "1,001 kg" levaria a uma contagem errada (sugestão S-2).
  */
 export function formatAmount(thousandths: number, unit: BaseUnit): string {
   const big = BIG_UNIT[unit];
-  if (big && Math.abs(thousandths) >= 1_000_000) {
-    // milésimos de g → g com 3 casas; ÷1000 = kg: mesma sequência de dígitos, vírgula 3 casas antes
-    return `${formatQuantityText(Number(divideRoundHalfUp(BigInt(thousandths), 1000n)))} ${big.label}`;
+  if (big && Math.abs(thousandths) >= 1_000_000 && thousandths % 1000 === 0) {
+    // Gramas inteiras: g em kg é a mesma conta de milésimos, sem arredondar nada
+    return `${formatQuantityText(thousandths / 1000)} ${big.label}`;
   }
   return `${formatQuantityText(thousandths)} ${big?.small ?? 'un'}`;
 }

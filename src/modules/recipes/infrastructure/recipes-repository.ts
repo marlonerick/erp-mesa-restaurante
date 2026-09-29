@@ -55,13 +55,6 @@ export const recipesRepository: RecipesRepository = {
     return rows.map((row) => ({ ...row, quantity: toThousandths(row.quantity) }));
   },
 
-  listRecipeOwners(tx, companyId) {
-    return tx
-      .select({ productId: recipe.productId, modifierId: recipe.modifierId })
-      .from(recipe)
-      .where(eq(recipe.companyId, companyId));
-  },
-
   async insertRecipe(tx, { id, companyId, kind, targetId, updatedBy }) {
     await tx.insert(recipe).values({
       id,

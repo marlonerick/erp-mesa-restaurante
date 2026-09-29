@@ -44,8 +44,27 @@ a comanda da Etapa 6 vai usar.
 3. **Teste E2E ambíguo:** o rótulo "Insumo 1" também casava com o botão "Remover o insumo 1" —
    busca exata.
 
+## Revisão do `reviewer` (2026-09-29)
+
+1ª revisão: **reprovada** — 1 bloqueante, 3 importantes, 7 sugestões (lint, typecheck, build, 1031
+testes, `drizzle-kit check` e `npm audit` passaram; nenhum float em nenhum caminho). Correções com
+testes em `tests/integration/modules/inventory/review-etapa-05.test.ts`,
+`tests/integration/modules/recipes/recipes-rules.test.ts`, `tests/unit/architecture/store-guard.test.ts`
+e `tests/e2e/estoque.spec.ts`:
+
+| # | Achado | Correção |
+|---|---|---|
+| B-1 | Dois cancelamentos simultâneos do mesmo item estornavam **em dobro** (saldo 1150 g em vez de 1000 g, CMV negativo) — reproduzido no MySQL pelo revisor | O consumo pendente é lido **com trava**; 3 testes (estorno × estorno, estorno × perda, transação que já tinha lido antes) — **falham sem a correção e passam com ela** (conferido) |
+| I-1 | Ficha sem linhas aparecia como "tem ficha", custo R$ 0,00 e margem 100% | "Tem ficha" = tem linhas; primeira ficha vazia não grava nada |
+| I-2 | Depois do aviso "outra pessoa alterou", o segundo clique salvava as linhas antigas por cima | O editor recarrega as linhas gravadas quando a versão muda (a mensagem continua na tela); teste E2E com duas telas |
+| I-3 | Faltavam testes de isolamento, permissão e STORE_CHANGED | Cozinha × 9 casos de uso; conversão alheia; estorno de outra loja; ficha de outra empresa; venda de produto alheio; venda com adicional gravando consumo; teste que confere `requireSameStore` em 16 Server Actions |
+| S-1 | Movimentação aceitava dados incoerentes se gravada por fora | Migration 0007: CHECKs (quantidade ≠ 0, sinal × tipo, motivo só em perda, origem do item) e FK de `user_id`; testes com erro 3819 |
+| S-2 | 1000,5 g aparecia como "1,001 kg" (contagem errada) | kg/L só quando exato; senão mostra em g |
+| S-5 | Aviso de falta repetia o insumo | Um aviso por insumo, com o total pedido |
+| S-3, S-4, S-6, S-7 | Estorno no dia do cancelamento; escopo das consultas de CMV; fuso fixo no seed; entrada simultânea a uma desativação | Registrados: RN-INV-15 (S-3) e débitos no PROJECT_STATUS (S-4, S-6, S-7) |
+
 ## Como experimentar (banco de desenvolvimento)
-1. `npm run db:migrate` (aplica a 0006), `npm run db:seed` (cria insumos e fichas), `npm run dev`.
+1. `npm run db:migrate` (aplica a 0006 e a 0007), `npm run db:seed` (cria insumos e fichas), `npm run dev`.
 2. Entre como `gerente` / `Gerente@2026` → **Estoque** → Carne moída → "Entrada (compra)": 2 kg por
    R$ 88,00. Veja o custo médio mudar e o extrato.
 3. "Contagem": informe 6,5 kg — o sistema lança só a diferença.
@@ -56,17 +75,17 @@ a comanda da Etapa 6 vai usar.
 
 | Tipo | Resultado |
 |---|---|
-| Unitários (conversões, custo médio e consumo com fast-check, margem, texto de quantidade) | ✅ 418 |
-| Integração com MySQL 8.4 real (BDD + isolamento + concorrência + imutabilidade + CMV) | ✅ 520 |
-| E2E no navegador (celular, tablet, desktop + BDD) | ✅ 93 (4 pulados de propósito) |
+| Unitários (conversões, custo médio e consumo com fast-check, margem, texto de quantidade) | ✅ 434 |
+| Integração com MySQL 8.4 real (BDD + isolamento + concorrência + imutabilidade + CMV) | ✅ 537 |
+| E2E no navegador (celular, tablet, desktop + BDD) | ✅ 96 (4 pulados de propósito) |
 
 ## Definition of Done
 - [x] SDD e cenários BDD
 - [x] Migration revisada (aplicada no banco de desenvolvimento; índices e triggers conferidos)
 - [x] Testes unitários, integração (MySQL real), BDD, isolamento entre lojas/empresas/organizações, E2E
 - [x] Lint, typecheck, build
-- [ ] CI no GitHub
-- [ ] Revisão do `reviewer`
+- [x] CI no GitHub (verde no commit da implementação; conferido de novo após as correções)
+- [ ] Revisão do `reviewer` (1ª reprovada; achados corrigidos — reverificação)
 - [x] Docs e maps
 - [x] `PROJECT_STATUS.md`
 - [ ] `APROVADO` do usuário

@@ -44,3 +44,7 @@
   insumo duas vezes), grava `ESTORNO_VENDA` + `PERDA` (`CANCELAMENTO_APOS_PREPARO`) de mesmo valor:
   o saldo não muda, o CMV deixa de contar o item e a perda aparece no relatório.
 - `order_item.stock_consumed` fica para a Etapa 6 (a origem das movimentações já é o item).
+- Idempotência (revisão, achado B-1): estorno e perda leem o consumo pendente da origem **com trava**
+  (`SELECT … FOR UPDATE`). Em REPEATABLE READ uma leitura comum usa a "foto" do início da transação:
+  dois cancelamentos simultâneos estornavam em dobro. A garantia é do Inventory — não depende da
+  trava que a comanda fizer no item.

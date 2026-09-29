@@ -30,11 +30,6 @@ export interface RecipesRepository {
     tx: Transaction,
     scope: { companyId: Id; productIds?: readonly Id[]; modifierIds?: readonly Id[] },
   ): Promise<OwnedRecipeLine[]>;
-  /** Versões das fichas da empresa (produto/adicional → versão). */
-  listRecipeOwners(
-    tx: Transaction,
-    companyId: Id,
-  ): Promise<{ productId: Id | null; modifierId: Id | null }[]>;
   insertRecipe(
     tx: Transaction,
     input: { id: Id; companyId: Id; kind: RecipeKind; targetId: Id; updatedBy: Id },

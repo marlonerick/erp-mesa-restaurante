@@ -328,7 +328,12 @@ export const inventoryRepository: InventoryRepository = {
           inArray(stockMovement.type, ['CONSUMO_VENDA', 'ESTORNO_VENDA']),
         ),
       )
-      .orderBy(asc(stockMovement.id));
+      .orderBy(asc(stockMovement.id))
+      // Leitura COM TRAVA (achado B-1 da revisão): em REPEATABLE READ, uma leitura comum usa a
+      // "foto" tirada no início da transação — dois cancelamentos simultâneos viam o mesmo consumo
+      // pendente e estornavam em dobro. A leitura travada vê o último dado confirmado e faz o
+      // segundo cancelamento ESPERAR o primeiro (depois, ele já enxerga o estorno e não faz nada).
+      .for('update');
     return rows.map(toMovement);
   },
 

@@ -44,12 +44,13 @@ antes de pedir a aprovação do usuário.
 - Nada bloqueado.
 
 ## Testes
-- Vitest: 938 testes (418 unitários + 520 de integração com MySQL 8.4 real).
-- Playwright: 93 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
+- Vitest: 971 testes (434 unitários + 537 de integração com MySQL 8.4 real).
+- Playwright: 96 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
 
 ## Bugs
-Nenhum aberto. Corrigidos na Etapa 5: unidade "toString" derrubava o lançamento; campo de
-quantidade com ponto de milhar gravaria 1 g no lugar de 1000 g — ver `docs/weeks/etapa-05.md`.
+Nenhum aberto. Corrigidos na Etapa 5: estorno em dobro com cancelamentos simultâneos (B-1 da
+revisão), unidade "toString" derrubava o lançamento, campo de quantidade com ponto de milhar
+gravaria 1 g no lugar de 1000 g — ver `docs/weeks/etapa-05.md`.
 
 ## Débitos técnicos
 - Migrar para TypeScript 7 quando o `typescript-eslint` suportar (D-1).
@@ -64,6 +65,10 @@ quantidade com ponto de milhar gravaria 1 g no lugar de 1000 g — ver `docs/wee
 - `authenticate` consulta os perfis duas vezes por requisição (lojas acessíveis + permissões);
   unificar se aparecer no monitoramento de desempenho.
 - Foto do produto (E4-3), depois do piloto.
+- Etapa 9: `costOfGoodsSold`/`lossesValue`/`consumptionForItems` recebem loja/empresa do chamador —
+  validar o escopo (ctx) quando os relatórios usarem (S-4 da revisão da Etapa 5).
+- Seed de estoque usa fuso/virada fixos (S-6) e entrada simultânea a uma desativação do insumo
+  pode passar (S-7, risco baixo) — revisão da Etapa 5.
 
 ## Riscos principais
 R-01 (piloto sem fiscal), R-03 (pagamento duplicado), R-06 (isolamento entre lojas),

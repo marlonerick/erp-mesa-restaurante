@@ -191,6 +191,8 @@ async function applyMovements(
   const now = ctx.clock.now();
   const day = operationalDate(now, settings.timezone, settings.operationalDayCutoff);
   const shortages: StockShortage[] = [];
+  /** Quanto já foi pedido de cada insumo neste lote (para somar os avisos por insumo). */
+  const requestedBefore = new Map<Id, number>();
   const rows: NewMovement[] = [];
 
   for (const request of requests) {
@@ -201,13 +203,26 @@ async function applyMovements(
     const after = balance.add(delta);
 
     if (request.checksPolicy && delta.isNegative() && after.isNegative()) {
-      shortages.push({
+      // Um aviso por insumo (sugestão S-5): várias linhas do mesmo insumo somam o que foi pedido;
+      // o saldo mostrado é o de antes da primeira linha
+      const earlier = shortages.findIndex((item) => item.ingredientId === ingredient.id);
+      const previous = earlier >= 0 ? shortages[earlier] : undefined;
+      const requested = requestedBefore.get(ingredient.id) ?? 0;
+      const entry: StockShortage = {
         ingredientId: ingredient.id,
         name: ingredient.name,
         unit: ingredient.baseUnit,
-        balance: balance.thousandths,
-        required: -delta.thousandths,
-      });
+        balance: previous?.balance ?? balance.thousandths + requested,
+        required: requested - delta.thousandths,
+      };
+      if (earlier >= 0) shortages[earlier] = entry;
+      else shortages.push(entry);
+    }
+    if (request.checksPolicy && delta.isNegative()) {
+      requestedBefore.set(
+        ingredient.id,
+        (requestedBefore.get(ingredient.id) ?? 0) - delta.thousandths,
+      );
     }
 
     let cost = current.cost;

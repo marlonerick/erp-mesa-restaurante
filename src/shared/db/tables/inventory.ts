@@ -17,6 +17,7 @@ import {
 import { timestamps, utcDatetime, version } from '../columns';
 import { uuidBinary } from '../uuid-binary';
 import { company, store } from './organizations';
+import { appUser } from './users';
 
 export const BASE_UNITS = ['g', 'ml', 'un'] as const;
 export const STOCK_MOVEMENT_TYPES = [
@@ -127,7 +128,10 @@ export const stockMovement = mysqlTable(
     enteredText: varchar('entered_text', { length: 40 }),
     originType: mysqlEnum('origin_type', STOCK_ORIGIN_TYPES).notNull(),
     originId: uuidBinary('origin_id'),
-    userId: uuidBinary('user_id').notNull(),
+    /** Quem fez (usuário nunca é apagado — só desativado). */
+    userId: uuidBinary('user_id')
+      .notNull()
+      .references(() => appUser.id),
     occurredAt: utcDatetime('occurred_at').notNull(),
     operationalDate: date('operational_date', { mode: 'string' }).notNull(),
   },
@@ -140,5 +144,22 @@ export const stockMovement = mysqlTable(
     index('ix_stock_movement_day_type').on(table.storeId, table.operationalDate, table.type),
     index('ix_stock_movement_origin').on(table.originType, table.originId),
     index('ix_stock_movement_ingredient').on(table.ingredientId),
+    index('ix_stock_movement_user').on(table.userId),
+    // Consistência garantida no banco (sugestão S-1 da revisão — migration 0007)
+    check('ck_stock_movement_quantity', sql`${table.quantity} <> 0`),
+    check(
+      'ck_stock_movement_sign',
+      sql`(${table.type} IN ('ENTRADA', 'ESTORNO_VENDA') AND ${table.quantity} > 0)
+        OR (${table.type} IN ('SAIDA', 'PERDA', 'CONSUMO_VENDA') AND ${table.quantity} < 0)
+        OR ${table.type} = 'AJUSTE'`,
+    ),
+    check(
+      'ck_stock_movement_loss_reason',
+      sql`(${table.lossReason} IS NULL) = (${table.type} <> 'PERDA')`,
+    ),
+    check(
+      'ck_stock_movement_origin',
+      sql`${table.originType} = 'MANUAL' OR ${table.originId} IS NOT NULL`,
+    ),
   ],
 );

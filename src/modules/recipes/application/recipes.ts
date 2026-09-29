@@ -127,8 +127,8 @@ export async function listRecipes(
     const targets = await deps.costingTargets(tx, scope);
     const costs = new Map((await deps.ingredientCosts(tx, scope)).map((item) => [item.id, item]));
     const lines = await deps.repo.listLines(tx, { companyId });
-    const owners = await deps.repo.listRecipeOwners(tx, companyId);
-    const withRecipe = new Set(owners.flatMap((row) => [row.productId, row.modifierId]));
+    // "Tem ficha" = tem pelo menos uma linha: ficha vazia é "sem ficha" (RN-REC-02, achado I-1)
+    const withRecipe = new Set(lines.flatMap((row) => [row.productId, row.modifierId]));
     return {
       products: targets.products.map((item) =>
         summarize(
@@ -191,7 +191,7 @@ export async function getRecipe(
     });
     const lines = recipe?.lines ?? [];
     return {
-      ...summarize(input.kind, target, lines, costs, recipe !== null),
+      ...summarize(input.kind, target, lines, costs, lines.length > 0),
       version: recipe?.version ?? null,
       lines: lines.flatMap((line) => {
         const ingredient = costs.get(line.ingredientId);
@@ -254,6 +254,8 @@ export async function saveRecipe(
         }
       }
       if (current && sameLines(current.lines, lines)) return;
+      // Primeira ficha sem nenhuma linha: nada a gravar (continua "sem ficha")
+      if (!current && lines.length === 0) return;
 
       let recipeId: Id;
       if (current) {

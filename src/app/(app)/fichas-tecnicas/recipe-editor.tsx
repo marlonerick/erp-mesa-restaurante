@@ -40,13 +40,22 @@ export function RecipeEditor({
   readonly maxLines: number;
 }) {
   const [state, action] = useActionState(saveRecipeAction, null);
-  const [rows, setRows] = useState<Row[]>(() =>
+  const toRows = () =>
     (initial.length > 0 ? initial : [{ ingredientId: '', quantity: '' }]).map((row, index) => ({
       key: index,
       ...row,
-    })),
-  );
+    }));
+  const [rows, setRows] = useState<Row[]>(toRows);
   const [nextKey, setNextKey] = useState(initial.length + 1);
+  // Chegou uma versão nova do servidor (ex.: depois de "outra pessoa alterou"): as linhas da tela
+  // passam a ser as GRAVADAS — senão o segundo clique salvaria as antigas por cima (achado I-2).
+  // A mensagem do conflito continua visível (o componente não é recriado).
+  const [loadedVersion, setLoadedVersion] = useState(version);
+  if (loadedVersion !== version) {
+    setLoadedVersion(version);
+    setRows(toRows());
+    setNextKey(initial.length + 1);
+  }
   const baseId = useId();
   const unitOf = (id: string) => ingredients.find((item) => item.id === id)?.unit ?? '';
 

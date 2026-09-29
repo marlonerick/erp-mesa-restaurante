@@ -2,8 +2,9 @@ import { and, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { auditLog } from '@/shared/db/schema';
 import { runInTransaction } from '@/shared/db/transaction';
-import { newId } from '@/shared/kernel';
+import { newId, PERMISSIONS } from '@/shared/kernel';
 import { useTestDatabase } from '../../../support/database';
+import { FakeRequestContext } from '../../../support/request-context';
 import { stockWorld } from '../inventory/stock-world';
 
 const { db } = useTestDatabase();
@@ -109,6 +110,82 @@ describe('ficha técnica (RN-REC-01 a 05)', () => {
     expect(
       await codeOf(w.services.recipes.getRecipe(w.ctx('intrusa'), { kind: 'PRODUCT', id: mine })),
     ).toBe('PRODUCT_NOT_FOUND');
+  });
+});
+
+describe('achados da revisão da Etapa 5', () => {
+  it('I-1: ficha sem linhas é "sem ficha" (não R$ 0,00 com margem de 100%)', async () => {
+    await save([], null); // primeira ficha vazia: nada é gravado
+    expect(await detail()).toMatchObject({ hasRecipe: false, version: null, marginTenths: null });
+    await save([['Carne moída', '150']], null);
+    await save([], 0); // tirou todas as linhas
+    const list = await w.services.recipes.listRecipes(w.ctx('carla'));
+    expect(list.products.find((item) => item.name === 'X-Burger')).toMatchObject({
+      hasRecipe: false,
+      marginTenths: null,
+    });
+  });
+
+  it('I-3: produto de OUTRA EMPRESA da mesma organização é invisível e não recebe ficha', async () => {
+    const admin = w.ctx('sistema');
+    const { id: companyId } = await w.services.organizations.createCompany(admin, {
+      legalName: 'Filial B Ltda',
+      tradeName: 'Filial B',
+      cnpj: null,
+    });
+    const { id: storeId } = await w.services.organizations.createStore(admin, {
+      companyId,
+      name: 'Norte',
+      code: 'NORTE',
+    });
+    const norte = new FakeRequestContext({
+      userId: w.userId('sistema'),
+      organizationId: w.org.organizationId,
+      storeId,
+      permissions: [...PERMISSIONS],
+    });
+    const target = { kind: 'PRODUCT' as const, id: w.product('X-Burger') };
+    expect(await codeOf(w.services.recipes.getRecipe(norte, target))).toBe('PRODUCT_NOT_FOUND');
+    expect(
+      await codeOf(w.services.recipes.saveRecipe(norte, { ...target, version: null, lines: [] })),
+    ).toBe('PRODUCT_NOT_FOUND');
+  });
+
+  it('I-3: vender produto alheio não baixa nada (a ficha é buscada na empresa da loja)', async () => {
+    await save([['Carne moída', '150']], null);
+    const product = w.product('X-Burger');
+    await w.manager('intrusa');
+    await w.ingredientWithCost('Carne moída', 'g', '0.040000');
+    await runInTransaction(db, (tx) =>
+      w.services.recipes.consumeForItems(tx, w.ctx('intrusa'), [
+        { originId: newId(), productId: product, quantity: 1000, modifiers: [] },
+      ]),
+    );
+    await w.expectBalance('Carne moída', '1000.000');
+  });
+
+  it('I-3: venda com adicional grava o consumo da ficha do adicional', async () => {
+    await save([['Carne moída', '150']], null);
+    await w.createModifier('Carne extra', 'Extras');
+    await w.services.recipes.saveRecipe(w.ctx('carla'), {
+      kind: 'MODIFIER',
+      id: w.modifier('Carne extra'),
+      version: null,
+      lines: [{ ingredientId: w.ingredient('Carne moída'), quantity: '50' }],
+    });
+    await runInTransaction(db, (tx) =>
+      w.services.recipes.consumeForItems(tx, w.ctx('carla'), [
+        {
+          originId: newId(),
+          productId: w.product('X-Burger'),
+          quantity: 2000,
+          modifiers: [{ modifierId: w.modifier('Carne extra'), quantity: 1000 }],
+        },
+      ]),
+    );
+    // 2 × (150 + 50) = 400 g
+    await w.expectBalance('Carne moída', '600.000');
+    expect(await w.cmv('Centro')).toBe(1600);
   });
 });
 

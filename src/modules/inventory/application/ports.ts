@@ -120,7 +120,10 @@ export interface InventoryRepository {
     tx: Transaction,
     scope: { storeId: Id; ingredientId: Id; limit: number },
   ): Promise<MovementRecord[]>;
-  /** Consumos e estornos já gravados de uma origem (item do pedido) na loja. */
+  /**
+   * Consumos e estornos já gravados de uma origem (item do pedido) na loja, lidos COM TRAVA: a
+   * idempotência do estorno não depende da trava de quem chama (achado B-1).
+   */
   saleMovementsOf(
     tx: Transaction,
     scope: { storeId: Id; originType: OriginType; originId: Id },

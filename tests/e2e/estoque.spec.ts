@@ -76,6 +76,56 @@ test.describe('Estoque (Etapa 5)', () => {
     await expect(page.getByText('Margem')).toBeVisible();
   });
 
+  test('conflito na ficha: a segunda tela recebe o aviso e passa a mostrar o que foi gravado (achado I-2)', async ({
+    page,
+    browser,
+  }) => {
+    const product = `Torta ${unique('e2e')}`;
+    await login(page, TEAM.gerente.username, TEAM.gerente.password);
+    await page.goto('/catalogo/produtos/novo');
+    await page.getByLabel('Nome', { exact: true }).fill(product);
+    await page.getByLabel('Categoria').selectOption({ label: 'Sobremesas' });
+    await page.getByRole('button', { name: 'Cadastrar produto' }).click();
+    await expect(page.getByRole('heading', { name: product, level: 1 })).toBeVisible();
+    await page.goto('/fichas-tecnicas');
+    await page.getByRole('link', { name: new RegExp(product) }).click();
+    await page.waitForURL(/\/fichas-tecnicas\/produto\/.+/);
+    const url = page.url();
+
+    // Segunda tela (outro aparelho) abre a mesma ficha, ainda vazia
+    const other = await browser.newContext();
+    const second = await other.newPage();
+    await login(second, TEAM.gerente.username, TEAM.gerente.password);
+    await second.goto(url);
+
+    // A primeira salva
+    await page
+      .getByLabel('Insumo 1', { exact: true })
+      .selectOption({ label: 'Leite condensado (g)' });
+    await page.getByLabel(/^Quantidade/).fill('100');
+    await page.getByRole('button', { name: 'Salvar ficha técnica' }).click();
+    await expect(
+      page.getByRole('status').filter({ hasText: 'Ficha técnica salva.' }),
+    ).toBeVisible();
+
+    // A segunda tenta salvar outra coisa: aviso, e a tela passa a mostrar a ficha gravada
+    await second.getByLabel('Insumo 1', { exact: true }).selectOption({ label: 'Ovo (un)' });
+    await second.getByLabel(/^Quantidade/).fill('3');
+    await second.getByRole('button', { name: 'Salvar ficha técnica' }).click();
+    await expect(second.locator('form [role="alert"]')).toContainText('Outra pessoa alterou');
+    await expect(
+      second.getByLabel('Insumo 1', { exact: true }).locator('option:checked'),
+    ).toHaveText('Leite condensado (g)');
+    await expect(second.getByLabel(/^Quantidade/)).toHaveValue('100');
+
+    // Segundo clique NÃO apaga a alteração da outra pessoa
+    await second.getByRole('button', { name: 'Salvar ficha técnica' }).click();
+    await page.reload();
+    await expect(page.getByText('Leite condensado').first()).toBeVisible();
+    await expect(page.getByText('Ovo ·')).toHaveCount(0);
+    await other.close();
+  });
+
   test('cozinha consulta o estoque e as fichas, mas não lança', async ({ page }) => {
     await login(page, 'cozinha', 'Cozinha@2026');
     await openMenuIfMobile(page);

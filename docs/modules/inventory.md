@@ -71,7 +71,12 @@ mudou. Toda mudança de saldo é uma **movimentação** gravada junto com o sald
   perda — `ESTORNO_VENDA` + `PERDA` (motivo `CANCELAMENTO_APOS_PREPARO`) de mesma quantidade e custo.
   O saldo não muda; o CMV deixa de contar o item e a perda aparece no relatório de perdas.
 - **RN-INV-15** — **CMV** de um período (dias operacionais, na loja) = soma dos valores de
-  `CONSUMO_VENDA` menos `ESTORNO_VENDA` (E5-6: tela na Etapa 9). Perdas são somadas à parte.
+  `CONSUMO_VENDA` menos `ESTORNO_VENDA` (E5-6: tela na Etapa 9). Perdas são somadas à parte. O
+  estorno entra no **dia operacional do cancelamento** (é quando aconteceu): um cancelamento depois
+  da virada reduz o CMV do dia seguinte — os relatórios da Etapa 9 devem explicar isso.
+- **RN-INV-15a** — Estorno e perda por cancelamento são **idempotentes mesmo ao mesmo tempo**: o
+  consumo pendente da origem é lido COM TRAVA (a segunda chamada espera a primeira e não repete),
+  sem depender da trava de quem chama (achado B-1 da revisão).
 
 ### Concorrência e registro
 - **RN-INV-16** — Saldo e movimentação na **mesma transação**; a linha de saldo é lida com
@@ -149,6 +154,9 @@ mudou. Toda mudança de saldo é uma **movimentação** gravada junto com o sald
   entered_text NULL, origin_type ENUM(`MANUAL`,`ORDER_ITEM`), origin_id NULL, user_id, occurred_at,
   operational_date) — IX (store_id, ingredient_id, occurred_at); IX (store_id, operational_date,
   type); IX (origin_type, origin_id); triggers recusam UPDATE e DELETE (RN-INV-17, como a auditoria).
+- Migration 0007 (revisão, S-1): CHECKs em `stock_movement` — quantidade ≠ 0, sinal coerente com o
+  tipo, `loss_reason` só (e sempre) em `PERDA`, `origin_id` obrigatório em `ORDER_ITEM`; FK
+  `user_id → app_user`.
 
 ## 10. Critérios de aceite
 - **CA-INV-01** — Entrada em kg vira gramas e recalcula o custo médio → `tests/features/inventory/movimentacoes.feature`
