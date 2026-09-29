@@ -59,6 +59,26 @@ test.describe('Entrar e sair', () => {
     await expect(page).toHaveURL(/\/login$/);
   });
 
+  test('o olho mostra e oculta a senha, que volta a ficar oculta ao enviar', async ({ page }) => {
+    await page.goto('/login');
+    const password = page.getByLabel('Senha', { exact: true });
+    await password.fill('qualquer-coisa');
+    await expect(password).toHaveAttribute('type', 'password');
+
+    await page.getByRole('button', { name: 'Mostrar senha' }).click();
+    await expect(password).toHaveAttribute('type', 'text');
+    await expect(password).toHaveValue('qualquer-coisa');
+
+    await page.getByRole('button', { name: 'Ocultar senha' }).click();
+    await expect(password).toHaveAttribute('type', 'password');
+
+    await page.getByRole('button', { name: 'Mostrar senha' }).click();
+    await page.getByLabel('Usuário', { exact: true }).fill(unique('ninguem'));
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await expect(page.locator('form [role="alert"]')).toHaveText('Usuário ou senha inválidos.');
+    await expect(password).toHaveAttribute('type', 'password');
+  });
+
   test('telas internas exigem login', async ({ page }) => {
     for (const path of ['/inicio', '/admin/usuarios', '/meu-pin']) {
       await page.goto(path);

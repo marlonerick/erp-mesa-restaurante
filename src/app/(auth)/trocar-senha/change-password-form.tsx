@@ -2,8 +2,8 @@
 
 import { useActionState } from 'react';
 import { changePasswordAction } from '@/modules/auth/interface/actions';
-import { TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
+import { PasswordField } from '@/ui/password-field';
 import { SubmitButton } from '@/ui/submit-button';
 
 export function ChangePasswordForm() {
@@ -11,27 +11,24 @@ export function ChangePasswordForm() {
   return (
     <form action={action} className="flex flex-col gap-5" noValidate>
       <FormMessage state={state} />
-      <TextField
+      <PasswordField
         label="Senha atual"
         name="currentPassword"
-        type="password"
         autoComplete="current-password"
         required
         errors={state?.fieldErrors?.currentPassword}
       />
-      <TextField
+      <PasswordField
         label="Nova senha"
         name="newPassword"
-        type="password"
         autoComplete="new-password"
         hint="Pelo menos 8 caracteres. Evite datas e sequências."
         required
         errors={state?.fieldErrors?.newPassword}
       />
-      <TextField
+      <PasswordField
         label="Repita a nova senha"
         name="confirmation"
-        type="password"
         autoComplete="new-password"
         required
         errors={state?.fieldErrors?.confirmation}

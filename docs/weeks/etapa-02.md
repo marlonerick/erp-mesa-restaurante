@@ -84,6 +84,12 @@ Ressalvas tratadas em seguida:
 | S2 | Perfil por empresa não confere a organização da empresa | Registrado: perfis por empresa ainda não existem; tratar quando forem criados |
 | S6 | Aparelho compartilhado não pode ser desmarcado | Decisão: permanente por segurança; para desmarcar, apagar os dados do site no navegador (documentado no SDD) |
 
+## Ajustes pedidos pelo usuário (2026-09-29)
+
+| Ajuste | Como ficou |
+|---|---|
+| Ver a senha digitada | Botão de olho (`src/ui/password-field.tsx`) nos campos de senha e PIN de Entrar, Trocar senha e Meu PIN. Leitor de tela anuncia "Mostrar/Ocultar senha"; ao enviar, o campo volta a ficar oculto. O teclado de PIN do aparelho compartilhado continua só com bolinhas. Teste E2E novo (40 no total). |
+
 ## Testes (2026-09-28)
 
 | Tipo | Resultado |

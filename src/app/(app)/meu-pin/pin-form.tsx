@@ -2,8 +2,8 @@
 
 import { useActionState, useEffect, useRef } from 'react';
 import { setPinAction } from '@/modules/auth/interface/actions';
-import { TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
+import { PasswordField } from '@/ui/password-field';
 import { SubmitButton } from '@/ui/submit-button';
 
 export function PinForm() {
@@ -17,18 +17,17 @@ export function PinForm() {
   return (
     <form ref={formRef} action={action} className="flex flex-col gap-5" noValidate>
       <FormMessage state={state} />
-      <TextField
+      <PasswordField
         label="Sua senha"
         name="currentPassword"
-        type="password"
         autoComplete="current-password"
         required
         errors={state?.fieldErrors?.currentPassword}
       />
-      <TextField
+      <PasswordField
         label="Novo PIN"
         name="pin"
-        type="password"
+        secretName="PIN"
         inputMode="numeric"
         autoComplete="off"
         maxLength={6}
@@ -36,10 +35,10 @@ export function PinForm() {
         required
         errors={state?.fieldErrors?.pin}
       />
-      <TextField
+      <PasswordField
         label="Repita o PIN"
         name="confirmation"
-        type="password"
+        secretName="PIN"
         inputMode="numeric"
         autoComplete="off"
         maxLength={6}

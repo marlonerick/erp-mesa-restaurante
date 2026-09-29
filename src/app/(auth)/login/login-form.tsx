@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import { loginAction } from '@/modules/auth/interface/actions';
 import { CheckboxField, TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
+import { PasswordField } from '@/ui/password-field';
 import { SubmitButton } from '@/ui/submit-button';
 
 export function LoginForm() {
@@ -20,10 +21,9 @@ export function LoginForm() {
         required
         errors={state?.fieldErrors?.username}
       />
-      <TextField
+      <PasswordField
         label="Senha"
         name="password"
-        type="password"
         autoComplete="current-password"
         required
         errors={state?.fieldErrors?.password}
