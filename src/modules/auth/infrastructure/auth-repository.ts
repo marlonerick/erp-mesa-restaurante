@@ -35,11 +35,12 @@ export const authRepository: AuthRepository = {
     await tx.update(userSession).set({ lastSeenAt: now }).where(eq(userSession.id, sessionId));
   },
 
-  async setSessionStore(tx, sessionId, storeId) {
-    await tx
+  async setSessionStore(tx, sessionId, { from, to }) {
+    const [result] = await tx
       .update(userSession)
-      .set({ activeStoreId: storeId })
-      .where(eq(userSession.id, sessionId));
+      .set({ activeStoreId: to })
+      .where(and(eq(userSession.id, sessionId), eq(userSession.activeStoreId, from)));
+    return result.affectedRows === 1;
   },
 
   async revokeSession(tx, sessionId, reason, now) {

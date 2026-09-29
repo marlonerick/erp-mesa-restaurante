@@ -64,6 +64,17 @@ Sugestões aplicadas: sessão lida uma vez por envio (1); conflito de versão j�
 organização (8); seletor de loja fecha com Esc/toque fora e botão de recolher com `aria-controls`
 (9); apagar um aparelho no futuro só desfaz o vínculo (`ON DELETE SET NULL`) (10).
 
+2ª revisão (reverificação): **aprovada com ressalvas** — bloqueante e importantes resolvidos; a
+migration 0004 foi testada pelo revisor num banco com terminais existentes. Ressalvas tratadas:
+
+| # | Achado | Correção |
+|---|---|---|
+| R-1 | Mudança automática de loja podia gravar a auditoria em dobro (layout e página autenticam ao mesmo tempo) | Mudança de loja da sessão só acontece se ela ainda estiver na loja antiga (UPDATE condicional); só quem mudou registra; teste com duas autenticações simultâneas |
+| S-2 | Teste de troca cruzada aceitava erro bruto do banco | Falha só pode ser `CONCURRENT_MODIFICATION`; teste novo: dois aparelhos em dois terminais livres ao mesmo tempo, os dois conseguem |
+| S-3 | Índice criado pelo MySQL fora do snapshot | Registrado em docs/database/modelo-de-dados.md |
+| S-4 | Formulários de usuário sem a loja da tela | Decisão registrada (RN-USERS-09) |
+| S-1 | Consultas repetidas em `authenticate` | Débito técnico: `cache()` por requisição arriscaria mostrar a sessão de ANTES de uma ação (ex.: terminal recém-vinculado) |
+
 ## Como experimentar (banco de desenvolvimento)
 1. `npm run db:up`, `npm run db:migrate` (aplica a 0003 e a 0004), `npm run dev`.
 2. Entre como `admin` / `Admin@2026`: menu lateral → **Lojas** → Praia → mude a taxa de serviço
@@ -77,7 +88,7 @@ organização (8); seletor de loja fecha com Esc/toque fora e botão de recolher
 | Tipo | Resultado |
 |---|---|
 | Unitários (regras, CNPJ, taxa, fusos, dia operacional com fast-check) | ✅ 300 |
-| Integração com MySQL 8.4 real (BDD + regras de borda + concorrência + achados da revisão) | ✅ 247 |
+| Integração com MySQL 8.4 real (BDD + regras de borda + concorrência + achados da revisão) | ✅ 249 |
 | E2E no navegador (celular, tablet, desktop + BDD) | ✅ 60 (4 pulados de propósito: testes só de computador ou só de celular) |
 
 ## Definition of Done

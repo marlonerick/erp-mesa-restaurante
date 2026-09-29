@@ -47,7 +47,13 @@ async function resolveSessionStore(
     await deps.repo.revokeSession(tx, session.id, 'SEM_LOJA', now);
     return null;
   }
-  await deps.repo.setSessionStore(tx, session.id, fallback.id);
+  // UPDATE condicional: duas requisições simultâneas (layout + página) movem a sessão uma vez só;
+  // só quem moveu de fato registra a auditoria (achado R-1 da reverificação)
+  const moved = await deps.repo.setSessionStore(tx, session.id, {
+    from: session.activeStoreId,
+    to: fallback.id,
+  });
+  if (!moved) return fallback;
   await recordAudit(tx, {
     event: 'STORE_SWITCHED',
     occurredAt: now,
@@ -64,6 +70,7 @@ async function resolveSessionStore(
   });
   return fallback;
 }
+
 /**
  * Valida o token do cookie e monta o contexto da requisição. `touch: false` para consultas
  * automáticas (polling), que não contam como uso (RN-AUTH-15). Sessão inválida: null.
@@ -146,7 +153,11 @@ export async function switchStore(
       throw new DomainError('STORE_NOT_FOUND', 'Loja não encontrada.', 'NOT_FOUND');
     }
     if (storeId === ctx.storeId) return;
-    await deps.repo.setSessionStore(tx, ctx.sessionId, storeId);
+    const moved = await deps.repo.setSessionStore(tx, ctx.sessionId, {
+      from: ctx.storeId,
+      to: storeId,
+    });
+    if (!moved) return; // a sessão já tinha mudado (outra aba): nada a registrar
     await recordAuditFromContext(tx, ctx, 'STORE_SWITCHED', {
       entityType: 'user_session',
       entityId: ctx.sessionId,

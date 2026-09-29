@@ -14,6 +14,11 @@ Cadastrar e manter as pessoas que usam o sistema, sempre por um ADMIN ou GERENTE
 - **RN-USERS-06** — Redefinir senha (`users.update`) gera nova senha provisória, encerra as sessões e destrava o PIN.
 - **RN-USERS-07** — O gerente só vê e altera usuários que tenham perfil em lojas a que ele tem acesso (isolamento).
 - **RN-USERS-08** — Dados pessoais mínimos (LGPD): nome e usuário. Sem CPF, e-mail ou telefone no MVP.
+- **RN-USERS-09** — Cadastrar e definir perfis valem para a **loja ativa**: o formulário envia a loja
+  da tela e o servidor recusa com `STORE_CHANGED` se a sessão trocou de loja em outra aba (Etapa 3,
+  achado I-5). Renomear, redefinir senha e desativar mexem em dados da pessoa (da organização),
+  não da loja — por isso não conferem a loja da tela; a busca continua limitada aos usuários da
+  loja ativa (RN-USERS-07).
 
 ## 7. Exceções
 | Situação | Código | HTTP | Mensagem |

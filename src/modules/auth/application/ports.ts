@@ -51,7 +51,8 @@ export interface AuthRepository {
   insertSession(tx: Transaction, session: NewSession): Promise<void>;
   touchSession(tx: Transaction, sessionId: Id, now: Date): Promise<void>;
   /** Troca a loja ativa da sessão (RN-ORG-12) ou a move de uma loja desativada (RN-ORG-07). */
-  setSessionStore(tx: Transaction, sessionId: Id, storeId: Id): Promise<void>;
+  /** Só muda se a sessão ainda estiver em `from` (UPDATE condicional); true = mudou. */
+  setSessionStore(tx: Transaction, sessionId: Id, stores: { from: Id; to: Id }): Promise<boolean>;
   revokeSession(tx: Transaction, sessionId: Id, reason: RevokeReason, now: Date): Promise<void>;
   revokeUserSessions(
     tx: Transaction,

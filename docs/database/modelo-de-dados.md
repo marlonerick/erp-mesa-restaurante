@@ -41,7 +41,9 @@ Notação: **PK**, FK →, *UQ* = único, *IX* = índice, *CK* = check.
 `terminal.device_id`: um aparelho (`known_device`, identificado pelo cookie de aparelho da Etapa 2)
 é "registrado" como terminal por quem tem `terminals.manage` (ADMIN, GERENTE — E3-1). O terminal da
 sessão é calculado a cada requisição pelo aparelho da sessão e pela loja ativa, nunca vem do
-formulário (RN-ORG-09, RN-ORG-11). Implementado na Etapa 3 (migration 0003).
+formulário (RN-ORG-09, RN-ORG-11). Implementado na Etapa 3 (migrations 0003 e 0004).
+Obs.: a chave estrangeira de `device_id` faz o MySQL criar sozinho o índice
+`terminal_device_id_known_device_id_fk`, que não aparece no snapshot do Drizzle — é esperado.
 
 ### 2.2 Auth, Authorization e Users
 

@@ -141,12 +141,33 @@ describe('I-2 — vínculo do aparelho com concorrência', () => {
         failureOf(organizations.bindThisDevice(tablet1.ctx, { terminalId: a, version: 1 })),
         failureOf(organizations.bindThisDevice(tablet2.ctx, { terminalId: b, version: 0 })),
       ]);
+      // Falha só pode ser "outra pessoa alterou" — nunca erro bruto do banco (S-2)
+      for (const result of [first, second]) {
+        expect([null, 'CONCURRENT_MODIFICATION']).toContain(result);
+      }
       // Quem recebeu "Pronto" tem o vínculo no fim
       if (first === null)
         expect((await organizations.getTerminal(tablet1.ctx, a)).isThisDevice).toBe(true);
       if (second === null)
         expect((await organizations.getTerminal(tablet2.ctx, b)).isThisDevice).toBe(true);
       expect([first, second]).toContain(null);
+    }
+  });
+
+  it('dois aparelhos vinculando dois terminais livres ao mesmo tempo: os dois conseguem', async () => {
+    for (let round = 0; round < 5; round++) {
+      const org = await createTestOrganization(db);
+      const tablet1 = await personIn(org, { role: 'GERENTE', stores: [org.centro] });
+      const tablet2 = await personIn(org, { role: 'GERENTE', stores: [org.centro] });
+      const a = await createTerminal(tablet1.ctx, 'A');
+      const b = await createTerminal(tablet1.ctx, 'B');
+      const results = await Promise.all([
+        failureOf(organizations.bindThisDevice(tablet1.ctx, { terminalId: a, version: 0 })),
+        failureOf(organizations.bindThisDevice(tablet2.ctx, { terminalId: b, version: 0 })),
+      ]);
+      expect(results).toEqual([null, null]);
+      expect((await organizations.getTerminal(tablet1.ctx, a)).isThisDevice).toBe(true);
+      expect((await organizations.getTerminal(tablet2.ctx, b)).isThisDevice).toBe(true);
     }
   });
 
@@ -219,6 +240,33 @@ describe('I-4 — sem nenhuma loja, a sessão é encerrada de verdade', () => {
       storeId: org.centro,
       reason: 'LOJA_INDISPONIVEL',
     });
+  });
+});
+
+describe('R-1 — mudança automática de loja registrada uma vez só', () => {
+  it('layout e página autenticando ao mesmo tempo: 1 evento STORE_SWITCHED', async () => {
+    const org = await createTestOrganization(db);
+    const admin = await personIn(org, { role: 'ADMIN', organizationWide: true });
+    const bia = await personIn(org, { role: 'GERENTE', stores: [org.centro, org.praia] });
+    await auth.switchStore(bia.ctx, org.praia);
+    const praia = await organizations.getStore(admin.ctx, org.praia);
+    await organizations.setStoreStatus(admin.ctx, {
+      storeId: praia.id,
+      version: praia.version,
+      status: 'INATIVO',
+    });
+
+    const sessions = await Promise.all([
+      auth.authenticate(bia.sessionToken, meta()),
+      auth.authenticate(bia.sessionToken, meta()),
+    ]);
+    expect(sessions.map((session) => session?.context.storeId)).toEqual([org.centro, org.centro]);
+    const events = await db
+      .select({ after: auditLog.afterData })
+      .from(auditLog)
+      .where(and(eq(auditLog.event, 'STORE_SWITCHED'), eq(auditLog.entityId, bia.ctx.sessionId)));
+    // 1 da troca manual para a Praia + 1 da volta automática
+    expect(events).toHaveLength(2);
   });
 });
 

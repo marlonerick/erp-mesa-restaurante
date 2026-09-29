@@ -38,7 +38,7 @@
 - ADR-0006 (momento da baixa de estoque) — aguarda Q-01; bloqueia a Etapa 5.
 
 ## Testes
-- Vitest: 547 testes (300 unitários + 247 de integração com MySQL 8.4 real).
+- Vitest: 549 testes (300 unitários + 249 de integração com MySQL 8.4 real).
 - Playwright: 60 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
 
 ## Bugs
