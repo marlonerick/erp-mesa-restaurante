@@ -12,7 +12,8 @@ Modelo: `Role → Permission (resource.action) → Scope (organization | company
 | stores.manage (empresa, lojas, configurações) | ✅ | | | | |
 | terminals.manage (terminais e vínculo do aparelho — E3-1) | ✅ | ✅ | | | |
 | products.read | ✅ | ✅ | ✅ | ✅ | ✅ |
-| products.create / products.update | ✅ | ✅ | | | |
+| products.create / products.update (preço: vale **na loja do preço**) | ✅ | ✅ | | | |
+| products.availability ("acabou"/"voltou" na loja — E4-1) | ✅ | ✅ | ✅ | | ✅ |
 | tables.read | ✅ | ✅ | ✅ | ✅ | |
 | tables.manage | ✅ | ✅ | ✅ | ✅ (liberar LIMPEZA) | |
 | orders.read | ✅ | ✅ | ✅ | ✅ | |

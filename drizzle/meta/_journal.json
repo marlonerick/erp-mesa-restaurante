@@ -36,6 +36,13 @@
       "when": 1790689655133,
       "tag": "0004_terminal_por_organizacao",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1790706467069,
+      "tag": "0005_catalogo",
+      "breakpoints": true
     }
   ]
 }

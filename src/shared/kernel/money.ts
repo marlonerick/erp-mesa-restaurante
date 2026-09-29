@@ -49,7 +49,7 @@ export class Money {
   /**
    * Preço × quantidade (inclusive fracionada). ATENÇÃO: a quantidade precisa estar na MESMA
    * unidade do preço — a unidade de `Quantity` não é convertida aqui. Venda por peso
-   * (preço por kg) será modelada na Etapa 4 (pergunta Q-10).
+   * (preço por kg) ficou fora do piloto (Q-10); quando entrar, usa esta mesma conta.
    */
   multiplyBy(quantity: Quantity): Money {
     return Money.fromBigInt(

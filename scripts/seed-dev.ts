@@ -1,14 +1,18 @@
 // Dados FICTÍCIOS para desenvolvimento e testes E2E (regra inviolável 8 do README).
 // Monta o cenário do piloto: 1 loja principal (Centro) + 1 loja extra (Praia) para ver o
-// isolamento, e os perfis da equipe. Só roda com o banco vazio (idempotente).
+// isolamento, e os perfis da equipe (só com o banco vazio) + o cardápio de demonstração (só se a
+// empresa ainda não tiver categorias). Pode rodar de novo sem duplicar nada.
 // Uso: npm run db:seed
+import { and, asc, eq } from 'drizzle-orm';
 import { grantStoreRoleUnchecked } from '@/modules/authorization';
 import { addStore, getStore } from '@/modules/organizations';
 import { bootstrapFirstAdmin, countUsers, insertUser, storePinHash } from '@/modules/users';
 import { getDatabase } from '@/shared/db/client';
+import { store } from '@/shared/db/schema';
 import { runInTransaction } from '@/shared/db/transaction';
 import { newId, type SystemRole } from '@/shared/kernel';
 import { argon2Hasher } from '@/shared/security/password-hasher';
+import { seedDemoCatalog } from './lib/demo-catalog';
 
 if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== 'true') {
   console.error('O seed de desenvolvimento nunca roda em produção.');
@@ -135,6 +139,28 @@ try {
       })),
     ]);
   }
+
+  // Cardápio de demonstração (Etapa 4): roda também em bancos criados antes desta etapa
+  const created = await runInTransaction(db, async (tx) => {
+    const [centro] = await tx
+      .select({ id: store.id, companyId: store.companyId })
+      .from(store)
+      .where(eq(store.code, 'CENTRO'))
+      .orderBy(asc(store.createdAt))
+      .limit(1);
+    if (!centro) return false;
+    const [praia] = await tx
+      .select({ id: store.id })
+      .from(store)
+      .where(and(eq(store.companyId, centro.companyId), eq(store.code, 'PRAIA')));
+    if (!praia) return false;
+    return seedDemoCatalog(tx, { companyId: centro.companyId, centro: centro.id, praia: praia.id });
+  });
+  console.info(
+    created
+      ? 'Cardápio de demonstração criado (X-Burger, Parmegiana, bebidas...).'
+      : 'Cardápio já existe: ignorado.',
+  );
 } finally {
   await close();
 }

@@ -1,4 +1,5 @@
 import { authService } from '@/modules/auth';
+import { catalogService } from '@/modules/catalog';
 import {
   grantOrganizationRole,
   grantStoreRoleUnchecked,
@@ -105,7 +106,8 @@ export function testServices(db: Database, clock = new FakeClock(TEST_START)) {
   const auth = authService({ db, clock });
   const users = userAdministration({ db, revokeUserSessions: auth.revokeUserSessions });
   const organizations = organizationAdministration({ db, access: storeAccess });
-  return { auth, users, organizations, clock };
+  const catalog = catalogService({ db });
+  return { auth, users, organizations, catalog, clock };
 }
 
 /** Entra com senha e devolve o contexto da requisição, como o servidor faria. */

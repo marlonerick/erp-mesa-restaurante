@@ -10,8 +10,9 @@ permissões da loja ativa; o servidor bloqueia de novo em cada tela.
 | Celular (< 768 px) | Barra no topo com ☰; o menu abre como gaveta (`<dialog>`: foco preso, Esc fecha) |
 
 Estrutura: seletor de loja no topo (loja ativa + terminal do aparelho; troca em 1 clique —
-RN-ORG-12) · grupos **Operação** (Início; depois Salão, KDS, PDV) e **Administração** (Usuários,
-Empresa, Lojas, Terminais) · rodapé com a conta (Meu PIN, Trocar senha, Trocar usuário, Sair).
+RN-ORG-12) · grupos **Operação** (Início, Disponibilidade; depois Salão, KDS, PDV), **Cardápio**
+(Produtos, Categorias, Adicionais — Etapa 4) e **Administração** (Usuários, Empresa, Lojas,
+Terminais) · rodapé com a conta (Meu PIN, Trocar senha, Trocar usuário, Sair).
 Página atual com `aria-current="page"`. O KDS (Etapa 7) abrirá em tela cheia, sem menu.
 
 Mapa de telas planejado (MVP):
@@ -42,7 +43,9 @@ flowchart TD
 | KDS | Tablet/monitor | kds.read |
 | PDV | Desktop/tablet | cashier.read |
 | Dashboard | Desktop | dashboard.read |
-| Catálogo, estoque, fichas | Desktop | products.read / inventory.read / recipes.read |
+| Cardápio: `/catalogo/produtos`, `/catalogo/categorias`, `/catalogo/adicionais` (Etapa 4) | Desktop (funciona no celular) | products.update (cadastrar: products.create) |
+| Disponibilidade `/disponibilidade` — "acabou"/"voltou" (Etapa 4) | Celular/tablet da cozinha ou do caixa | products.availability |
+| Estoque, fichas | Desktop | inventory.read / recipes.read |
 | Financeiro, relatórios | Desktop | finance.read / reports.read |
 | Admin — usuários | Desktop | users.read |
 | Admin — empresa e lojas (Etapa 3) | Desktop | stores.manage |

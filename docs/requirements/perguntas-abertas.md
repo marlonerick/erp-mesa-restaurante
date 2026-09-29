@@ -13,8 +13,8 @@ padrão que será adotada se você responder "use a proposta".
 | Q-06 | Taxa de serviço: calculada sobre o subtotal **após** descontos? Incide sobre todos os produtos (inclusive bebidas)? Aplica-se ao balcão? | Após descontos; todos os produtos; não se aplica ao balcão | Etapa 8 |
 | Q-07 | Limites de desconto por perfil (ex.: GARCOM 0%, CAIXA 10%, GERENTE 100%)? | Os do exemplo | Etapa 8 |
 | Q-08 | Itens sem preparo (refrigerante, água) devem aparecer no KDS? Existe **bar** como estação separada no piloto? | Não aparecem (marcados como prontos ao enviar); 1 estação | Etapa 6 |
-| Q-09 | Adicionais (ex.: "bacon extra") consomem estoque? Têm preço diferente por loja? | Consomem via ficha técnica do adicional; preço único por empresa | Etapa 4 |
-| Q-10 | Há venda **por peso** (buffet por kg, balança)? | Não no piloto (modelo já aceita quantidade decimal) | Etapa 4 |
+| Q-09 | ~~Adicionais consomem estoque? Preço por loja?~~ **Respondida (2026-09-29):** o preço do adicional é **único na empresa** (só o produto tem preço por loja); o adicional **consome estoque pela própria ficha técnica**, ligada na Etapa 5 | — | — |
+| Q-10 | ~~Venda por peso?~~ **Respondida (2026-09-29):** **não** no piloto — todo produto é vendido por unidade; a quantidade decimal do kernel permite incluir depois | — | — |
 | Q-11 | ~~Onde fica o repositório Git?~~ **Respondida (2026-09-28):** GitHub `marlonerick/erp-mesa-restaurante`, já com o primeiro commit; CI com GitHub Actions | — | — |
 | Q-12 | ~~Duração de sessão e aparelhos compartilhados?~~ **Respondida (2026-09-28):** sessão expira após **12 h sem uso** e, no máximo, **7 dias** (depois exige login de novo). Celulares e tablets **serão compartilhados** entre garçons → a Etapa 2 precisa de troca rápida de usuário no mesmo aparelho | — | — |
 | Q-13 | ~~Retenção de dados?~~ **Respondida (2026-09-28):** os dados ficam guardados **para sempre** no banco (vendas, caixa, estoque, auditoria). Ver Q-13b | — | — |
@@ -64,6 +64,16 @@ padrão que será adotada se você responder "use a proposta".
 | E3-3 | CNPJ da empresa opcional, validado (dígitos verificadores) quando preenchido |
 | E3-4 | Menu lateral (sidebar) filtrado por permissões, com seletor de loja; recolhível no computador/tablet, gaveta no celular |
 | E3-5 | `store_sequence` (numeração de contas por dia) fica para a Etapa 6, quando for usada |
+
+## Decisões tomadas na aprovação da Etapa 4 (2026-09-29)
+
+| ID | Decisão |
+|---|---|
+| E4-1 | Permissão nova `products.availability` (marcar "acabou"/"disponível" na loja): ADMIN, GERENTE, CAIXA e COZINHA; garçom não |
+| E4-2 | Produto nunca é apagado: é **desativado** (sai do cardápio; histórico e preços ficam guardados) |
+| E4-3 | Foto do produto fica para depois do piloto |
+| E4-4 | Código (SKU) do produto opcional, único na empresa |
+| E4-5 | Instalar o shadcn/ui para janelas, listas e seletores (desvio registrado em docs/weeks/etapa-04.md) |
 
 ## Pontos da especificação que interpretei (confirme ou corrija)
 

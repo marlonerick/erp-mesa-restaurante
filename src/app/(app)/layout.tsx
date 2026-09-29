@@ -39,8 +39,27 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     },
   ].filter((item) => item !== false);
 
+  const operation = [
+    { href: '/inicio', label: 'Início', icon: 'inicio' as const },
+    hasPermission(context, 'products.availability') && {
+      href: '/disponibilidade',
+      label: 'Disponibilidade',
+      icon: 'disponibilidade' as const,
+    },
+  ].filter((item) => item !== false);
+
+  // Cadastro do cardápio (Etapa 4): quem pode alterar produtos
+  const menu = hasPermission(context, 'products.update')
+    ? [
+        { href: '/catalogo/produtos', label: 'Produtos', icon: 'produtos' as const },
+        { href: '/catalogo/categorias', label: 'Categorias', icon: 'categorias' as const },
+        { href: '/catalogo/adicionais', label: 'Adicionais', icon: 'adicionais' as const },
+      ]
+    : [];
+
   const groups: NavGroup[] = [
-    { label: 'Operação', items: [{ href: '/inicio', label: 'Início', icon: 'inicio' }] },
+    { label: 'Operação', items: operation },
+    ...(menu.length > 0 ? [{ label: 'Cardápio', items: menu }] : []),
     ...(admin.length > 0 ? [{ label: 'Administração', items: admin }] : []),
   ];
 

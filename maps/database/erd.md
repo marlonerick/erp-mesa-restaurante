@@ -9,6 +9,8 @@ Tabelas já criadas por migration:
   `user_session`, `known_device`, `device_user`, `rate_limit_bucket`, `role`, `permission`,
   `role_permission`, `user_role_assignment`, `elevated_grant`, `audit_log` (com triggers de imutabilidade).
 - Etapa 3: `terminal`, `kitchen_station`; configurações em `store`; `version` em `company`.
+- Etapa 4: `category`, `product`, `product_store`, `modifier_group`, `modifier`,
+  `product_modifier_group` (migration 0005 — docs/modules/catalog.md §9).
 
 As demais são o modelo planejado. Nomes da Etapa 2 prevalecem sobre o diagrama abaixo
 (ex.: `session` → `user_session`; `terminal.device_id` → `known_device`).
@@ -123,7 +125,8 @@ erDiagram
   category ||--o{ product : agrupa
   product ||--o{ product_store : "preco por loja"
   store ||--o{ product_store : vende
-  kitchen_station ||--o{ product_store : prepara
+  company ||--o{ category : "cardapio da empresa"
+  company ||--o{ modifier_group : possui
   modifier_group ||--o{ modifier : contem
   product ||--o{ product_modifier_group : oferece
   modifier_group ||--o{ product_modifier_group : "usado em"
@@ -136,25 +139,45 @@ erDiagram
   ingredient ||--o{ stock_movement : movimenta
   store ||--o{ stock_movement : registra
 
+  category {
+    binary id PK
+    binary company_id FK
+    string name "UK por empresa"
+    int sort_order
+    bool active
+    int version
+  }
   product {
     binary id PK
     binary company_id FK
     binary category_id FK
-    enum sale_unit
+    string name "UK por empresa"
+    string sku "UK por empresa, opcional"
     bool requires_preparation
     bool active
+    int version
   }
   product_store {
     binary store_id PK
     binary product_id PK
-    bigint price_cents
+    int price_cents "0 a 9999999"
     bool available
-    binary station_id FK
+    int version
+  }
+  modifier_group {
+    binary id PK
+    binary company_id FK
+    int min_select
+    int max_select
+    bool active
+    int version
   }
   modifier {
     binary id PK
     binary modifier_group_id FK
-    bigint price_delta_cents
+    int price_delta_cents "unico na empresa (Q-09)"
+    bool active
+    int version
   }
   recipe {
     binary id PK

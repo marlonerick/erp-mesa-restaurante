@@ -75,14 +75,21 @@ nessa tabela (garantia no banco, não só no código).
 
 ### 2.4 Catalog
 
+Implementado na Etapa 4 (migration 0005 — docs/modules/catalog.md §9):
+
 | Tabela | Colunas principais | Chaves e constraints |
 |---|---|---|
-| `category` | id, company_id, name, sort_order, active, deleted_at | *UQ* (company_id, name) |
-| `product` | id, company_id, category_id, name, sku NULL, description, sale_unit ENUM(`UN`,`KG`), requires_preparation BOOL, active, deleted_at | FK → category; *UQ* (company_id, sku) |
-| `product_store` | product_id, store_id, price_cents, available BOOL, station_id NULL, version | PK (store_id, product_id); FK → kitchen_station; *CK* price_cents ≥ 0 |
-| `modifier_group` | id, company_id, name, min_select, max_select | *CK* min ≤ max |
-| `modifier` | id, modifier_group_id, name, price_delta_cents, active, deleted_at | FK → modifier_group |
-| `product_modifier_group` | product_id, modifier_group_id, sort_order | PK (product_id, modifier_group_id) |
+| `category` | id, company_id, name, sort_order, active, version | *UQ* (company_id, name) |
+| `product` | id, company_id, category_id, name, sku NULL, description NULL, requires_preparation BOOL, active, version | FK → category; *UQ* (company_id, name); *UQ* (company_id, sku); *IX* category_id |
+| `product_store` | store_id, product_id, price_cents INT UNSIGNED, available BOOL, version | PK (store_id, product_id); *IX* product_id; *CK* price_cents ≤ 9 999 999 |
+| `modifier_group` | id, company_id, name, min_select, max_select, active, version | *UQ* (company_id, name); *CK* min ≤ max; *CK* max 1–10 |
+| `modifier` | id, modifier_group_id, name, price_delta_cents INT UNSIGNED, active, version | *UQ* (modifier_group_id, name); *CK* ≤ 999 999 |
+| `product_modifier_group` | product_id, modifier_group_id | PK (product_id, modifier_group_id); *IX* modifier_group_id |
+
+Diferenças em relação ao modelo inicial: sem `sale_unit` (Q-10: só unidade), sem `deleted_at`
+(E4-2: desativar é o arquivamento), sem `station_id` em `product_store` (uma estação por loja no
+MVP), sem `sort_order` nos adicionais (ordem alfabética/de cadastro). Os índices das chaves
+estrangeiras são criados **antes** delas, com nome próprio (lição da ressalva S-3 da Etapa 3).
 
 `active` = produto existe no cardápio; `available` = disponível agora nesta loja (acabou,
 fora de horário). Produto inativo ou indisponível não pode ser lançado; itens já lançados não mudam.

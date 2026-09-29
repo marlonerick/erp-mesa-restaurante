@@ -3,10 +3,13 @@
 Seta `A --> B` = A chama caso de uso público de B ou assina evento de B. Nenhum módulo acessa
 tabelas de outro. Ciclos são proibidos (verificado no lint).
 
-## Implementado (Etapas 2 e 3 — ADR-0014)
+## Implementado (Etapas 2 a 4 — ADR-0014)
 
 ```mermaid
 flowchart LR
+  CAT[Catalog] --> ORG
+  CAT --> AUTHZ
+  CAT --> AUDIT
   AUTH[Auth] --> USERS[Users]
   AUTH --> AUTHZ[Authorization]
   AUTH --> ORG[Organizations]
@@ -27,6 +30,9 @@ flowchart LR
 Portas públicas: `@/modules/<m>` (núcleo, sem Next) e `@/modules/<m>/web` (adaptadores Next).
 Na Etapa 3, Organizations precisa consultar permissões por escopo, mas Authorization já depende de
 Organizations: a consulta (`StoreAccess`) é **injetada** pela camada web, como na Etapa 2.
+Na Etapa 4, Catalog usa Organizations (loja ativa → empresa; lojas da empresa) e Authorization
+(`products.update` em cada loja do preço) **diretamente**: nenhum dos dois depende do Catalog, então
+não há ciclo e não é preciso injetar.
 
 ## Planejado (MVP completo)
 

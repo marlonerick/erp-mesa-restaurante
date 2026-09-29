@@ -113,6 +113,34 @@ export const ICONS = {
       <path d="M7 14l5 5 5-5" />
     </Icon>
   ),
+  // Cardápio (Etapa 4)
+  produtos: (
+    <Icon>
+      <path d="M4 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3z" />
+      <path d="M18 7h2v13" />
+      <path d="M8 9h6M8 13h6" />
+    </Icon>
+  ),
+  categorias: (
+    <Icon>
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </Icon>
+  ),
+  adicionais: (
+    <Icon>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v8M8 12h8" />
+    </Icon>
+  ),
+  disponibilidade: (
+    <Icon>
+      <rect x="2" y="7" width="20" height="10" rx="5" />
+      <circle cx="16" cy="12" r="3" />
+    </Icon>
+  ),
 } as const;
 
 export type IconName = keyof typeof ICONS;

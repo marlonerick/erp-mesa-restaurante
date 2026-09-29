@@ -100,4 +100,4 @@ migration 0004 foi testada pelo revisor num banco com terminais existentes. Ress
 - [x] Revisão do `reviewer` (1ª reprovada; achados corrigidos e reverificados)
 - [x] Docs e maps
 - [x] `PROJECT_STATUS.md`
-- [ ] `APROVADO` do usuário
+- [x] `APROVADO` do usuário (2026-09-29)

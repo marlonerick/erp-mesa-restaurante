@@ -2,18 +2,8 @@ import { DomainError, parseLocalTime } from '@/shared/kernel';
 
 // Regras puras de empresa, loja e terminal (docs/modules/organizations.md §3).
 
-/** Nome sem espaços sobrando, dentro do tamanho (RN-ORG-02, 03, 08). */
-export function normalizeName(input: string, min: number, max: number): string {
-  const name = input.trim().replace(/\s+/g, ' ');
-  if (name.length < min || name.length > max) {
-    throw new DomainError(
-      'INVALID_NAME',
-      `Informe um nome entre ${String(min)} e ${String(max)} caracteres.`,
-      'VALIDATION',
-    );
-  }
-  return name;
-}
+/** Nome sem espaços sobrando (RN-ORG-02, 03, 08) — regra comum, mora no kernel desde a Etapa 4. */
+export { normalizeName } from '@/shared/kernel';
 
 const STORE_CODE = /^[A-Z0-9-]{2,20}$/;
 const TERMINAL_CODE = /^[A-Z0-9-]{1,20}$/;
