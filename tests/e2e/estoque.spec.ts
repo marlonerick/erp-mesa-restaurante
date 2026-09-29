@@ -120,6 +120,10 @@ test.describe('Estoque (Etapa 5)', () => {
 
     // Segundo clique NÃO apaga a alteração da outra pessoa
     await second.getByRole('button', { name: 'Salvar ficha técnica' }).click();
+    // Espera o servidor responder antes de conferir (S-9 da reverificação)
+    await expect(
+      second.getByRole('status').filter({ hasText: 'Ficha técnica salva.' }),
+    ).toBeVisible();
     await page.reload();
     await expect(page.getByText('Leite condensado').first()).toBeVisible();
     await expect(page.getByText('Ovo ·')).toHaveCount(0);

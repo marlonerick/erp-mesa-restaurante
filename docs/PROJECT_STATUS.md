@@ -3,8 +3,8 @@
 Última atualização: 2026-09-29
 
 ## Etapa atual
-**Etapa 5 — Estoque e ficha técnica** — implementada na `main`; em revisão (CI + `reviewer`)
-antes de pedir a aprovação do usuário.
+**Etapa 5 — Estoque e ficha técnica** — entregue na `main` (revisão: 1ª reprovada, achados
+corrigidos, reverificação **aprovada**), **aguardando aprovação do usuário**.
 
 ## Progresso do MVP
 
@@ -15,7 +15,7 @@ antes de pedir a aprovação do usuário.
 | 2 | Identidade e acesso | **Aprovada** em 2026-09-29 (com ajustes: olho na senha, limite de 64 caracteres) |
 | 3 | Organização e contexto | **Aprovada** em 2026-09-29 |
 | 4 | Catálogo | **Aprovada** em 2026-09-29 |
-| 5 | Estoque e ficha técnica | Implementada — em revisão |
+| 5 | Estoque e ficha técnica | Entregue — aguardando `APROVADO` |
 | 6 | Salão, mesas e pedidos | Não iniciada |
 | 7 | KDS | Não iniciada |
 | 8 | PDV e caixa | Não iniciada |
@@ -32,13 +32,13 @@ antes de pedir a aprovação do usuário.
   1 clique, dia operacional, menu lateral (`docs/weeks/etapa-03.md`).
 - Etapa 4: categorias, produtos, preço por loja, adicionais com preço único na empresa,
   disponibilidade do dia por loja, cardápio vendável para a comanda (`docs/weeks/etapa-04.md`).
-- Etapa 5 (em revisão): insumos, saldo e custo médio por loja, movimentações imutáveis, mínimo,
+- Etapa 5: insumos, saldo e custo médio por loja, movimentações imutáveis, mínimo,
   unidades de compra, ficha técnica de produtos e adicionais com custo e margem, baixa por venda
   pronta para a comanda (ADR-0006 A) (`docs/weeks/etapa-05.md`).
 - ADRs: 14 aceitos (0001–0014) — ADR-0006 aceito em 2026-09-29 (Q-01 = A).
 
 ## Em andamento
-- Revisão da Etapa 5 (CI e `reviewer`).
+- Revisão da Etapa 5 pelo usuário.
 
 ## Bloqueado
 - Nada bloqueado.
@@ -69,6 +69,8 @@ gravaria 1 g no lugar de 1000 g — ver `docs/weeks/etapa-05.md`.
   validar o escopo (ctx) quando os relatórios usarem (S-4 da revisão da Etapa 5).
 - Seed de estoque usa fuso/virada fixos (S-6) e entrada simultânea a uma desativação do insumo
   pode passar (S-7, risco baixo) — revisão da Etapa 5.
+- Trava do estorno: medir com dados reais qual índice o MySQL usa; se escolher o de loja/insumo,
+  forçar `ix_stock_movement_origin` ou incluir `store_id` nele (S-8 da reverificação da Etapa 5).
 
 ## Riscos principais
 R-01 (piloto sem fiscal), R-03 (pagamento duplicado), R-06 (isolamento entre lojas),

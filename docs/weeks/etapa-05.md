@@ -63,6 +63,12 @@ e `tests/e2e/estoque.spec.ts`:
 | S-5 | Aviso de falta repetia o insumo | Um aviso por insumo, com o total pedido |
 | S-3, S-4, S-6, S-7 | Estorno no dia do cancelamento; escopo das consultas de CMV; fuso fixo no seed; entrada simultânea a uma desativação | Registrados: RN-INV-15 (S-3) e débitos no PROJECT_STATUS (S-4, S-6, S-7) |
 
+2ª revisão (reverificação): **aprovada**. O revisor confirmou todos os achados resolvidos, testou
+15 rodadas de estorno junto com envios simultâneos (nenhum deadlock chegou a quem chama; saldos
+exatos) e conferiu que as 28 movimentações do banco de desenvolvimento respeitam os CHECKs da 0007.
+Sugestões novas: S-9 (teste E2E de conflito esperava pouco antes de recarregar) — corrigida; S-8
+(índice usado pela trava do estorno numa loja quase vazia) — débito técnico, medir com dados reais.
+
 ## Como experimentar (banco de desenvolvimento)
 1. `npm run db:migrate` (aplica a 0006 e a 0007), `npm run db:seed` (cria insumos e fichas), `npm run dev`.
 2. Entre como `gerente` / `Gerente@2026` → **Estoque** → Carne moída → "Entrada (compra)": 2 kg por
@@ -85,7 +91,7 @@ e `tests/e2e/estoque.spec.ts`:
 - [x] Testes unitários, integração (MySQL real), BDD, isolamento entre lojas/empresas/organizações, E2E
 - [x] Lint, typecheck, build
 - [x] CI no GitHub (verde no commit da implementação; conferido de novo após as correções)
-- [ ] Revisão do `reviewer` (1ª reprovada; achados corrigidos — reverificação)
+- [x] Revisão do `reviewer` (1ª reprovada; achados corrigidos; reverificação **aprovada**)
 - [x] Docs e maps
 - [x] `PROJECT_STATUS.md`
 - [ ] `APROVADO` do usuário
