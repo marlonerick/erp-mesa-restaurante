@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { PASSWORD_MAX_LENGTH } from '@/shared/kernel/credentials';
 import { TextField, type TextFieldProps } from './field';
 
 export interface PasswordFieldProps extends Omit<TextFieldProps, 'type' | 'trailing'> {
@@ -9,11 +10,16 @@ export interface PasswordFieldProps extends Omit<TextFieldProps, 'type' | 'trail
 }
 
 /**
- * Campo de senha com botão de olho para conferir o que foi digitado.
+ * Campo de senha com botão de olho para conferir o que foi digitado. Limita o tamanho no próprio
+ * navegador (o servidor confere de novo).
  * Ao enviar o formulário o campo volta a ficar oculto: o navegador não guarda o valor como
  * texto comum e a senha não fica à mostra na tela seguinte.
  */
-export function PasswordField({ secretName = 'senha', ...props }: PasswordFieldProps) {
+export function PasswordField({
+  secretName = 'senha',
+  maxLength = PASSWORD_MAX_LENGTH,
+  ...props
+}: PasswordFieldProps) {
   const [visible, setVisible] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -32,6 +38,7 @@ export function PasswordField({ secretName = 'senha', ...props }: PasswordFieldP
   return (
     <TextField
       {...props}
+      maxLength={maxLength}
       type={visible ? 'text' : 'password'}
       trailing={
         <button

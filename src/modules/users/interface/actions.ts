@@ -4,11 +4,12 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireSession } from '@/modules/auth/web';
 import { type FormState, formError, formSuccess } from '@/shared/errors/form-state';
-import { parseId, SYSTEM_ROLES } from '@/shared/kernel';
+import { PASSWORD_MAX_LENGTH, parseId, SYSTEM_ROLES } from '@/shared/kernel';
 import { getLogger } from '@/shared/logger/logger';
 import { usersAdmin } from './service';
 
 const USERS_PAGE = '/admin/usuarios';
+const PASSWORD_TOO_LONG = `A senha tem no máximo ${String(PASSWORD_MAX_LENGTH)} caracteres.`;
 
 const roleCodes = z.array(z.enum(SYSTEM_ROLES)).min(1, 'Escolha ao menos um perfil.');
 
@@ -31,7 +32,7 @@ async function run(action: () => Promise<string>): Promise<FormState> {
 const createSchema = z.object({
   name: z.string().max(120),
   username: z.string().max(50),
-  temporaryPassword: z.string().max(128),
+  temporaryPassword: z.string().max(PASSWORD_MAX_LENGTH, PASSWORD_TOO_LONG),
   roleCodes,
 });
 
@@ -69,7 +70,10 @@ export async function setUserRolesAction(_previous: FormState | null, formData: 
   });
 }
 
-const resetSchema = z.object({ userId: z.uuid(), temporaryPassword: z.string().max(128) });
+const resetSchema = z.object({
+  userId: z.uuid(),
+  temporaryPassword: z.string().max(PASSWORD_MAX_LENGTH, PASSWORD_TOO_LONG),
+});
 
 export async function resetPasswordAction(_previous: FormState | null, formData: FormData) {
   const { context } = await requireSession();

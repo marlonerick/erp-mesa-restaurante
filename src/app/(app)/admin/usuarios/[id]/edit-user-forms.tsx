@@ -7,6 +7,7 @@ import {
   resetPasswordAction,
   setUserRolesAction,
 } from '@/modules/users/interface/actions';
+import { PASSWORD_MAX_LENGTH } from '@/shared/kernel/credentials';
 import { CheckboxField, TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { SubmitButton } from '@/ui/submit-button';
@@ -95,6 +96,7 @@ export function EditUserForms({ user, can }: Props) {
                 label="Nova senha provisória"
                 name="temporaryPassword"
                 autoComplete="off"
+                maxLength={PASSWORD_MAX_LENGTH}
                 required
                 errors={resetState?.fieldErrors?.temporaryPassword}
               />

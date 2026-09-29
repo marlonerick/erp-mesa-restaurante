@@ -79,6 +79,13 @@ test.describe('Entrar e sair', () => {
     await expect(password).toHaveAttribute('type', 'password');
   });
 
+  test('o campo de senha não aceita mais de 64 caracteres', async ({ page }) => {
+    await page.goto('/login');
+    const password = page.getByLabel('Senha', { exact: true });
+    await password.fill('x'.repeat(70));
+    await expect(password).toHaveValue('x'.repeat(64));
+  });
+
   test('telas internas exigem login', async ({ page }) => {
     for (const path of ['/inicio', '/admin/usuarios', '/meu-pin']) {
       await page.goto(path);

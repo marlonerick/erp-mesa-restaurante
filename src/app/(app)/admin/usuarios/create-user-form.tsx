@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef } from 'react';
 import { createUserAction } from '@/modules/users/interface/actions';
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@/shared/kernel/credentials';
 import { TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { SubmitButton } from '@/ui/submit-button';
@@ -40,7 +41,8 @@ export function CreateUserForm() {
         name="temporaryPassword"
         type="text"
         autoComplete="off"
-        hint="Pelo menos 8 caracteres. Entregue à pessoa; ela troca no primeiro acesso."
+        maxLength={PASSWORD_MAX_LENGTH}
+        hint={`Entre ${String(PASSWORD_MIN_LENGTH)} e ${String(PASSWORD_MAX_LENGTH)} caracteres. Entregue à pessoa; ela troca no primeiro acesso.`}
         required
         errors={state?.fieldErrors?.temporaryPassword}
       />

@@ -95,6 +95,7 @@ Ressalvas tratadas em seguida:
 | Ajuste | Como ficou |
 |---|---|
 | Ver a senha digitada | Botão de olho (`src/ui/password-field.tsx`) nos campos de senha e PIN de Entrar, Trocar senha e Meu PIN. Leitor de tela anuncia "Mostrar/Ocultar senha"; ao enviar, o campo volta a ficar oculto. O teclado de PIN do aparelho compartilhado continua só com bolinhas. Teste E2E novo (40 no total). |
+| Limite de tamanho da senha | Máximo **64** caracteres (antes 128 só no servidor), em um lugar só (`src/shared/kernel/credentials.ts`): regra de senha, validações do servidor e `maxLength` nos campos (senha e senha provisória). 64 em vez de 25 para seguir o NIST e aceitar frases longas (decisão do usuário). Testes: unitário (64 aceita, 65 recusa) e E2E (campo corta em 64). |
 
 ## Testes (2026-09-28)
 

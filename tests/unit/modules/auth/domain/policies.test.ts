@@ -17,9 +17,15 @@ describe('política de senha (RN-AUTH-08)', () => {
     }).not.toThrow();
   });
 
+  it('aceita senha com exatamente 64 caracteres (frases longas)', () => {
+    expect(() => {
+      validateNewPassword('cafe com leite na praia '.repeat(3).slice(0, 64), 'joao');
+    }).not.toThrow();
+  });
+
   it.each([
     ['curta demais', 'Ab1!xyz', 'pelo menos 8'],
-    ['longa demais', 'a'.repeat(129), 'no máximo 128'],
+    ['longa demais (65)', 'a'.repeat(65), 'no máximo 64'],
     ['igual ao usuário', 'joaozinho', 'diferente do seu usuário'],
     ['igual ao usuário com maiúsculas', 'JOAOZINHO', 'diferente do seu usuário'],
     ['senha óbvia', '12345678', 'muito comum'],

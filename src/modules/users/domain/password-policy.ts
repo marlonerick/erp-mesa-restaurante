@@ -1,7 +1,8 @@
-import { DomainError } from '@/shared/kernel';
-
-const MIN_LENGTH = 8;
-const MAX_LENGTH = 128;
+import {
+  DomainError,
+  PASSWORD_MAX_LENGTH as MAX_LENGTH,
+  PASSWORD_MIN_LENGTH as MIN_LENGTH,
+} from '@/shared/kernel';
 
 // Senhas que aparecem no topo das listas de vazamentos; comparação sem maiúsculas/minúsculas.
 const COMMON_PASSWORDS = new Set([

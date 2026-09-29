@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { type ActionResult, actionFailure, actionSuccess } from '@/shared/errors/action-result';
 import { type FormState, formError, formSuccess } from '@/shared/errors/form-state';
-import { isPermission, parseId } from '@/shared/kernel';
+import { isPermission, PASSWORD_MAX_LENGTH, parseId } from '@/shared/kernel';
 import { getLogger } from '@/shared/logger/logger';
 import {
   clearSessionToken,
@@ -16,9 +16,11 @@ import {
 import { auth, requestMeta, requireSession } from './current-session';
 
 // Validação na fronteira (Zod) — docs/api/convencoes.md. Mensagens em português.
+const PASSWORD_TOO_LONG = `A senha tem no máximo ${String(PASSWORD_MAX_LENGTH)} caracteres.`;
+
 const loginSchema = z.object({
   username: z.string().trim().min(1, 'Informe o usuário.').max(50),
-  password: z.string().min(1, 'Informe a senha.').max(128),
+  password: z.string().min(1, 'Informe a senha.').max(PASSWORD_MAX_LENGTH, PASSWORD_TOO_LONG),
   sharedDevice: z.literal('on').optional(),
 });
 
@@ -87,8 +89,14 @@ export async function lockScreenAction(): Promise<void> {
 
 const changePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, 'Informe a senha atual.').max(128),
-    newPassword: z.string().min(1, 'Informe a nova senha.').max(128),
+    currentPassword: z
+      .string()
+      .min(1, 'Informe a senha atual.')
+      .max(PASSWORD_MAX_LENGTH, PASSWORD_TOO_LONG),
+    newPassword: z
+      .string()
+      .min(1, 'Informe a nova senha.')
+      .max(PASSWORD_MAX_LENGTH, PASSWORD_TOO_LONG),
     confirmation: z.string(),
   })
   .refine((data) => data.newPassword === data.confirmation, {
@@ -112,7 +120,10 @@ export async function changePasswordAction(
 
 const pinSchema = z
   .object({
-    currentPassword: z.string().min(1, 'Informe sua senha.').max(128),
+    currentPassword: z
+      .string()
+      .min(1, 'Informe sua senha.')
+      .max(PASSWORD_MAX_LENGTH, PASSWORD_TOO_LONG),
     pin: z.string().regex(/^\d{6}$/, 'O PIN tem 6 dígitos.'),
     confirmation: z.string(),
   })

@@ -18,7 +18,8 @@ Qualquer usuário ativo (ADMIN, GERENTE, CAIXA, GARCOM, COZINHA). Sistema (expir
 - **RN-AUTH-05** — Sessão: token aleatório de 256 bits no cookie (`HttpOnly`, `SameSite=Lax`, `Secure` em HTTPS); no banco fica só o hash SHA-256 do token.
 - **RN-AUTH-06** — A sessão expira após **12 h sem uso** e, no máximo, **7 dias** após o login (Q-12). Em **aparelho compartilhado**, expira após **3 min sem uso** (E2-3).
 - **RN-AUTH-07** — Sessões podem ser encerradas pelo servidor a qualquer momento (logout, desativação do usuário, troca/redefinição de senha).
-- **RN-AUTH-08** — Senha: mínimo 8 e máximo 128 caracteres, diferente do nome de usuário e fora da lista de senhas óbvias.
+- **RN-AUTH-08** — Senha: mínimo 8 e máximo 64 caracteres (limite também no campo da tela;
+  64 segue o NIST e ainda aceita frases longas), diferente do nome de usuário e fora da lista de senhas óbvias.
 - **RN-AUTH-09** — Senha criada ou redefinida pelo gerente é **provisória**: no primeiro acesso o usuário é obrigado a trocá-la; até lá, nenhuma outra ação é permitida.
 - **RN-AUTH-10** — PIN: exatamente **6 dígitos**, não pode ter todos os dígitos iguais nem ser sequência (123456, 654321). Definir/alterar o PIN exige a senha atual.
 - **RN-AUTH-11** — **Troca rápida (aparelho compartilhado):** a tela "Quem está usando?" mostra apenas usuários que entraram **com senha** naquele aparelho nos últimos **7 dias**, estão ativos e têm PIN. O usuário toca no nome e digita o PIN. A troca encerra a sessão anterior daquele aparelho.
