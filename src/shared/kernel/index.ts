@@ -4,6 +4,7 @@ export { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from './credentials';
 export { DomainError, type DomainErrorKind, isDomainError } from './errors';
 export { type Id, isId, newId, parseId } from './id';
 export { Money } from './money';
+export { operationalDate, parseLocalTime } from './operational-day';
 export { Percentage } from './percentage';
 export {
   isPermission,

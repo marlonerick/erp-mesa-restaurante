@@ -1,6 +1,6 @@
 /**
  * Catálogo de permissões do MVP (README B.7.1). Deve ser IGUAL à tabela `permission`
- * (migration 0002) — um teste de integração garante isso.
+ * (migrations 0002 e 0003) — um teste de integração garante isso.
  */
 export const PERMISSIONS = [
   'dashboard.read',
@@ -10,6 +10,7 @@ export const PERMISSIONS = [
   'users.disable',
   'stores.read',
   'stores.manage',
+  'terminals.manage',
   'products.read',
   'products.create',
   'products.update',

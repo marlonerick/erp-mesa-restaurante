@@ -1,5 +1,5 @@
 // API pública do módulo Authorization. Liga os casos de uso ao repositório real.
-import type { StoreInfo } from '@/modules/organizations';
+import type { StoreAccess, StoreInfo } from '@/modules/organizations';
 import type { Transaction } from '@/shared/db/transaction';
 import type { Id, Permission, RequestContext } from '@/shared/kernel';
 import {
@@ -8,7 +8,13 @@ import {
   ELEVATED_GRANT_TTL_SECONDS,
 } from './application/elevation';
 import type { NewElevatedGrant } from './application/ports';
-import { accessibleStores, permissionsInStore, usersInStore } from './application/permissions';
+import {
+  accessibleStores,
+  hasCompanyWidePermission,
+  permissionsInStore,
+  storesWithPermission,
+  usersInStore,
+} from './application/permissions';
 import {
   grantOrganizationRole as grantOrganizationRoleUseCase,
   grantStoreRoleUnchecked as grantStoreRoleUseCase,
@@ -30,6 +36,14 @@ export const getAccessibleStores = (
 ): Promise<StoreInfo[]> => accessibleStores(repo, tx, userId, organizationId);
 
 export const getUsersInStore = (tx: Transaction, storeId: Id) => usersInStore(repo, tx, storeId);
+
+/** Consulta de permissões injetada na administração de empresa/lojas (Organizations, ADR-0014). */
+export const storeAccess: StoreAccess = {
+  storesWithPermission: (tx, userId, stores, permission) =>
+    storesWithPermission(repo, tx, userId, stores, permission),
+  hasCompanyWidePermission: (tx, userId, scope, permission) =>
+    hasCompanyWidePermission(repo, tx, userId, scope, permission),
+};
 
 export const getStoreRoleCodes = (tx: Transaction, userId: Id, storeId: Id) =>
   repo.listStoreRoleCodes(tx, userId, storeId);

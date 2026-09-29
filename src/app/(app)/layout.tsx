@@ -1,60 +1,65 @@
-import Link from 'next/link';
+import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
-import { lockScreenAction, logoutAction } from '@/modules/auth/interface/actions';
-import { requireSession, SHARED_DEVICE_IDLE_TIMEOUT_SECONDS } from '@/modules/auth/web';
-import { Button } from '@/ui/button';
+import { auth, requireSession, SHARED_DEVICE_IDLE_TIMEOUT_SECONDS } from '@/modules/auth/web';
+import { hasPermission } from '@/shared/kernel';
 import { InactivityLock } from './inactivity-lock';
+import { type NavGroup, Sidebar, type SidebarMode } from './sidebar';
 
-/** Área logada: quem está usando, em qual loja, e como sair ou trocar de pessoa. */
+const MODES: readonly SidebarMode[] = ['auto', 'collapsed', 'expanded'];
+
+/** Área logada: menu lateral (E3-4) com a loja ativa, o terminal e o que a pessoa pode usar. */
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await requireSession();
-  const canSeeUsers = session.context.permissions.has('users.read');
+  const { context } = session;
+  const stores = await auth().listSessionStores(context);
+  const savedMode = (await cookies()).get('erp_sidebar')?.value;
+  const initialMode = MODES.find((mode) => mode === savedMode) ?? 'auto';
+
+  // Só aparece o que a pessoa pode usar NESTA loja (o servidor confere de novo em cada tela)
+  const admin = [
+    hasPermission(context, 'users.read') && {
+      href: '/admin/usuarios',
+      label: 'Usuários',
+      icon: 'usuarios' as const,
+    },
+    hasPermission(context, 'stores.manage') && {
+      href: '/admin/empresa',
+      label: 'Empresa',
+      icon: 'empresa' as const,
+    },
+    hasPermission(context, 'stores.manage') && {
+      href: '/admin/lojas',
+      label: 'Lojas',
+      icon: 'lojas' as const,
+    },
+    hasPermission(context, 'terminals.manage') && {
+      href: '/admin/terminais',
+      label: 'Terminais',
+      icon: 'terminais' as const,
+    },
+  ].filter((item) => item !== false);
+
+  const groups: NavGroup[] = [
+    { label: 'Operação', items: [{ href: '/inicio', label: 'Início', icon: 'inicio' }] },
+    ...(admin.length > 0 ? [{ label: 'Administração', items: admin }] : []),
+  ];
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="border-b-4 border-azulejo bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div>
-            <p className="text-lg font-bold">{session.storeName}</p>
-            <p className="text-tinta-suave">{session.userName}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {session.sharedDevice ? (
-              <form action={lockScreenAction}>
-                <Button type="submit" variant="secondary">
-                  Trocar usuário
-                </Button>
-              </form>
-            ) : null}
-            <form action={logoutAction}>
-              <Button type="submit" variant="secondary">
-                Sair
-              </Button>
-            </form>
-          </div>
-        </div>
-        <nav aria-label="Principal" className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-2">
-          <NavLink href="/inicio">Início</NavLink>
-          {canSeeUsers ? <NavLink href="/admin/usuarios">Usuários</NavLink> : null}
-          <NavLink href="/meu-pin">Meu PIN</NavLink>
-          <NavLink href="/trocar-senha">Trocar senha</NavLink>
-        </nav>
-      </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+    <div className="min-h-dvh md:flex">
+      <Sidebar
+        userName={session.userName}
+        storeName={session.storeName}
+        terminalName={session.terminalName}
+        stores={stores}
+        currentStoreId={context.storeId}
+        groups={groups}
+        sharedDevice={session.sharedDevice}
+        initialMode={initialMode}
+      />
+      <main className="mx-auto w-full max-w-6xl min-w-0 flex-1 px-4 py-8 md:px-8">{children}</main>
       {session.sharedDevice ? (
         <InactivityLock timeoutSeconds={SHARED_DEVICE_IDLE_TIMEOUT_SECONDS} />
       ) : null}
     </div>
-  );
-}
-
-function NavLink({ href, children }: { readonly href: string; readonly children: ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="inline-flex min-h-12 shrink-0 items-center px-3 font-semibold text-azulejo underline-offset-8 hover:underline"
-    >
-      {children}
-    </Link>
   );
 }

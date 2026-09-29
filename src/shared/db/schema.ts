@@ -6,4 +6,5 @@ export * from './tables/audit';
 export * from './tables/auth';
 export * from './tables/authorization';
 export * from './tables/organizations';
+export * from './tables/terminals';
 export * from './tables/users';

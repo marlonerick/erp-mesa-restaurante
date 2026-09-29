@@ -1,6 +1,14 @@
 import { authService } from '@/modules/auth';
-import { grantOrganizationRole, grantStoreRoleUnchecked } from '@/modules/authorization';
-import { addStore, createOrganizationWithStore } from '@/modules/organizations';
+import {
+  grantOrganizationRole,
+  grantStoreRoleUnchecked,
+  storeAccess,
+} from '@/modules/authorization';
+import {
+  addStore,
+  createOrganizationWithStore,
+  organizationAdministration,
+} from '@/modules/organizations';
 import { insertUser, storePinHash, userAdministration } from '@/modules/users';
 import type { Database } from '@/shared/db/client';
 import { runInTransaction } from '@/shared/db/transaction';
@@ -96,7 +104,8 @@ export async function createTestUser(db: Database, input: TestUserInput): Promis
 export function testServices(db: Database, clock = new FakeClock(TEST_START)) {
   const auth = authService({ db, clock });
   const users = userAdministration({ db, revokeUserSessions: auth.revokeUserSessions });
-  return { auth, users, clock };
+  const organizations = organizationAdministration({ db, access: storeAccess });
+  return { auth, users, organizations, clock };
 }
 
 /** Entra com senha e devolve o contexto da requisição, como o servidor faria. */

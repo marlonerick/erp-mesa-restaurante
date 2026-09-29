@@ -4,7 +4,7 @@ import { runInTransaction } from '@/shared/db/transaction';
 import { executeIdempotent } from '@/shared/idempotency/idempotency';
 import { idempotencyRecord } from '@/shared/idempotency/schema';
 import { DomainError, newId } from '@/shared/kernel';
-import { useTestDatabase } from '../../../support/database';
+import { createTestStore, useTestDatabase } from '../../../support/database';
 
 const { db } = useTestDatabase();
 
@@ -23,7 +23,7 @@ function counter() {
 
 describe('executeIdempotent — pagamento reenviado por perda de conexão (README B.4)', () => {
   it('executa na primeira vez e guarda a resposta', async () => {
-    const storeId = newId();
+    const storeId = await createTestStore(db);
     const key = newId();
     const work = counter();
 
@@ -40,7 +40,7 @@ describe('executeIdempotent — pagamento reenviado por perda de conexão (READM
   });
 
   it('reenvio com a mesma chave devolve a resposta original sem executar de novo', async () => {
-    const storeId = newId();
+    const storeId = await createTestStore(db);
     const key = newId();
     const work = counter();
     const request = { storeId, key, operation: 'payments.create', payload: { amountCents: 11000 } };
@@ -57,7 +57,7 @@ describe('executeIdempotent — pagamento reenviado por perda de conexão (READM
   });
 
   it('a ordem das chaves do payload não muda a identidade da requisição', async () => {
-    const storeId = newId();
+    const storeId = await createTestStore(db);
     const key = newId();
     const work = counter();
 
@@ -81,7 +81,7 @@ describe('executeIdempotent — pagamento reenviado por perda de conexão (READM
   });
 
   it('mesma chave com dados diferentes é recusada (409 IDEMPOTENCY_KEY_REUSED)', async () => {
-    const storeId = newId();
+    const storeId = await createTestStore(db);
     const key = newId();
 
     await runInTransaction(db, (tx) =>
@@ -107,7 +107,7 @@ describe('executeIdempotent — pagamento reenviado por perda de conexão (READM
     const key = newId();
     const work = counter();
 
-    for (const storeId of [newId(), newId()]) {
+    for (const storeId of [await createTestStore(db), await createTestStore(db)]) {
       const outcome = await runInTransaction(db, (tx) =>
         executeIdempotent(tx, { storeId, key, operation: 'x.y', payload: {} }, work.run('ok')),
       );
@@ -117,7 +117,7 @@ describe('executeIdempotent — pagamento reenviado por perda de conexão (READM
   });
 
   it('se a operação falha, a chave não fica gravada e o reenvio executa normalmente', async () => {
-    const storeId = newId();
+    const storeId = await createTestStore(db);
     const key = newId();
     const request = { storeId, key, operation: 'x.y', payload: {} };
 
@@ -142,7 +142,7 @@ describe('executeIdempotent — pagamento reenviado por perda de conexão (READM
   });
 
   it('dois envios simultâneos com a mesma chave executam a operação uma única vez', async () => {
-    const storeId = newId();
+    const storeId = await createTestStore(db);
     const key = newId();
     const work = counter();
     const request = { storeId, key, operation: 'payments.create', payload: { amountCents: 500 } };
@@ -164,7 +164,12 @@ describe('executeIdempotent — pagamento reenviado por perda de conexão (READM
   });
 
   it('comando sem retorno (undefined) funciona e o reenvio devolve null (revisão)', async () => {
-    const request = { storeId: newId(), key: newId(), operation: 'cashier.close', payload: {} };
+    const request = {
+      storeId: await createTestStore(db),
+      key: newId(),
+      operation: 'cashier.close',
+      payload: {},
+    };
 
     const first = await runInTransaction(db, (tx) =>
       executeIdempotent(tx, request, () => Promise.resolve(undefined)),
@@ -178,7 +183,12 @@ describe('executeIdempotent — pagamento reenviado por perda de conexão (READM
   });
 
   it('primeira execução e reenvio devolvem exatamente a mesma forma JSON (revisão)', async () => {
-    const request = { storeId: newId(), key: newId(), operation: 'x.y', payload: {} };
+    const request = {
+      storeId: await createTestStore(db),
+      key: newId(),
+      operation: 'x.y',
+      payload: {},
+    };
     const dto = { at: new Date('2026-03-15T01:30:00.000Z'), total: 1100 };
 
     const first = await runInTransaction(db, (tx) =>

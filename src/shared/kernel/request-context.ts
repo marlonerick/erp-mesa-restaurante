@@ -14,6 +14,10 @@ export interface RequestContext {
   readonly organizationId: Id;
   /** Loja ativa da sessão; todo acesso a dados operacionais filtra por ela. */
   readonly storeId: Id;
+  /** Aparelho da sessão (cookie de aparelho, RN-AUTH-13); null em sessões antigas sem aparelho. */
+  readonly deviceId: Id | null;
+  /** Terminal da loja ativa vinculado a este aparelho (RN-ORG-11), se houver. */
+  readonly terminalId: Id | null;
   readonly permissions: ReadonlySet<Permission>;
   readonly ip: string | null;
   readonly userAgent: string | null;

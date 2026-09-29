@@ -7,6 +7,8 @@ interface Options {
   readonly organizationId?: Id;
   readonly storeId?: Id;
   readonly sessionId?: Id;
+  readonly deviceId?: Id | null;
+  readonly terminalId?: Id | null;
   readonly clock?: Clock;
 }
 
@@ -17,6 +19,8 @@ export class FakeRequestContext implements RequestContext {
   readonly userId: Id;
   readonly organizationId: Id;
   readonly storeId: Id;
+  readonly deviceId: Id | null;
+  readonly terminalId: Id | null;
   readonly permissions: ReadonlySet<Permission>;
   readonly ip = '127.0.0.1';
   readonly userAgent = 'vitest';
@@ -27,6 +31,8 @@ export class FakeRequestContext implements RequestContext {
     this.userId = options.userId ?? newId();
     this.organizationId = options.organizationId ?? newId();
     this.storeId = options.storeId ?? newId();
+    this.deviceId = options.deviceId ?? null;
+    this.terminalId = options.terminalId ?? null;
     this.permissions = new Set(options.permissions ?? []);
     this.clock = options.clock ?? new FakeClock(new Date('2026-03-14T21:00:00.000Z'));
   }

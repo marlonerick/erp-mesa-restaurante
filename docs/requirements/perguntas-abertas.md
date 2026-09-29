@@ -9,7 +9,7 @@ padrão que será adotada se você responder "use a proposta".
 | Q-02 | O piloto precisa de impressora na cozinha (impressão automática)? A pré-conta precisa ser impressa? Há impressora térmica? Qual modelo e conexão (USB/rede)? | Pré-conta via navegador; cozinha só KDS | Etapa 7 |
 | Q-03 | Onde será hospedado? Há provedor preferido ou orçamento mensal? Como é a internet do restaurante (fibra, 4G de contingência)? | Container Node + MySQL gerenciado, região São Paulo | Etapa 10 (staging desde a Etapa 1 se possível) |
 | Q-04 | O restaurante piloto usa comanda **por mesa** ou **por cliente** (cartão/comanda individual)? Como funciona o balcão (nome, senha numérica)? | Por mesa; balcão identificado por rótulo livre | Etapa 6 |
-| Q-05 | Horário de funcionamento do piloto? Corte do dia operacional às 05:00 está ok? Haverá mais de um caixa aberto ao mesmo tempo? | Corte 05:00; 1 caixa | Etapa 3 |
+| Q-05 | ~~Horário e corte do dia?~~ **Respondida (2026-09-29):** o piloto funciona geralmente até as **15:00** (horário de funcionamento configurável fica para o futuro); virada do dia operacional às **05:00**, configurável por loja; **vários caixas abertos ao mesmo tempo**, com limite configurável por loja (padrão 1) | — | — |
 | Q-06 | Taxa de serviço: calculada sobre o subtotal **após** descontos? Incide sobre todos os produtos (inclusive bebidas)? Aplica-se ao balcão? | Após descontos; todos os produtos; não se aplica ao balcão | Etapa 8 |
 | Q-07 | Limites de desconto por perfil (ex.: GARCOM 0%, CAIXA 10%, GERENTE 100%)? | Os do exemplo | Etapa 8 |
 | Q-08 | Itens sem preparo (refrigerante, água) devem aparecer no KDS? Existe **bar** como estação separada no piloto? | Não aparecem (marcados como prontos ao enviar); 1 estação | Etapa 6 |
@@ -54,6 +54,16 @@ padrão que será adotada se você responder "use a proposta".
 | E2-6 | Auditoria imutável garantida por trigger no MySQL |
 | E2-7 | Dependência `@node-rs/argon2` aprovada |
 | D-11 | Skill do Claude Code **frontend-design** (Anthropic, Apache 2.0) instalada no projeto; find-skills, prisma-database-setup e clerk-backend-api avaliadas e **não** adotadas (ver docs/architecture/ferramentas.md) |
+
+## Decisões tomadas na aprovação da Etapa 3 (2026-09-29)
+
+| ID | Decisão |
+|---|---|
+| E3-1 | Permissão nova `terminals.manage` (ADMIN e GERENTE): o gerente registra o aparelho como terminal sem depender do dono |
+| E3-2 | Configurações da loja (taxa de serviço, virada do dia, estoque negativo, caixas abertos) só pelo ADMIN (`stores.manage`) |
+| E3-3 | CNPJ da empresa opcional, validado (dígitos verificadores) quando preenchido |
+| E3-4 | Menu lateral (sidebar) filtrado por permissões, com seletor de loja; recolhível no computador/tablet, gaveta no celular |
+| E3-5 | `store_sequence` (numeração de contas por dia) fica para a Etapa 6, quando for usada |
 
 ## Pontos da especificação que interpretei (confirme ou corrija)
 

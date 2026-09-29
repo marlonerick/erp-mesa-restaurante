@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { requireSession } from '@/modules/auth/web';
 import { usersAdmin } from '@/modules/users/web';
 import { hasPermission } from '@/shared/kernel';
+import { NoPermission } from '../no-permission';
 import { CreateUserForm } from './create-user-form';
 import { roleLabel } from './roles';
 
@@ -124,17 +125,6 @@ export default async function UsersPage() {
           <CreateUserForm />
         </section>
       ) : null}
-    </div>
-  );
-}
-
-export function NoPermission() {
-  return (
-    <div className="flex max-w-xl flex-col gap-2">
-      <h1 className="text-3xl font-bold">Sem permissão</h1>
-      <p className="text-lg">
-        Seu perfil não tem acesso a esta tela. Fale com o gerente se precisar.
-      </p>
     </div>
   );
 }

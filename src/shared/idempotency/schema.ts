@@ -8,16 +8,19 @@ import {
   primaryKey,
   varchar,
 } from 'drizzle-orm/mysql-core';
+import { store } from '../db/tables/organizations';
 import { uuidBinary } from '../db/uuid-binary';
 
 /**
  * Registro de comandos já executados (docs/api/convencoes.md §3).
- * A chave estrangeira para `store` é adicionada na Etapa 3, quando a tabela de lojas existir (D-4).
+ * Chave estrangeira para `store` adicionada na Etapa 3 (D-4).
  */
 export const idempotencyRecord = mysqlTable(
   'idempotency_record',
   {
-    storeId: uuidBinary('store_id').notNull(),
+    storeId: uuidBinary('store_id')
+      .notNull()
+      .references(() => store.id),
     idemKey: varchar('idem_key', { length: 64 }).notNull(),
     operation: varchar('operation', { length: 64 }).notNull(),
     requestHash: char('request_hash', { length: 64 }).notNull(),

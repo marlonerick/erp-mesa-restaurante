@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { type ActionResult, actionFailure, actionSuccess } from '@/shared/errors/action-result';
 import { type FormState, formError, formSuccess } from '@/shared/errors/form-state';
-import { isPermission, PASSWORD_MAX_LENGTH, parseId } from '@/shared/kernel';
+import { isDomainError, isPermission, PASSWORD_MAX_LENGTH, parseId } from '@/shared/kernel';
 import { getLogger } from '@/shared/logger/logger';
 import {
   clearSessionToken,
@@ -78,6 +78,27 @@ export async function logoutAction(): Promise<void> {
   await auth().logout(await readSessionToken(), await requestMeta());
   await clearSessionToken();
   redirect('/login');
+}
+
+/**
+ * Troca de loja em 1 clique (RN-ORG-12). Volta para o início: a tela atual pode ser de um registro
+ * que não existe na outra loja. Loja sem acesso: fica onde está (a sessão não muda).
+ */
+export async function switchStoreAction(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const parsed = z.object({ storeId: z.uuid() }).safeParse(Object.fromEntries(formData));
+  if (parsed.success) {
+    try {
+      await auth().switchStore(session.context, parseId(parsed.data.storeId));
+    } catch (error) {
+      if (!isDomainError(error)) throw error;
+      getLogger().warn(
+        { code: error.code, requestId: session.context.requestId },
+        'Troca de loja recusada',
+      );
+    }
+  }
+  redirect('/inicio');
 }
 
 /** Bloqueio do aparelho compartilhado (manual ou após 3 min sem uso — E2-3). */

@@ -1,7 +1,7 @@
 import { getStore, listStores, type StoreInfo } from '@/modules/organizations';
 import type { Transaction } from '@/shared/db/transaction';
 import type { Id, Permission } from '@/shared/kernel';
-import { covers, resolveStorePermissions } from '../domain/effective-permissions';
+import { covers, resolveStorePermissions, type StoreScope } from '../domain/effective-permissions';
 import type { AuthorizationRepository } from './ports';
 
 /** Permissões efetivas do usuário numa loja (RN-AUTHZ-02). Loja inexistente/inativa: nenhuma. */
@@ -28,6 +28,43 @@ export async function accessibleStores(
   const grants = await repo.listUserGrants(tx, userId);
   const stores = await listStores(tx, organizationId);
   return stores.filter((store) => grants.some((grant) => covers(grant, store)));
+}
+
+/** Lojas (entre as informadas, de qualquer situação) em que a permissão vale (RN-AUTHZ-02). */
+export async function storesWithPermission(
+  repo: AuthorizationRepository,
+  tx: Transaction,
+  userId: Id,
+  stores: readonly (StoreScope & { readonly id: Id })[],
+  permission: Permission,
+): Promise<Set<Id>> {
+  const grants = (await repo.listUserGrants(tx, userId)).filter((grant) =>
+    grant.permissions.includes(permission),
+  );
+  return new Set(
+    stores.filter((store) => grants.some((grant) => covers(grant, store))).map((store) => store.id),
+  );
+}
+
+/**
+ * A permissão vale para a organização inteira (perfil de organização) ou, com `companyId`, para
+ * toda a empresa (perfil de empresa)? Perfil só de loja não conta: administrar a empresa ou criar
+ * lojas nela é mais amplo que uma loja.
+ */
+export async function hasCompanyWidePermission(
+  repo: AuthorizationRepository,
+  tx: Transaction,
+  userId: Id,
+  scope: { organizationId: Id; companyId: Id | null },
+  permission: Permission,
+): Promise<boolean> {
+  const grants = await repo.listUserGrants(tx, userId);
+  return grants.some(
+    (grant) =>
+      grant.permissions.includes(permission) &&
+      ((grant.scopeType === 'ORGANIZATION' && grant.scopeId === scope.organizationId) ||
+        (grant.scopeType === 'COMPANY' && grant.scopeId === scope.companyId)),
+  );
 }
 
 /** Usuários com algum perfil que vale na loja, e os códigos desses perfis (isolamento RN-USERS-07). */

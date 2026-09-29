@@ -1,25 +1,60 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireSession } from '@/modules/auth/web';
+import { loadStoreSettings } from '@/modules/organizations/web';
+import { operationalDate } from '@/shared/kernel';
 
 export const metadata: Metadata = { title: 'Início' };
 
+/** "2026-03-14" → "sábado, 14 de março" (a data já é local: formata sem converter fuso). */
+function formatOperationalDate(date: string): string {
+  return new Intl.DateTimeFormat('pt-BR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(new Date(`${date}T00:00:00.000Z`));
+}
+
 export default async function HomePage() {
   const session = await requireSession();
+  const { context } = session;
   const firstName = session.userName.split(' ')[0] ?? session.userName;
-  const canManageUsers = session.context.permissions.has('users.read');
+  const settings = await loadStoreSettings(context.storeId);
+  const workDay = settings
+    ? operationalDate(context.clock.now(), settings.timezone, settings.operationalDayCutoff)
+    : null;
 
   return (
     <div className="flex max-w-2xl flex-col gap-8">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold">Olá, {firstName}.</h1>
-        <p className="text-lg text-tinta-suave">Você está na loja {session.storeName}.</p>
+        <p className="text-lg text-tinta-suave">
+          Você está na loja {session.storeName}
+          {session.terminalName ? `, no terminal ${session.terminalName}` : ''}.
+        </p>
+        {workDay && settings ? (
+          <p className="text-lg">
+            Dia de trabalho: <strong>{formatOperationalDate(workDay)}</strong>{' '}
+            <span className="text-tinta-suave">(vira às {settings.operationalDayCutoff})</span>
+          </p>
+        ) : null}
       </div>
 
       <ul className="flex flex-col divide-y divide-borda border-y border-borda">
-        {canManageUsers ? (
+        {context.permissions.has('users.read') ? (
           <HomeLink href="/admin/usuarios" title="Usuários">
             Cadastre a equipe, defina perfis e redefina senhas.
+          </HomeLink>
+        ) : null}
+        {context.permissions.has('stores.manage') ? (
+          <HomeLink href="/admin/lojas" title="Lojas">
+            Taxa de serviço, virada do dia, estoque negativo e caixas abertos de cada loja.
+          </HomeLink>
+        ) : null}
+        {context.permissions.has('terminals.manage') ? (
+          <HomeLink href="/admin/terminais" title="Terminais">
+            Registre este aparelho como caixa, tela da cozinha ou celular do salão.
           </HomeLink>
         ) : null}
         <HomeLink href="/meu-pin" title="Meu PIN">

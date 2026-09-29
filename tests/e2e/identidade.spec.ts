@@ -1,31 +1,9 @@
 import { expect, type Page, test } from '@playwright/test';
-
-// Equipe fictícia criada por scripts/seed-dev.ts no banco de E2E.
-const TEAM = {
-  gerente: { username: 'gerente', password: 'Gerente@2026', name: 'Carla Gerente' },
-  caixa: { username: 'caixa', password: 'Caixa@2026', name: 'Bia Caixa' },
-  joao: { username: 'joao', password: 'Garcom@2026', name: 'João Garçom', pin: '305917' },
-  ana: { username: 'ana', password: 'Garcom@2026', name: 'Ana Garçom' },
-};
-
-const unique = (base: string) => `${base}.${Math.random().toString(36).slice(2, 8)}`;
-
-async function submitLogin(page: Page, username: string, password: string, shared = false) {
-  await page.goto('/login');
-  await page.getByLabel('Usuário', { exact: true }).fill(username);
-  await page.getByLabel('Senha', { exact: true }).fill(password);
-  if (shared) await page.getByLabel('Este aparelho é compartilhado').check();
-  await page.getByRole('button', { name: 'Entrar' }).click();
-}
-
-/** Entra e ESPERA o login terminar (como uma pessoa esperaria a tela mudar). */
-async function login(page: Page, username: string, password: string, shared = false) {
-  await submitLogin(page, username, password, shared);
-  await page.waitForURL(/\/(inicio|trocar-senha)$/);
-}
+import { login, openMenuIfMobile, submitLogin, TEAM, unique } from './helpers';
 
 /** Toca em "Trocar usuário" e espera chegar na tela de troca. */
 async function lockScreen(page: Page) {
+  await openMenuIfMobile(page);
   await page.getByRole('button', { name: 'Trocar usuário' }).click();
   await page.waitForURL(/\/quem-esta-usando$/);
 }
@@ -47,6 +25,7 @@ test.describe('Entrar e sair', () => {
     await expect(page.getByRole('heading', { name: 'Olá, Bia.' })).toBeVisible();
     await expect(page.getByText('Você está na loja Centro.')).toBeVisible();
 
+    await openMenuIfMobile(page);
     await page.getByRole('button', { name: 'Sair' }).click();
     await expect(page).toHaveURL(/\/login$/);
     await page.goto('/inicio');

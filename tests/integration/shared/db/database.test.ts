@@ -4,7 +4,7 @@ import { mysqlErrno } from '@/shared/db/mysql-errors';
 import { runInTransaction } from '@/shared/db/transaction';
 import { idempotencyRecord } from '@/shared/idempotency/schema';
 import { newId } from '@/shared/kernel';
-import { useTestDatabase } from '../../../support/database';
+import { createTestStore, useTestDatabase } from '../../../support/database';
 
 const { db } = useTestDatabase();
 
@@ -34,7 +34,7 @@ describe('conexão e configuração do MySQL', () => {
   });
 
   it('CURRENT_TIMESTAMP grava em UTC', async () => {
-    const storeId = newId();
+    const storeId = await createTestStore(db);
     const before = Date.now();
     await insertRecord(storeId);
     const [row] = await db
@@ -63,7 +63,7 @@ describe('conexão e configuração do MySQL', () => {
 
 describe('UUIDv7 em BINARY(16)', () => {
   it('grava e lê o mesmo id', async () => {
-    const storeId = newId();
+    const storeId = await createTestStore(db);
     const key = newId();
     await insertRecord(storeId, key);
 
@@ -76,7 +76,7 @@ describe('UUIDv7 em BINARY(16)', () => {
   });
 
   it('ocupa 16 bytes no banco', async () => {
-    const storeId = newId();
+    const storeId = await createTestStore(db);
     await insertRecord(storeId);
     const [rows] = await db.execute(
       sql`SELECT LENGTH(store_id) AS len FROM idempotency_record WHERE store_id = ${idempotencyRecord.storeId.mapToDriverValue(storeId)}`,
@@ -88,7 +88,7 @@ describe('UUIDv7 em BINARY(16)', () => {
 
 describe('runInTransaction (ADR-0008)', () => {
   it('confirma as alterações quando o trabalho termina bem', async () => {
-    const storeId = newId();
+    const storeId = await createTestStore(db);
     await runInTransaction(db, async (tx) => {
       await tx.insert(idempotencyRecord).values({
         storeId,
@@ -106,7 +106,7 @@ describe('runInTransaction (ADR-0008)', () => {
   });
 
   it('desfaz tudo quando o trabalho falha', async () => {
-    const storeId = newId();
+    const storeId = await createTestStore(db);
     await expect(
       runInTransaction(db, async (tx) => {
         await tx.insert(idempotencyRecord).values({

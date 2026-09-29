@@ -35,6 +35,13 @@ export const authRepository: AuthRepository = {
     await tx.update(userSession).set({ lastSeenAt: now }).where(eq(userSession.id, sessionId));
   },
 
+  async setSessionStore(tx, sessionId, storeId) {
+    await tx
+      .update(userSession)
+      .set({ activeStoreId: storeId })
+      .where(eq(userSession.id, sessionId));
+  },
+
   async revokeSession(tx, sessionId, reason, now) {
     await tx
       .update(userSession)

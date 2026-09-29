@@ -1,16 +1,16 @@
-import { recordAudit } from '@/modules/audit';
-import { getPermissionsInStore } from '@/modules/authorization';
-import { getStore } from '@/modules/organizations';
-import { findUserById } from '@/modules/users';
+import { recordAudit, recordAuditFromContext } from '@/modules/audit';
+import { getAccessibleStores, getPermissionsInStore } from '@/modules/authorization';
+import { findTerminalOfDevice, getStore, type StoreInfo } from '@/modules/organizations';
+import { findUserById, type UserRecord } from '@/modules/users';
 import { runInTransaction, type Transaction } from '@/shared/db/transaction';
-import type { Id, RequestContext } from '@/shared/kernel';
+import { DomainError, type Id, type RequestContext } from '@/shared/kernel';
 import { hashToken } from '@/shared/security/tokens';
 import {
   SHARED_DEVICE_IDLE_TIMEOUT_SECONDS,
   sessionStatus,
   shouldTouchSession,
 } from '../domain/session-policy';
-import type { AuthDependencies, RequestMeta, RevokeReason } from './ports';
+import type { AuthDependencies, RequestMeta, RevokeReason, SessionRecord } from './ports';
 
 /** Tudo o que a tela e os casos de uso precisam saber sobre quem está logado. */
 export interface AuthenticatedSession {
@@ -18,8 +18,28 @@ export interface AuthenticatedSession {
   readonly userName: string;
   readonly username: string;
   readonly storeName: string;
+  /** Terminal da loja vinculado a este aparelho (RN-ORG-11), se houver. */
+  readonly terminalName: string | null;
   readonly mustChangePassword: boolean;
   readonly sharedDevice: boolean;
+}
+
+/**
+ * Loja em que a sessão vai trabalhar. Se a loja ativa foi desativada, a sessão passa para a primeira
+ * loja ativa (ordem alfabética) em que a pessoa tem perfil; sem nenhuma, null (RN-ORG-07).
+ */
+async function resolveSessionStore(
+  deps: AuthDependencies,
+  tx: Transaction,
+  session: SessionRecord,
+  user: UserRecord,
+): Promise<StoreInfo | null> {
+  const active = await getStore(tx, session.activeStoreId);
+  if (active) return active;
+  const [fallback] = await getAccessibleStores(tx, user.id, user.organizationId);
+  if (!fallback) return null;
+  await deps.repo.setSessionStore(tx, session.id, fallback.id);
+  return fallback;
 }
 
 /**
@@ -39,8 +59,9 @@ export async function authenticate(
     if (!session || sessionStatus(session, now) !== 'ATIVA') return null;
 
     const user = await findUserById(tx, session.userId);
-    const store = await getStore(tx, session.activeStoreId);
-    if (user?.status !== 'ATIVO' || !store) return null;
+    if (user?.status !== 'ATIVO') return null;
+    const store = await resolveSessionStore(deps, tx, session, user);
+    if (!store) return null;
 
     if (options.touch && shouldTouchSession(session, now)) {
       await deps.repo.touchSession(tx, session.id, now);
@@ -48,6 +69,8 @@ export async function authenticate(
     const permissions = user.mustChangePassword
       ? new Set<never>() // senha provisória: nada liberado até trocar (RN-AUTH-09)
       : await getPermissionsInStore(tx, user.id, store.id);
+    const terminal =
+      session.deviceId === null ? null : await findTerminalOfDevice(tx, store.id, session.deviceId);
 
     return {
       context: {
@@ -56,6 +79,8 @@ export async function authenticate(
         userId: user.id,
         organizationId: user.organizationId,
         storeId: store.id,
+        deviceId: session.deviceId,
+        terminalId: terminal?.id ?? null,
         permissions,
         ip: meta.ip,
         userAgent: meta.userAgent,
@@ -64,9 +89,48 @@ export async function authenticate(
       userName: user.name,
       username: user.username,
       storeName: store.name,
+      terminalName: terminal?.name ?? null,
       mustChangePassword: user.mustChangePassword,
       sharedDevice: session.idleTimeoutSeconds === SHARED_DEVICE_IDLE_TIMEOUT_SECONDS,
     };
+  });
+}
+
+/** Lojas ativas em que a pessoa tem perfil — o seletor de lojas do menu (RN-ORG-12). */
+export async function listSessionStores(
+  deps: AuthDependencies,
+  ctx: RequestContext,
+): Promise<{ id: Id; name: string }[]> {
+  return runInTransaction(deps.db, async (tx) =>
+    (await getAccessibleStores(tx, ctx.userId, ctx.organizationId)).map((store) => ({
+      id: store.id,
+      name: store.name,
+    })),
+  );
+}
+
+/**
+ * Troca de loja em 1 clique (RN-ORG-12): só para loja ativa com algum perfil. A resposta para loja
+ * inexistente, de outra organização ou sem perfil é a mesma ("não encontrada").
+ */
+export async function switchStore(
+  deps: AuthDependencies,
+  ctx: RequestContext,
+  storeId: Id,
+): Promise<void> {
+  await runInTransaction(deps.db, async (tx) => {
+    const stores = await getAccessibleStores(tx, ctx.userId, ctx.organizationId);
+    if (!stores.some((store) => store.id === storeId)) {
+      throw new DomainError('STORE_NOT_FOUND', 'Loja não encontrada.', 'NOT_FOUND');
+    }
+    if (storeId === ctx.storeId) return;
+    await deps.repo.setSessionStore(tx, ctx.sessionId, storeId);
+    await recordAuditFromContext(tx, ctx, 'STORE_SWITCHED', {
+      entityType: 'user_session',
+      entityId: ctx.sessionId,
+      before: { storeId: ctx.storeId },
+      after: { storeId },
+    });
   });
 }
 

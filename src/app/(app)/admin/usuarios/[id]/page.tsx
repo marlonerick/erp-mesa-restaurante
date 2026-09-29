@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { requireSession } from '@/modules/auth/web';
 import { usersAdmin } from '@/modules/users/web';
 import { hasPermission, isDomainError, isId } from '@/shared/kernel';
-import { NoPermission } from '../page';
+import { NoPermission } from '../../no-permission';
 import { roleLabel } from '../roles';
 import { EditUserForms } from './edit-user-forms';
 

@@ -57,12 +57,3 @@ export async function insertCompany(
   await tx.insert(company).values({ id, ...input });
   return id;
 }
-
-export async function insertStore(
-  tx: Transaction,
-  input: { organizationId: Id; companyId: Id; name: string; code: string },
-): Promise<Id> {
-  const id = newId();
-  await tx.insert(store).values({ id, ...input });
-  return id;
-}
