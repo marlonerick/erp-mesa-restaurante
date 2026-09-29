@@ -57,9 +57,24 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       ]
     : [];
 
+  // Estoque e fichas técnicas (Etapa 5): a cozinha consulta, o gerente lança
+  const stock = [
+    hasPermission(context, 'inventory.read') && {
+      href: '/estoque',
+      label: 'Estoque',
+      icon: 'estoque' as const,
+    },
+    hasPermission(context, 'recipes.read') && {
+      href: '/fichas-tecnicas',
+      label: 'Fichas técnicas',
+      icon: 'fichas' as const,
+    },
+  ].filter((item) => item !== false);
+
   const groups: NavGroup[] = [
     { label: 'Operação', items: operation },
     ...(menu.length > 0 ? [{ label: 'Cardápio', items: menu }] : []),
+    ...(stock.length > 0 ? [{ label: 'Estoque', items: stock }] : []),
     ...(admin.length > 0 ? [{ label: 'Administração', items: admin }] : []),
   ];
 

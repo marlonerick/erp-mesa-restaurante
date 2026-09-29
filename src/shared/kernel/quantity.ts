@@ -1,4 +1,5 @@
 import { DomainError } from './errors';
+import { divideRoundHalfUp } from './rounding';
 
 /** Unidades base de estoque e venda (README B.7.5). */
 export type BaseUnit = 'g' | 'ml' | 'un';
@@ -61,6 +62,17 @@ export class Quantity {
 
   negate(): Quantity {
     return Quantity.fromThousandths(-this.thousandths, this.unit);
+  }
+
+  /**
+   * Multiplica por um fator em milésimos (ex.: ficha 150 g × 2 itens = 150 g × 2.000), arredondando
+   * a milésimos uma vez (half-up, ADR-0003). Só inteiros — nunca float.
+   */
+  times(factorThousandths: number): Quantity {
+    return Quantity.fromThousandths(
+      Number(divideRoundHalfUp(BigInt(this.thousandths) * BigInt(factorThousandths), 1000n)),
+      this.unit,
+    );
   }
 
   isZero(): boolean {

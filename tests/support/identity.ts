@@ -1,5 +1,6 @@
 import { authService } from '@/modules/auth';
 import { catalogService } from '@/modules/catalog';
+import { inventoryService } from '@/modules/inventory';
 import {
   grantOrganizationRole,
   grantStoreRoleUnchecked,
@@ -10,6 +11,7 @@ import {
   createOrganizationWithStore,
   organizationAdministration,
 } from '@/modules/organizations';
+import { recipesService } from '@/modules/recipes';
 import { insertUser, storePinHash, userAdministration } from '@/modules/users';
 import type { Database } from '@/shared/db/client';
 import { runInTransaction } from '@/shared/db/transaction';
@@ -107,7 +109,9 @@ export function testServices(db: Database, clock = new FakeClock(TEST_START)) {
   const users = userAdministration({ db, revokeUserSessions: auth.revokeUserSessions });
   const organizations = organizationAdministration({ db, access: storeAccess });
   const catalog = catalogService({ db });
-  return { auth, users, organizations, catalog, clock };
+  const inventory = inventoryService({ db });
+  const recipes = recipesService({ db });
+  return { auth, users, organizations, catalog, inventory, recipes, clock };
 }
 
 /** Entra com senha e devolve o contexto da requisição, como o servidor faria. */

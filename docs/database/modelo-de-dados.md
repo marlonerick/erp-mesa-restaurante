@@ -96,18 +96,23 @@ fora de horário). Produto inativo ou indisponível não pode ser lançado; iten
 
 ### 2.5 Inventory e Recipes
 
+Implementado na Etapa 5 (migration 0006 — docs/modules/inventory.md §9 e recipes.md §6):
+
 | Tabela | Colunas principais | Chaves e constraints |
 |---|---|---|
-| `ingredient` | id, company_id, name, base_unit ENUM(`g`,`ml`,`un`), active, deleted_at | *UQ* (company_id, name) |
-| `ingredient_unit_conversion` | id, ingredient_id, unit_code VARCHAR(16), factor_to_base DECIMAL(14,3) | *UQ* (ingredient_id, unit_code); *CK* factor > 0 |
-| `ingredient_stock` | store_id, ingredient_id, quantity DECIMAL(14,3), avg_unit_cost DECIMAL(18,6), min_quantity DECIMAL(14,3), version | PK (store_id, ingredient_id) |
-| `stock_movement` | id, store_id, ingredient_id, type ENUM(`ENTRADA`,`SAIDA`,`AJUSTE`,`PERDA`,`CONSUMO_VENDA`,`ESTORNO_VENDA`), quantity DECIMAL(14,3) (com sinal), unit_cost DECIMAL(18,6), balance_after DECIMAL(14,3), origin_type, origin_id NULL, reason NULL, user_id, occurred_at, operational_date | *IX* (store_id, ingredient_id, occurred_at); *IX* (store_id, operational_date, type); *IX* (origin_type, origin_id) |
-| `recipe` | id, company_id, product_id, version, updated_by | *UQ* product_id |
-| `recipe_item` | id, recipe_id, ingredient_id, quantity DECIMAL(14,3) | *UQ* (recipe_id, ingredient_id); *CK* quantity > 0 |
+| `ingredient` | id, company_id, name, base_unit ENUM(`g`,`ml`,`un`) (imutável), active, version | *UQ* (company_id, name) |
+| `ingredient_unit_conversion` | id, ingredient_id, unit_name VARCHAR(20), factor_to_base DECIMAL(14,3) | *UQ* (ingredient_id, unit_name); *CK* fator > 0 |
+| `ingredient_stock` | store_id, ingredient_id, quantity DECIMAL(14,3), avg_unit_cost DECIMAL(18,6), min_quantity DECIMAL(14,3), version | PK (store_id, ingredient_id); *IX* ingredient_id; *CK* custo ≥ 0, mínimo ≥ 0 |
+| `stock_movement` | id, store_id, ingredient_id, type ENUM(`ENTRADA`,`SAIDA`,`AJUSTE`,`PERDA`,`CONSUMO_VENDA`,`ESTORNO_VENDA`), quantity DECIMAL(14,3) (com sinal), unit_cost DECIMAL(18,6), value_cents BIGINT (com sinal), balance_after DECIMAL(14,3), loss_reason ENUM NULL, note NULL, entered_text NULL, origin_type ENUM(`MANUAL`,`ORDER_ITEM`), origin_id NULL, user_id, occurred_at, operational_date | *IX* (store_id, ingredient_id, occurred_at); *IX* (store_id, operational_date, type); *IX* (origin_type, origin_id); *IX* ingredient_id; **triggers recusam UPDATE/DELETE** |
+| `recipe` | id, company_id, product_id NULL, modifier_id NULL, version, updated_by | *UQ* product_id; *UQ* modifier_id; *IX* company_id; *CK* exatamente um dono (Q-09: adicional tem ficha) |
+| `recipe_item` | id, recipe_id, ingredient_id, quantity DECIMAL(14,3) | *UQ* (recipe_id, ingredient_id); *IX* ingredient_id; *CK* quantity > 0 |
 
 Conversões universais (kg→g ×1000, L→ml ×1000) são constantes testadas no código
-(`shared/units`); `ingredient_unit_conversion` guarda apenas as específicas ("caixa = 12 un").
-Saldo e movimentação são gravados **na mesma transação**; `balance_after` permite auditoria do extrato.
+(`modules/inventory/domain/rules.ts`); `ingredient_unit_conversion` guarda só as específicas
+("caixa = 12 un"). Saldo e movimentação são gravados **na mesma transação**; `balance_after` e
+`value_cents` permitem conferir o extrato e somar o CMV sem recalcular. Diferenças do modelo inicial:
+sem `deleted_at` (desativar = arquivar), `value_cents` e `loss_reason` novos, `recipe.modifier_id`
+(Q-09).
 
 ### 2.6 Tables
 

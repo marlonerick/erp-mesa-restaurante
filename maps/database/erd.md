@@ -11,6 +11,8 @@ Tabelas já criadas por migration:
 - Etapa 3: `terminal`, `kitchen_station`; configurações em `store`; `version` em `company`.
 - Etapa 4: `category`, `product`, `product_store`, `modifier_group`, `modifier`,
   `product_modifier_group` (migration 0005 — docs/modules/catalog.md §9).
+- Etapa 5: `ingredient`, `ingredient_unit_conversion`, `ingredient_stock`, `stock_movement`
+  (imutável), `recipe`, `recipe_item` (migration 0006 — docs/modules/inventory.md, recipes.md).
 
 As demais são o modelo planejado. Nomes da Etapa 2 prevalecem sobre o diagrama abaixo
 (ex.: `session` → `user_session`; `terminal.device_id` → `known_device`).
@@ -131,6 +133,8 @@ erDiagram
   product ||--o{ product_modifier_group : oferece
   modifier_group ||--o{ product_modifier_group : "usado em"
   product ||--o| recipe : "ficha tecnica"
+  modifier ||--o| recipe : "ficha do adicional (Q-09)"
+  company ||--o{ ingredient : "insumos da empresa"
   recipe ||--o{ recipe_item : contem
   ingredient ||--o{ recipe_item : "usado em"
   ingredient ||--o{ ingredient_unit_conversion : converte
@@ -181,7 +185,9 @@ erDiagram
   }
   recipe {
     binary id PK
-    binary product_id FK
+    binary company_id FK
+    binary product_id FK "UK, ou"
+    binary modifier_id FK "UK (exatamente um)"
     int version
   }
   recipe_item {
@@ -193,7 +199,16 @@ erDiagram
   ingredient {
     binary id PK
     binary company_id FK
-    enum base_unit
+    string name "UK por empresa"
+    enum base_unit "imutavel"
+    bool active
+    int version
+  }
+  ingredient_unit_conversion {
+    binary id PK
+    binary ingredient_id FK
+    string unit_name
+    decimal factor_to_base
   }
   ingredient_stock {
     binary store_id PK
@@ -210,9 +225,12 @@ erDiagram
     enum type
     decimal quantity
     decimal unit_cost
+    bigint value_cents
     decimal balance_after
-    string origin_type
+    enum loss_reason
+    enum origin_type
     binary origin_id
+    date operational_date "imutavel (triggers)"
   }
 ```
 

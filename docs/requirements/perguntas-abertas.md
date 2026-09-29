@@ -5,7 +5,7 @@ padrão que será adotada se você responder "use a proposta".
 
 | ID | Pergunta | Proposta padrão | Bloqueia |
 |---|---|---|---|
-| Q-01 | Momento da baixa de estoque: **A** ao enviar para a cozinha ou **B** no fechamento da conta? (ADR-0006) | A | Etapa 5 |
+| Q-01 | ~~Momento da baixa de estoque?~~ **Respondida (2026-09-29): A** — ao enviar para a cozinha; cancelado antes do preparo volta ao estoque (estorno), depois do preparo vira perda (ADR-0006 aceito) | — | — |
 | Q-02 | O piloto precisa de impressora na cozinha (impressão automática)? A pré-conta precisa ser impressa? Há impressora térmica? Qual modelo e conexão (USB/rede)? | Pré-conta via navegador; cozinha só KDS | Etapa 7 |
 | Q-03 | Onde será hospedado? Há provedor preferido ou orçamento mensal? Como é a internet do restaurante (fibra, 4G de contingência)? | Container Node + MySQL gerenciado, região São Paulo | Etapa 10 (staging desde a Etapa 1 se possível) |
 | Q-04 | O restaurante piloto usa comanda **por mesa** ou **por cliente** (cartão/comanda individual)? Como funciona o balcão (nome, senha numérica)? | Por mesa; balcão identificado por rótulo livre | Etapa 6 |
@@ -74,6 +74,17 @@ padrão que será adotada se você responder "use a proposta".
 | E4-3 | Foto do produto fica para depois do piloto |
 | E4-4 | Código (SKU) do produto opcional, único na empresa |
 | E4-5 | Instalar o shadcn/ui para janelas, listas e seletores (desvio registrado em docs/weeks/etapa-04.md) |
+
+## Decisões tomadas na aprovação da Etapa 5 (2026-09-29)
+
+| ID | Decisão |
+|---|---|
+| E5-1 | Permissões da matriz atual: ADMIN e GERENTE lançam (`inventory.manage`, `recipes.manage`); COZINHA só consulta (`inventory.read`, `recipes.read`) |
+| E5-2 | Entrada informa a quantidade na unidade da compra e o **valor total pago**; o custo unitário é calculado |
+| E5-3 | Custo médio: saldo negativo conta como zero; a compra nova define o custo |
+| E5-4 | Motivos de perda: vencido, estragado, erro no preparo, quebra, outro (texto obrigatório) |
+| E5-5 | Cada baixa guarda o custo do momento; mudar a ficha técnica não altera o passado |
+| E5-6 | Cálculo do CMV pronto e testado nesta etapa; a tela vai para os relatórios da Etapa 9 |
 
 ## Pontos da especificação que interpretei (confirme ou corrija)
 

@@ -87,4 +87,4 @@ rodou todas as suítes, `npm audit` (0 vulnerabilidades), `drizzle-kit check` e 
 - [x] Revisão do `reviewer` (aprovada com ressalvas; ressalvas corrigidas)
 - [x] Docs e maps
 - [x] `PROJECT_STATUS.md`
-- [ ] `APROVADO` do usuário
+- [x] `APROVADO` do usuário (2026-09-29)

@@ -49,6 +49,10 @@ export const AUDIT_EVENTS = [
   'CASH_OPENED',
   'CASH_MOVEMENT',
   'CASH_CLOSED',
+  // Etapa 5 — estoque e ficha técnica (docs/modules/inventory.md §8, recipes.md §5)
+  'INGREDIENT_CREATED',
+  'INGREDIENT_UPDATED',
+  'STOCK_MINIMUM_SET',
   'STOCK_ENTRY',
   'STOCK_EXIT',
   'STOCK_ADJUSTMENT',

@@ -135,6 +135,21 @@ export const ICONS = {
       <path d="M12 8v8M8 12h8" />
     </Icon>
   ),
+  // Estoque (Etapa 5)
+  estoque: (
+    <Icon>
+      <path d="M3 8l9-5 9 5v8l-9 5-9-5z" />
+      <path d="M3 8l9 5 9-5" />
+      <path d="M12 13v8" />
+    </Icon>
+  ),
+  fichas: (
+    <Icon>
+      <rect x="5" y="4" width="14" height="17" rx="2" />
+      <path d="M9 4V3h6v1" />
+      <path d="M9 10h6M9 14h6M9 18h3" />
+    </Icon>
+  ),
   disponibilidade: (
     <Icon>
       <rect x="2" y="7" width="20" height="10" rx="5" />

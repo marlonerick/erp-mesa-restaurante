@@ -307,6 +307,19 @@ export const catalogRepository: CatalogRepository = {
     );
   },
 
+  listCompanyModifiers(tx, companyId) {
+    return tx
+      .select({
+        ...modifierColumns,
+        groupName: modifierGroup.name,
+        groupActive: modifierGroup.active,
+      })
+      .from(modifier)
+      .innerJoin(modifierGroup, eq(modifierGroup.id, modifier.modifierGroupId))
+      .where(eq(modifierGroup.companyId, companyId))
+      .orderBy(asc(modifierGroup.name), asc(modifier.id));
+  },
+
   async findModifier(tx, { companyId, modifierId }) {
     const [row] = await tx
       .select(modifierColumns)

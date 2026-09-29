@@ -43,6 +43,47 @@ export function listStoreMenu(
   return useCases.storeMenu({ repo }, tx, scope);
 }
 
+/** Produto ou adicional para a ficha técnica (Recipes): nome, situação e preço na loja. */
+export interface CostingTarget {
+  readonly id: Id;
+  readonly name: string;
+  /** Categoria (produto) ou grupo (adicional). */
+  readonly groupName: string;
+  readonly active: boolean;
+  /** Produto: preço na loja (null = não vendido nela). Adicional: preço extra. */
+  readonly priceCents: number | null;
+}
+
+/** Produtos e adicionais da empresa, com preço na loja — ficha técnica (Etapa 5). */
+export async function listCostingTargets(
+  tx: Transaction,
+  scope: { companyId: Id; storeId: Id },
+): Promise<{ products: CostingTarget[]; modifiers: CostingTarget[] }> {
+  const products = await repo.listProducts(tx, {
+    ...scope,
+    search: null,
+    categoryId: null,
+    includeInactive: true,
+  });
+  const modifiers = await repo.listCompanyModifiers(tx, scope.companyId);
+  return {
+    products: products.map((item) => ({
+      id: item.id,
+      name: item.name,
+      groupName: item.categoryName,
+      active: item.active && item.categoryActive,
+      priceCents: item.priceCents,
+    })),
+    modifiers: modifiers.map((item) => ({
+      id: item.id,
+      name: item.name,
+      groupName: item.groupName,
+      active: item.active && item.groupActive,
+      priceCents: item.priceDeltaCents,
+    })),
+  };
+}
+
 /**
  * Casos de uso do cardápio. As lojas vêm do Organizations e a consulta de permissão por loja do
  * Authorization — nenhum dos dois depende do Catalog, então não há ciclo (maps/modules/dependencias.md).

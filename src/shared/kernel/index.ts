@@ -21,6 +21,8 @@ export {
   requireSameStore,
 } from './request-context';
 export { type BaseUnit, Quantity } from './quantity';
+export { formatQuantityInput, formatQuantityText, parseQuantityText } from './quantity-text';
+export { divideRoundHalfUp } from './rounding';
 export { normalizeName } from './text';
 export { type CostLine, totalCost, UnitCost } from './unit-cost';
 export { type MeasureUnit, toBaseQuantity } from './units';

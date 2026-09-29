@@ -3,8 +3,8 @@
 Última atualização: 2026-09-29
 
 ## Etapa atual
-**Etapa 4 — Catálogo** — entregue na `main` (revisão aprovada com ressalvas, ressalvas
-corrigidas), **aguardando aprovação do usuário**.
+**Etapa 5 — Estoque e ficha técnica** — implementada na `main`; em revisão (CI + `reviewer`)
+antes de pedir a aprovação do usuário.
 
 ## Progresso do MVP
 
@@ -14,8 +14,8 @@ corrigidas), **aguardando aprovação do usuário**.
 | 1 | Fundação | **Aprovada** em 2026-09-28 |
 | 2 | Identidade e acesso | **Aprovada** em 2026-09-29 (com ajustes: olho na senha, limite de 64 caracteres) |
 | 3 | Organização e contexto | **Aprovada** em 2026-09-29 |
-| 4 | Catálogo | Entregue — aguardando `APROVADO` |
-| 5 | Estoque e ficha técnica | Não iniciada |
+| 4 | Catálogo | **Aprovada** em 2026-09-29 |
+| 5 | Estoque e ficha técnica | Implementada — em revisão |
 | 6 | Salão, mesas e pedidos | Não iniciada |
 | 7 | KDS | Não iniciada |
 | 8 | PDV e caixa | Não iniciada |
@@ -32,22 +32,24 @@ corrigidas), **aguardando aprovação do usuário**.
   1 clique, dia operacional, menu lateral (`docs/weeks/etapa-03.md`).
 - Etapa 4: categorias, produtos, preço por loja, adicionais com preço único na empresa,
   disponibilidade do dia por loja, cardápio vendável para a comanda (`docs/weeks/etapa-04.md`).
-- ADRs: 13 aceitos (0001–0005, 0007–0014); ADR-0006 aguardando Q-01.
+- Etapa 5 (em revisão): insumos, saldo e custo médio por loja, movimentações imutáveis, mínimo,
+  unidades de compra, ficha técnica de produtos e adicionais com custo e margem, baixa por venda
+  pronta para a comanda (ADR-0006 A) (`docs/weeks/etapa-05.md`).
+- ADRs: 14 aceitos (0001–0014) — ADR-0006 aceito em 2026-09-29 (Q-01 = A).
 
 ## Em andamento
-- Revisão da Etapa 4 pelo usuário.
+- Revisão da Etapa 5 (CI e `reviewer`).
 
 ## Bloqueado
-- ADR-0006 (momento da baixa de estoque) — aguarda Q-01; bloqueia a Etapa 5.
+- Nada bloqueado.
 
 ## Testes
-- Vitest: 767 testes (369 unitários + 398 de integração com MySQL 8.4 real).
-- Playwright: 78 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
+- Vitest: 938 testes (418 unitários + 520 de integração com MySQL 8.4 real).
+- Playwright: 93 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
 
 ## Bugs
-Nenhum aberto. Corrigidos na Etapa 4: nome acessível do botão "Acabou", teste E2E paralelo, ordem
-das categorias com empate (I-1) e erro 500 com filtro repetido no endereço (I-2) — ver
-`docs/weeks/etapa-04.md`.
+Nenhum aberto. Corrigidos na Etapa 5: unidade "toString" derrubava o lançamento; campo de
+quantidade com ponto de milhar gravaria 1 g no lugar de 1000 g — ver `docs/weeks/etapa-05.md`.
 
 ## Débitos técnicos
 - Migrar para TypeScript 7 quando o `typescript-eslint` suportar (D-1).
@@ -68,6 +70,7 @@ R-01 (piloto sem fiscal), R-03 (pagamento duplicado), R-06 (isolamento entre loj
 R-10 (internet instável), R-11 (impressão na cozinha). Tabela completa: docs/requirements/riscos.md.
 
 ## Próxima etapa
-Etapa 5 — Estoque e ficha técnica (insumos, unidades, saldo por loja, movimentações, ficha técnica
-do produto **e do adicional** — Q-09, CMV). Antes dela: responder **Q-01** (baixa de estoque ao
-enviar para a cozinha ou no fechamento da conta — ADR-0006).
+Etapa 6 — Salão, mesas e pedidos (mapa de mesas, comanda no celular, rodadas enviadas à cozinha
+com a baixa de estoque, cancelamento com aprovação). Antes dela: **Q-04** (comanda por mesa ou por
+cliente; balcão), **Q-08** (bebidas no KDS; bar separado), **Q-15** (aparelhos do salão e do KDS)
+e **Q-18** (garçom pode transferir e juntar mesas).

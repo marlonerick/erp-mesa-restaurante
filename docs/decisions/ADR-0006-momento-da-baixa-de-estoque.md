@@ -1,6 +1,6 @@
 # ADR-0006 — Momento da baixa de estoque
 
-- Status: **Proposto — AGUARDANDO DECISÃO DO USUÁRIO** (pergunta Q-01)
+- Status: **Aceito** em 2026-09-29 — opção **A** (pergunta Q-01 respondida pelo usuário)
 - Data: 2026-09-27
 - Responsável: architect + domain-spec
 
@@ -33,3 +33,14 @@
 - `order_item.stock_consumed` marca itens baixados; estorno/perda usam `origin_type = ORDER_ITEM`.
 - Adicionais com ficha técnica: dependem da pergunta Q-09.
 - Cenários BDD de Recipes/Inventory escritos conforme a decisão.
+
+## Implementação (Etapa 5)
+- `recipes.consumeForItems` (ficha do produto + fichas dos adicionais — Q-09) →
+  `inventory.consumeStock`: uma `CONSUMO_VENDA` por insumo e item (origem `ORDER_ITEM`), travando
+  as linhas de saldo em ordem de insumo; `BLOQUEAR` recusa tudo, `PERMITIR_COM_ALERTA` devolve avisos.
+- Cancelado antes do preparo: `reverseConsumption` — `ESTORNO_VENDA` com a **mesma quantidade e
+  custo** do consumo (idempotente).
+- Cancelado depois do preparo: `consumptionToLoss` — em vez de uma `PERDA` extra (que baixaria o
+  insumo duas vezes), grava `ESTORNO_VENDA` + `PERDA` (`CANCELAMENTO_APOS_PREPARO`) de mesmo valor:
+  o saldo não muda, o CMV deixa de contar o item e a perda aparece no relatório.
+- `order_item.stock_consumed` fica para a Etapa 6 (a origem das movimentações já é o item).

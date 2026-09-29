@@ -6,13 +6,20 @@
 import { and, asc, eq } from 'drizzle-orm';
 import { grantStoreRoleUnchecked } from '@/modules/authorization';
 import { addStore, getStore } from '@/modules/organizations';
-import { bootstrapFirstAdmin, countUsers, insertUser, storePinHash } from '@/modules/users';
+import {
+  bootstrapFirstAdmin,
+  countUsers,
+  findUserByUsername,
+  insertUser,
+  storePinHash,
+} from '@/modules/users';
 import { getDatabase } from '@/shared/db/client';
 import { store } from '@/shared/db/schema';
 import { runInTransaction } from '@/shared/db/transaction';
 import { newId, type SystemRole } from '@/shared/kernel';
 import { argon2Hasher } from '@/shared/security/password-hasher';
 import { seedDemoCatalog } from './lib/demo-catalog';
+import { seedDemoStock } from './lib/demo-stock';
 
 if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== 'true') {
   console.error('O seed de desenvolvimento nunca roda em produção.');
@@ -140,7 +147,7 @@ try {
     ]);
   }
 
-  // Cardápio de demonstração (Etapa 4): roda também em bancos criados antes desta etapa
+  // Cardápio (Etapa 4) e estoque (Etapa 5) de demonstração: rodam também em bancos antigos
   const created = await runInTransaction(db, async (tx) => {
     const [centro] = await tx
       .select({ id: store.id, companyId: store.companyId })
@@ -148,18 +155,34 @@ try {
       .where(eq(store.code, 'CENTRO'))
       .orderBy(asc(store.createdAt))
       .limit(1);
-    if (!centro) return false;
+    if (!centro) return { catalog: false, stock: false };
     const [praia] = await tx
       .select({ id: store.id })
       .from(store)
       .where(and(eq(store.companyId, centro.companyId), eq(store.code, 'PRAIA')));
-    if (!praia) return false;
-    return seedDemoCatalog(tx, { companyId: centro.companyId, centro: centro.id, praia: praia.id });
+    const admin = await findUserByUsername(tx, 'admin');
+    if (!praia || !admin) return { catalog: false, stock: false };
+    const catalog = await seedDemoCatalog(tx, {
+      companyId: centro.companyId,
+      centro: centro.id,
+      praia: praia.id,
+    });
+    const stock = await seedDemoStock(tx, {
+      companyId: centro.companyId,
+      stores: [centro.id, praia.id],
+      userId: admin.id,
+    });
+    return { catalog, stock };
   });
   console.info(
-    created
+    created.catalog
       ? 'Cardápio de demonstração criado (X-Burger, Parmegiana, bebidas...).'
       : 'Cardápio já existe: ignorado.',
+  );
+  console.info(
+    created.stock
+      ? 'Estoque e fichas técnicas de demonstração criados (compra inicial no Centro e na Praia).'
+      : 'Estoque já existe: ignorado.',
   );
 } finally {
   await close();

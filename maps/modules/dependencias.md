@@ -3,10 +3,17 @@
 Seta `A --> B` = A chama caso de uso público de B ou assina evento de B. Nenhum módulo acessa
 tabelas de outro. Ciclos são proibidos (verificado no lint).
 
-## Implementado (Etapas 2 a 4 — ADR-0014)
+## Implementado (Etapas 2 a 5 — ADR-0014)
 
 ```mermaid
 flowchart LR
+  REC[Recipes] --> CAT
+  REC --> INV[Inventory]
+  REC --> ORG
+  REC --> AUDIT
+  INV --> ORG
+  INV --> USERS
+  INV --> AUDIT
   CAT[Catalog] --> ORG
   CAT --> AUTHZ
   CAT --> AUDIT
@@ -33,6 +40,11 @@ Organizations: a consulta (`StoreAccess`) é **injetada** pela camada web, como 
 Na Etapa 4, Catalog usa Organizations (loja ativa → empresa; lojas da empresa) e Authorization
 (`products.update` em cada loja do preço) **diretamente**: nenhum dos dois depende do Catalog, então
 não há ciclo e não é preciso injetar.
+Na Etapa 5, Inventory usa Organizations (loja → empresa; política de estoque negativo, fuso e
+virada) e Users (nome de quem fez cada movimentação); Recipes usa Catalog (produtos, adicionais,
+preço na loja), Inventory (custo médio e **baixa por venda**) e Organizations. A comanda (Etapa 6)
+chamará `recipes.consumeForItems` e `inventory.reverseConsumption`/`consumptionToLoss` na própria
+transação (ADR-0006 A).
 
 ## Planejado (MVP completo)
 

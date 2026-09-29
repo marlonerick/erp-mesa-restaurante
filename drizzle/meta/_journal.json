@@ -43,6 +43,13 @@
       "when": 1790706467069,
       "tag": "0005_catalogo",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1790711645988,
+      "tag": "0006_estoque_e_ficha_tecnica",
+      "breakpoints": true
     }
   ]
 }

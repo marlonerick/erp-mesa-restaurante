@@ -191,6 +191,11 @@ export interface CatalogRepository {
   ): Promise<boolean>;
 
   listModifiers(tx: Transaction, groupIds: readonly Id[]): Promise<ModifierRecord[]>;
+  /** Todas as opções da empresa com o nome do grupo (ficha técnica — Recipes). */
+  listCompanyModifiers(
+    tx: Transaction,
+    companyId: Id,
+  ): Promise<(ModifierRecord & { groupName: string; groupActive: boolean })[]>;
   /** Opção de um grupo DA EMPRESA. */
   findModifier(
     tx: Transaction,

@@ -11,7 +11,8 @@ permissões da loja ativa; o servidor bloqueia de novo em cada tela.
 
 Estrutura: seletor de loja no topo (loja ativa + terminal do aparelho; troca em 1 clique —
 RN-ORG-12) · grupos **Operação** (Início, Disponibilidade; depois Salão, KDS, PDV), **Cardápio**
-(Produtos, Categorias, Adicionais — Etapa 4) e **Administração** (Usuários, Empresa, Lojas,
+(Produtos, Categorias, Adicionais — Etapa 4), **Estoque** (Estoque, Fichas técnicas — Etapa 5) e
+**Administração** (Usuários, Empresa, Lojas,
 Terminais) · rodapé com a conta (Meu PIN, Trocar senha, Trocar usuário, Sair).
 Página atual com `aria-current="page"`. O KDS (Etapa 7) abrirá em tela cheia, sem menu.
 
@@ -45,7 +46,8 @@ flowchart TD
 | Dashboard | Desktop | dashboard.read |
 | Cardápio: `/catalogo/produtos`, `/catalogo/categorias`, `/catalogo/adicionais` (Etapa 4) | Desktop (funciona no celular) | products.update (cadastrar: products.create) |
 | Disponibilidade `/disponibilidade` — "acabou"/"voltou" (Etapa 4) | Celular/tablet da cozinha ou do caixa | products.availability |
-| Estoque, fichas | Desktop | inventory.read / recipes.read |
+| Estoque `/estoque`, `/estoque/:id` (lançar, extrato, mínimo, unidades) — Etapa 5 | Desktop; contagem no celular | inventory.read (lançar: inventory.manage) |
+| Fichas técnicas `/fichas-tecnicas`, `/fichas-tecnicas/produto/:id`, `/fichas-tecnicas/adicional/:id` — Etapa 5 | Desktop | recipes.read (salvar: recipes.manage) |
 | Financeiro, relatórios | Desktop | finance.read / reports.read |
 | Admin — usuários | Desktop | users.read |
 | Admin — empresa e lojas (Etapa 3) | Desktop | stores.manage |
