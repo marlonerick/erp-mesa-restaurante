@@ -315,11 +315,18 @@ export async function moveCategory(
   requirePermission(ctx, 'products.update');
   await runInTransaction(deps.db, async (tx) => {
     const { companyId } = await activeStore(deps, tx, ctx);
-    const order = await deps.repo.lockCategoryOrder(tx, companyId);
-    const moved = moveInOrder(order, input.categoryId, input.direction);
+    const rows = await deps.repo.lockCategoryOrder(tx, companyId);
+    const current = new Map(rows.map((row) => [row.id, row.sortOrder]));
+    const moved = moveInOrder(
+      rows.map((row) => row.id),
+      input.categoryId,
+      input.direction,
+    );
     if (!moved) throw errors.categoryNotFound();
+    // Renumera 0..n de verdade: compara com o sort_order GRAVADO, não com a posição — senão um
+    // empate (dois cadastros simultâneos) deixava a ordem errada (achado I-1 da revisão)
     for (const [index, id] of moved.entries()) {
-      if (order[index] !== id) await deps.repo.setCategorySortOrder(tx, id, index);
+      if (current.get(id) !== index) await deps.repo.setCategorySortOrder(tx, id, index);
     }
   });
 }
@@ -662,9 +669,9 @@ export async function setAvailability(
   deps: CatalogDependencies,
   ctx: RequestContext,
   input: { productId: Id; available: boolean },
-): Promise<void> {
+): Promise<{ name: string }> {
   requirePermission(ctx, 'products.availability');
-  await runInTransaction(deps.db, async (tx) => {
+  return runInTransaction(deps.db, async (tx) => {
     const { companyId } = await activeStore(deps, tx, ctx);
     const product = await findProductOf(deps, tx, companyId, input.productId);
     const current = await deps.repo.findProductStore(
@@ -672,8 +679,12 @@ export async function setAvailability(
       { storeId: ctx.storeId, productId: product.id },
       { forUpdate: true },
     );
-    if (!current) throw errors.notOnMenu();
-    if (current.available === input.available) return;
+    // Só o que está no cardápio da loja (RN-CAT-10) — aba antiga com produto já desativado
+    // recebe o aviso em vez de gravar (sugestão S-1 da revisão)
+    const category = await findCategoryOf(deps, tx, companyId, product.categoryId);
+    if (!current || !product.active || !category.active) throw errors.notOnMenu();
+    // O nome vem do banco (a mensagem da tela não usa texto enviado pelo navegador — S-3)
+    if (current.available === input.available) return { name: product.name };
     await deps.repo.setProductStoreAvailable(tx, {
       storeId: ctx.storeId,
       productId: product.id,
@@ -685,6 +696,7 @@ export async function setAvailability(
       before: { available: current.available },
       after: { available: input.available },
     });
+    return { name: product.name };
   });
 }
 

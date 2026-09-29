@@ -89,6 +89,15 @@ test.describe('Cardápio (Etapa 4)', () => {
     }
   });
 
+  test('filtro estranho no endereço não derruba a lista de produtos (achado I-2)', async ({
+    page,
+  }) => {
+    await login(page, TEAM.gerente.username, TEAM.gerente.password);
+    const response = await page.goto('/catalogo/produtos?busca=a&busca=b&categoria=x&inativos=2');
+    expect(response?.status()).toBe(200);
+    await expect(page.getByRole('heading', { name: 'Produtos', level: 1 })).toBeVisible();
+  });
+
   test('garçom não vê o cadastro do cardápio nem a disponibilidade', async ({ page }) => {
     await login(page, TEAM.joao.username, TEAM.joao.password);
     await openMenuIfMobile(page);

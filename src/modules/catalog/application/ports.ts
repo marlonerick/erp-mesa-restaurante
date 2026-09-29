@@ -114,8 +114,8 @@ export interface CatalogRepository {
     tx: Transaction,
     scope: { companyId: Id; categoryId: Id },
   ): Promise<CategoryRecord | null>;
-  /** Ids das categorias da empresa na ordem atual, COM TRAVA (reordenar em fila). */
-  lockCategoryOrder(tx: Transaction, companyId: Id): Promise<Id[]>;
+  /** Categorias da empresa na ordem atual, COM TRAVA (reordenar em fila). */
+  lockCategoryOrder(tx: Transaction, companyId: Id): Promise<{ id: Id; sortOrder: number }[]>;
   nextCategorySortOrder(tx: Transaction, companyId: Id): Promise<number>;
   insertCategory(
     tx: Transaction,

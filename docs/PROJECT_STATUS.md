@@ -3,8 +3,8 @@
 Última atualização: 2026-09-29
 
 ## Etapa atual
-**Etapa 4 — Catálogo** — implementada na `main`; em revisão (CI + `reviewer`) antes de pedir a
-aprovação do usuário.
+**Etapa 4 — Catálogo** — entregue na `main` (revisão aprovada com ressalvas, ressalvas
+corrigidas), **aguardando aprovação do usuário**.
 
 ## Progresso do MVP
 
@@ -14,7 +14,7 @@ aprovação do usuário.
 | 1 | Fundação | **Aprovada** em 2026-09-28 |
 | 2 | Identidade e acesso | **Aprovada** em 2026-09-29 (com ajustes: olho na senha, limite de 64 caracteres) |
 | 3 | Organização e contexto | **Aprovada** em 2026-09-29 |
-| 4 | Catálogo | Implementada — em revisão |
+| 4 | Catálogo | Entregue — aguardando `APROVADO` |
 | 5 | Estoque e ficha técnica | Não iniciada |
 | 6 | Salão, mesas e pedidos | Não iniciada |
 | 7 | KDS | Não iniciada |
@@ -30,22 +30,23 @@ aprovação do usuário.
 - Etapa 3: empresa, lojas com configurações (virada do dia, taxa de serviço, estoque negativo,
   caixas abertos), terminais com vínculo do aparelho, estação de cozinha padrão, troca de loja em
   1 clique, dia operacional, menu lateral (`docs/weeks/etapa-03.md`).
-- Etapa 4 (em revisão): categorias, produtos, preço por loja, adicionais com preço único na empresa,
+- Etapa 4: categorias, produtos, preço por loja, adicionais com preço único na empresa,
   disponibilidade do dia por loja, cardápio vendável para a comanda (`docs/weeks/etapa-04.md`).
 - ADRs: 13 aceitos (0001–0005, 0007–0014); ADR-0006 aguardando Q-01.
 
 ## Em andamento
-- Revisão da Etapa 4 (CI e `reviewer`).
+- Revisão da Etapa 4 pelo usuário.
 
 ## Bloqueado
 - ADR-0006 (momento da baixa de estoque) — aguarda Q-01; bloqueia a Etapa 5.
 
 ## Testes
-- Vitest: 734 testes (369 unitários + 365 de integração com MySQL 8.4 real).
-- Playwright: 75 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
+- Vitest: 767 testes (369 unitários + 398 de integração com MySQL 8.4 real).
+- Playwright: 78 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
 
 ## Bugs
-Nenhum aberto. Corrigidos na Etapa 4: nome acessível do botão "Acabou" e teste E2E paralelo — ver
+Nenhum aberto. Corrigidos na Etapa 4: nome acessível do botão "Acabou", teste E2E paralelo, ordem
+das categorias com empate (I-1) e erro 500 com filtro repetido no endereço (I-2) — ver
 `docs/weeks/etapa-04.md`.
 
 ## Débitos técnicos

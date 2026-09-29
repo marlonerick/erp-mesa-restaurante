@@ -105,6 +105,9 @@ export function validateSelectionLimits(minSelect: number, maxSelect: number) {
 
 export const MAX_MODIFIER_GROUPS_PER_PRODUCT = 10;
 
+/** Limite da lista de produtos (cardápio do piloto: dezenas a poucas centenas); a tela avisa. */
+export const PRODUCT_LIST_LIMIT = 500;
+
 /** Grupos do produto sem repetição, até 10 (RN-CAT-06). */
 export function validateModifierGroupIds(ids: readonly Id[]): Id[] {
   const unique = [...new Set(ids)];

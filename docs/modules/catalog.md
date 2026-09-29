@@ -23,8 +23,8 @@ disponibilidade do dia. A comanda (Etapa 6) e o caixa (Etapa 8) vendem a partir 
 ### Escopo
 - **RN-CAT-01** — O catálogo é da **empresa da loja ativa** (a loja vem da sessão, ADR-0009). Toda
   leitura e alteração fica limitada a ela: categoria, produto ou grupo de outra empresa responde
-  "não encontrado" (não revela que existe). Formulários de **cadastro** e de **disponibilidade**
-  enviam a loja da tela e são recusados com `STORE_CHANGED` se a sessão trocou de loja em outra aba.
+  "não encontrado" (não revela que existe). Formulários de **cadastro** (categoria, produto, grupo,
+  opção) e de **disponibilidade** enviam a loja da tela e são recusados com `STORE_CHANGED` se a sessão trocou de loja em outra aba.
 
 ### Categoria
 - **RN-CAT-02** — Categoria: nome de 2 a 60 caracteres, único na empresa (maiúsculas e acentos não
@@ -43,7 +43,7 @@ disponibilidade do dia. A comanda (Etapa 6) e o caixa (Etapa 8) vendem a partir 
   todas as lojas; preços e adicionais ficam guardados e voltam ao reativar. Itens já lançados em
   contas não mudam (o nome e o preço são copiados no lançamento — Etapa 6).
 - **RN-CAT-06** — Adicionais do produto: os grupos marcados no produto (até 10), só da mesma empresa.
-  Na comanda, aparecem em ordem alfabética.
+  Na comanda, os grupos aparecem em ordem alfabética e as opções, na ordem de cadastro.
 
 ### Preço e disponibilidade na loja
 - **RN-CAT-07** — Preço na loja: de R$ 0,00 a R$ 99.999,99, guardado em **centavos** (ADR-0003).
@@ -57,7 +57,8 @@ disponibilidade do dia. A comanda (Etapa 6) e o caixa (Etapa 8) vendem a partir 
 - **RN-CAT-09** — Disponibilidade (E4-1): "acabou" e "disponível" valem **só na loja ativa** e exigem
   `products.availability`. É um valor absoluto (marcar "acabou" duas vezes não muda nada) — por isso
   não usa versão e não conflita com quem está editando o preço ao mesmo tempo. Só grava auditoria
-  quando muda. Preço novo na loja nasce **disponível**.
+  quando muda. Produto fora do cardápio da loja (sem preço, desativado ou de categoria desativada)
+  responde `PRODUCT_NOT_ON_MENU`. Preço novo na loja nasce **disponível**.
 - **RN-CAT-10** — **Cardápio da loja** (o que a comanda pode lançar): produto ativo **e** categoria
   ativa **e** com preço na loja **e** disponível. A tela de disponibilidade mostra os produtos do
   cardápio (disponíveis e esgotados).
@@ -175,7 +176,7 @@ GERENTE, CAIXA e COZINHA (migration 0005). As telas de cadastro aparecem para qu
 Diferenças em relação ao modelo inicial (docs/database/modelo-de-dados.md): sem `sale_unit` (Q-10:
 só unidade); sem `deleted_at` (E4-2: desativar é o arquivamento); sem `station_id` em
 `product_store` (uma estação por loja no MVP — entra com o cadastro de praças); sem `sort_order` em
-adicionais (ordem alfabética).
+adicionais (grupos em ordem alfabética; opções na ordem de cadastro).
 
 ## 10. Critérios de aceite
 - **CA-CAT-01** — Gerente cadastra categoria e produto; nome repetido é recusado → `tests/features/catalog/produtos.feature`

@@ -200,14 +200,16 @@ export async function setAvailabilityAction(_previous: FormState | null, formDat
       .object({
         productId: z.string(),
         available: z.enum(['true', 'false']),
-        name: z.string().max(200),
         ...expectedStore,
       })
       .parse(read(formData));
     requireSameStore(ctx, input.expectedStoreId);
     const available = input.available === 'true';
-    await catalog().setAvailability(ctx, { productId: parseId(input.productId), available });
-    return available ? `${input.name} voltou ao cardápio.` : `${input.name} marcado como esgotado.`;
+    const { name } = await catalog().setAvailability(ctx, {
+      productId: parseId(input.productId),
+      available,
+    });
+    return available ? `${name} voltou ao cardápio.` : `${name} marcado como esgotado.`;
   });
 }
 
@@ -250,7 +252,10 @@ const modifierSchema = z.object({ name: z.string().max(200), price: z.string().m
 
 export async function createModifierAction(_previous: FormState | null, formData: FormData) {
   return run(async (ctx) => {
-    const input = modifierSchema.extend({ groupId: z.string() }).parse(read(formData));
+    const input = modifierSchema
+      .extend({ groupId: z.string(), ...expectedStore })
+      .parse(read(formData));
+    requireSameStore(ctx, input.expectedStoreId);
     await catalog().createModifier(ctx, {
       groupId: parseId(input.groupId),
       name: input.name,

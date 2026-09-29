@@ -10,6 +10,7 @@ import {
 } from '@/shared/db/schema';
 import type { Id } from '@/shared/kernel';
 import type { CatalogRepository } from '../application/ports';
+import { PRODUCT_LIST_LIMIT } from '../domain/rules';
 
 /** Bloqueio otimista (ADR-0008): o UPDATE só casa com a versão lida e a incrementa. */
 const bumpVersion = (column: AnyMySqlColumn) => sql`${column} + 1`;
@@ -65,9 +66,6 @@ const modifierColumns = {
   version: modifier.version,
 };
 
-/** Limite da lista de produtos (cardápio do piloto: dezenas a poucas centenas). */
-const PRODUCT_LIST_LIMIT = 500;
-
 export const catalogRepository: CatalogRepository = {
   // ---- Categorias ----
 
@@ -92,13 +90,12 @@ export const catalogRepository: CatalogRepository = {
 
   async lockCategoryOrder(tx, companyId) {
     // Leitura COM TRAVA: dois "subir/descer" simultâneos passam em fila
-    const rows = await tx
-      .select({ id: category.id })
+    return tx
+      .select({ id: category.id, sortOrder: category.sortOrder })
       .from(category)
       .where(eq(category.companyId, companyId))
       .orderBy(asc(category.sortOrder), asc(category.name))
       .for('update');
-    return rows.map((row) => row.id);
   },
 
   async nextCategorySortOrder(tx, companyId) {

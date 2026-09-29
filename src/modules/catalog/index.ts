@@ -32,6 +32,7 @@ export {
   type MoveDirection,
   parseModifierPriceText,
   parsePriceText,
+  PRODUCT_LIST_LIMIT,
 } from './domain/rules';
 
 /** Cardápio vendável da loja agora (RN-CAT-10) — a comanda da Etapa 6 lança a partir dele. */

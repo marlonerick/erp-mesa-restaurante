@@ -81,7 +81,7 @@ export default async function EditModifierGroupPage({
         {hasPermission(context, 'products.create') ? (
           <div className="flex max-w-lg flex-col gap-4 pt-2">
             <h3 className="text-xl font-bold">Incluir opção</h3>
-            <NewModifierForm groupId={group.id} />
+            <NewModifierForm groupId={group.id} storeId={context.storeId} />
           </div>
         ) : null}
       </section>

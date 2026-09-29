@@ -10,8 +10,9 @@ const { db } = useTestDatabase();
 describeFeature(feature, ({ Scenario }) => {
   const w = catalogWorld(db);
 
-  const mark = (who: string, product: string, available: boolean) =>
-    w.catalog.setAvailability(w.ctx(who), { productId: w.product(product), available });
+  async function mark(who: string, product: string, available: boolean) {
+    await w.catalog.setAvailability(w.ctx(who), { productId: w.product(product), available });
+  }
 
   Scenario('Cozinha marca que acabou só na própria loja', ({ Given, And, When, Then }) => {
     Given('que "dona" é administradora da organização', () => w.admin('dona'));

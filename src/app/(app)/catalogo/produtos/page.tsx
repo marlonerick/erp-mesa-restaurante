@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireSession } from '@/modules/auth/web';
+import { z } from 'zod';
+import { PRODUCT_LIST_LIMIT } from '@/modules/catalog';
 import { catalog } from '@/modules/catalog/web';
 import { hasPermission, isId } from '@/shared/kernel';
 import { Button } from '@/ui/button';
@@ -10,18 +12,26 @@ import { NoPermission } from '../../admin/no-permission';
 
 export const metadata: Metadata = { title: 'Produtos' };
 
-interface Search {
-  readonly busca?: string;
-  readonly categoria?: string;
-  readonly inativos?: string;
-}
+/**
+ * Filtros vindos do endereço. O Next entrega `string | string[]` (ex.: `?busca=a&busca=b`):
+ * qualquer coisa fora do esperado vira "sem filtro", nunca erro 500 (achado I-2 da revisão).
+ */
+const searchSchema = z.object({
+  busca: z.string().max(80).catch(''),
+  categoria: z.string().max(40).catch(''),
+  inativos: z.literal('1').optional().catch(undefined),
+});
 
-export default async function ProductsPage({ searchParams }: { searchParams: Promise<Search> }) {
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { context, storeName } = await requireSession();
   if (!hasPermission(context, 'products.update')) {
     return <NoPermission />;
   }
-  const { busca = '', categoria = '', inativos } = await searchParams;
+  const { busca, categoria, inativos } = searchSchema.parse(await searchParams);
   const categoryId = isId(categoria) ? categoria : null;
   const includeInactive = inativos === '1';
   const [categories, products] = await Promise.all([
@@ -76,6 +86,13 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
           Filtrar
         </Button>
       </form>
+
+      {products.length >= PRODUCT_LIST_LIMIT ? (
+        <p role="status" className="font-semibold">
+          Mostrando os primeiros {PRODUCT_LIST_LIMIT} produtos. Use a busca ou a categoria para
+          achar os demais.
+        </p>
+      ) : null}
 
       {products.length === 0 ? (
         <p className="text-lg">

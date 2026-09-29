@@ -95,12 +95,20 @@ export function ModifierGroupForm({
 }
 
 /** Nova opção no grupo, com preço extra único na empresa (RN-CAT-12). */
-export function NewModifierForm({ groupId }: { readonly groupId: string }) {
+export function NewModifierForm({
+  groupId,
+  storeId,
+}: {
+  readonly groupId: string;
+  /** Loja da tela: recusa se a sessão trocou de loja em outra aba (RN-CAT-01). */
+  readonly storeId: string;
+}) {
   const [state, action] = useActionState(createModifierAction, null);
   return (
     <ActionForm action={action} state={state} resetOnSuccess>
       <FormMessage state={state} />
       <input type="hidden" name="groupId" value={groupId} />
+      <input type="hidden" name="expectedStoreId" value={storeId} />
       <TextField
         label="Nome da opção"
         name="name"

@@ -31,7 +31,6 @@ export function AvailabilityToggle({
     >
       <form action={action} className="flex flex-wrap items-center justify-between gap-3">
         <input type="hidden" name="productId" value={product.id} />
-        <input type="hidden" name="name" value={product.name} />
         <input type="hidden" name="expectedStoreId" value={storeId} />
         <input type="hidden" name="available" value={product.available ? 'false' : 'true'} />
         <span className="flex min-w-0 flex-col">

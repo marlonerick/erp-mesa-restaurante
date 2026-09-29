@@ -42,6 +42,25 @@ A comanda (Etapa 6) e o caixa (Etapa 8) vendem a partir dele.
    da fonte → botões "Subir"/"Descer" escritos; no celular, "Mostrar desativados" aparecia depois do
    botão "Filtrar" → veio para antes.
 
+## Revisão do `reviewer` (2026-09-29)
+
+Veredito: **aprovada com ressalvas** (nenhum bloqueante, 3 importantes, 6 sugestões). O revisor
+rodou todas as suítes, `npm audit` (0 vulnerabilidades), `drizzle-kit check` e conferiu no MySQL
+índices, CHECKs e a permissão nova nos 4 perfis. Correções, com testes em
+`tests/integration/modules/catalog/review-etapa-04.test.ts`:
+
+| # | Achado | Correção |
+|---|---|---|
+| I-1 | "Subir/descer" com empate na posição (dois cadastros simultâneos) deixava a ordem errada | A reordenação compara com a posição **gravada** e renumera 0..n; teste cria o empate direto no banco |
+| I-2 | `?busca=a&busca=b` no endereço derrubava a lista de produtos (erro 500) | Filtros do endereço validados com Zod; valor estranho vira "sem filtro"; teste E2E |
+| I-3 | Faltava testar o isolamento em vários casos de uso (regressão passaria sem aviso) | 13 casos de uso × outra organização e outra empresa, + "nada foi alterado", + remover preço da Praia pelo gerente do Centro |
+| S-1 | "Acabou" aceitava produto desativado (aba antiga) | Responde `PRODUCT_NOT_ON_MENU` também para produto/categoria desativados |
+| S-2 | Cadastro de opção de adicional sem a loja da tela | Envia `expectedStoreId` (`STORE_CHANGED`) |
+| S-3 | Mensagem da disponibilidade usava o nome vindo do navegador | Caso de uso devolve o nome lido do banco |
+| S-4 | Lista de produtos cortava em 500 sem avisar | Aviso na tela para usar a busca |
+| S-5 | SDD dizia "adicionais em ordem alfabética"; teste de acento faltava | SDD: grupos alfabéticos, opções na ordem de cadastro; teste "Café" = "Cafe" |
+| S-6 | Documentação da revisão | Este quadro, DoD e PROJECT_STATUS |
+
 ## Como experimentar (banco de desenvolvimento)
 1. `npm run db:up`, `npm run db:migrate` (aplica a 0005), `npm run db:seed` (cria o cardápio
    fictício), `npm run dev`.
@@ -56,16 +75,16 @@ A comanda (Etapa 6) e o caixa (Etapa 8) vendem a partir dele.
 | Tipo | Resultado |
 |---|---|
 | Unitários (regras do cardápio, valor em reais com fast-check) | ✅ 369 |
-| Integração com MySQL 8.4 real (BDD + isolamento entre empresas/organizações + concorrência + auditoria) | ✅ 365 |
-| E2E no navegador (celular, tablet, desktop + BDD) | ✅ 75 (4 pulados de propósito: testes só de computador ou só de celular) |
+| Integração com MySQL 8.4 real (BDD + isolamento entre empresas/organizações + concorrência + auditoria + achados da revisão) | ✅ 398 |
+| E2E no navegador (celular, tablet, desktop + BDD) | ✅ 78 (4 pulados de propósito: testes só de computador ou só de celular) |
 
 ## Definition of Done
 - [x] SDD e cenários BDD
 - [x] Migration revisada (e aplicada no banco de desenvolvimento; índices conferidos no MySQL)
 - [x] Testes unitários, integração (MySQL real), BDD, isolamento entre empresas/organizações, E2E
 - [x] Lint, typecheck, build
-- [ ] CI no GitHub
-- [ ] Revisão do `reviewer`
+- [x] CI no GitHub (verde no commit da implementação; conferido de novo após as correções)
+- [x] Revisão do `reviewer` (aprovada com ressalvas; ressalvas corrigidas)
 - [x] Docs e maps
 - [x] `PROJECT_STATUS.md`
 - [ ] `APROVADO` do usuário
