@@ -13,7 +13,7 @@ import { TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { formatBRL } from '@/ui/money';
 import { SubmitButton } from '@/ui/submit-button';
-import { useFloor, useRefreshAfter } from './live';
+import { isGone, useFloor, useRefreshAfter } from './live';
 
 /** Cor de cada estado — sempre junto com o texto (quem não distingue cores lê o estado). */
 const STATUS_STYLE: Readonly<Record<FloorTableView['status'], string>> = {
@@ -47,7 +47,7 @@ export function FloorBoard({
   readonly storeId: string;
   readonly can: FloorPermissions;
 }) {
-  const { data, isError } = useFloor(initial);
+  const { data, isError, error } = useFloor(initial);
   const areas = new Map<string, FloorTableView[]>();
   for (const table of data.tables) {
     const key = table.area ?? 'Outras mesas';
@@ -61,7 +61,9 @@ export function FloorBoard({
           role="status"
           className="rounded-md bg-atencao-claro px-4 py-2 font-semibold text-atencao"
         >
-          Sem conexão com o servidor. Tentando de novo…
+          {isGone(error)
+            ? 'Você não tem mais acesso a este salão. Recarregue a página.'
+            : 'Sem conexão com o servidor. Tentando de novo…'}
         </p>
       ) : null}
 

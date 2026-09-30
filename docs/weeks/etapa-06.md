@@ -15,7 +15,7 @@ e PIN do gerente, pede a conta, transfere, junta e separa mesas.
 | Área | Entrega |
 |---|---|
 | Especificação | SDDs `tables` (RN-TAB-01 a 08) e `orders` (RN-ORD-01 a 24); 5 arquivos BDD em português (mesas, comanda, envio para a cozinha, cancelamento, mesas e contas) |
-| Banco | Migration 0008: `dining_table`, `customer_order`, `store_sequence` (número da conta por dia), `order_round`, `order_item`, `order_item_modifier`, `kitchen_ticket`; CHECKs de consistência; permissão nova `tables.configure` (E6-2) |
+| Banco | Migration 0009 (revisão): rótulo da conta com 160 caracteres. Migration 0008: `dining_table`, `customer_order`, `store_sequence` (número da conta por dia), `order_round`, `order_item`, `order_item_modifier`, `kitchen_ticket`; CHECKs de consistência; permissão nova `tables.configure` (E6-2) |
 | Módulo Tables | Cadastro de mesas (número, área, lugares, ativa), máquina de estados, liberar mesa limpa, API com trava para a comanda |
 | Módulo Orders | Abrir mesa/balcão, lançar (preço e adicionais congelados), remover pendente, enviar rodada (ticket da cozinha, itens sem preparo prontos, baixa de estoque, idempotente), entregar, cancelar com motivo/PIN (estorno ou perda), pedir conta, transferir, juntar (mescla contas), separar, cancelar conta vazia |
 | Telas | **Salão** (mapa por área, cor + texto do estado, balcão, atualiza a cada 5 s); **Comanda** (adicionar item com busca, quantidade, adicionais, observação; enviar; rodadas; entregar; cancelar com PIN; ações da mesa); **Mesas** (cadastro) |
@@ -55,8 +55,33 @@ e PIN do gerente, pede a conta, transfere, junta e separa mesas.
 5. **Telas (vistos nos testes e prints)**: dois botões "Fechar" na mesma janela (o X virou "Fechar
    janela"); a tela Início ainda dizia que as mesas "chegam nas próximas etapas".
 
+## Revisão do `reviewer` (2026-09-30)
+
+1ª revisão: **reprovada** — 1 bloqueante, 3 importantes, 7 sugestões (lint, typecheck, 479 unitários,
+868 de integração, `drizzle-kit check` e `npm audit` passaram). Correções:
+
+| # | Achado | Correção |
+|---|---|---|
+| B-1 | **Pedir a conta de mesas juntadas dava erro técnico**: a auditoria juntava os ids das mesas num campo de 64 caracteres (reproduzido pelo revisor no MySQL) | Um registro de auditoria por mesa; 3 cenários BDD novos com mesas juntadas (pedir conta, pedir mais depois da conta, juntar conta que já tinha 2 mesas) — **falham com o código antigo** (`Data too long for column 'entity_id'`) e passam com a correção |
+| I-1 | Juntar muitas mesas estourava o rótulo da conta (60 caracteres) | No máximo 12 mesas por conta (`ORDER_TABLE_LIMIT`) e rótulo de 160 caracteres (migration 0009); teste com 12 mesas "Varanda N" |
+| I-2 | A janela de cancelamento dizia "perda" para a bebida pronta que volta ao estoque | A tela usa a mesma regra do domínio (`cancelEffect` na comanda) |
+| I-3 | Faltava o teste de isolamento do cadastro de mesas citado no SDD | `tests/integration/modules/tables/tables-rules.test.ts` (ler, alterar e listar mesa de outra loja) |
+| S-1 | Juntar podia passar de 300 itens | Confere o limite antes de mesclar |
+| S-2 | Conta de outra loja aparecia como "Sem conexão" para sempre | 403/404 param a leitura automática e explicam |
+| S-3 | Rota da comanda pedia menos permissão que a página | Pede `tables.read` também |
+| S-4 | Adicional opcional de uma escolha não desmarcava | Vira caixa de marcar exclusiva |
+| S-5 | Renomear mesa ocupada deixava o rótulo da conta velho | Só troca o número de mesa livre |
+| S-6, S-7 | `stock_consumed` marcado mesmo sem ficha; lançar item não é idempotente | Débitos no PROJECT_STATUS |
+
+**Instabilidade nos testes de navegador (achada nesta rodada):** o teste de cancelamento digitava um
+PIN errado de propósito para o `gerente` — o mesmo usuário em todos os aparelhos em paralelo e em
+todas as execuções. Os erros somavam para **travar o PIN** do gerente, e o PIN correto passava a ser
+recusado (a mensagem é igual de propósito — RN-AUTHZ-10); PIN travado ainda roda o hash falso, o
+que deixava o servidor mais lento para os outros testes. O passo foi retirado (PIN errado continua
+testado na integração); duas execuções completas seguidas passaram (114/114).
+
 ## Como experimentar (banco de desenvolvimento)
-1. `npm run db:migrate` (aplica a 0008), `npm run db:seed` (cria as mesas), `npm run dev`.
+1. `npm run db:migrate` (aplica a 0008 e a 0009), `npm run db:seed` (cria as mesas), `npm run dev`.
 2. Entre como `joao` / `Garcom@2026` (de preferência no celular) → **Salão**.
 3. Toque na mesa **1** → Abrir mesa → **Adicionar item** → X-Burger, "Ao ponto", Bacon, observação →
    Lançar → **Enviar para a cozinha**. Veja a rodada e, em **Estoque**, a carne baixando (como gerente).
@@ -70,7 +95,7 @@ e PIN do gerente, pede a conta, transfere, junta e separa mesas.
 | Tipo | Resultado |
 |---|---|
 | Unitários (regras de mesas e comanda, adicionais, subtotal com fast-check, efeito no estoque) | ✅ 479 |
-| Integração com MySQL 8.4 real (BDD + concorrência + isolamento + idempotência + CHECKs) | ✅ 868 |
+| Integração com MySQL 8.4 real (BDD + concorrência + isolamento + idempotência + CHECKs) | ✅ 904 |
 | E2E no navegador (celular, tablet, desktop + BDD) | ✅ 114 (4 pulados de propósito) |
 
 ## Definition of Done
@@ -79,7 +104,7 @@ e PIN do gerente, pede a conta, transfere, junta e separa mesas.
 - [x] Testes unitários, integração (MySQL real), BDD, concorrência, isolamento entre lojas, E2E
 - [x] Lint, typecheck, build
 - [ ] CI no GitHub
-- [ ] Revisão do `reviewer`
+- [ ] Revisão do `reviewer` (1ª reprovada; achados corrigidos; aguardando reverificação)
 - [x] Docs e maps
 - [x] `PROJECT_STATUS.md`
 - [ ] `APROVADO` do usuário

@@ -8,13 +8,27 @@ import type { FormState } from '@/shared/errors/form-state';
 /** Intervalo da leitura automática do salão e da comanda (ADR-0005). */
 export const REFRESH_MS = 5_000;
 
+/** Resposta de erro do servidor, com o status HTTP. */
+export class HttpError extends Error {
+  constructor(readonly status: number) {
+    super(`HTTP ${String(status)}`);
+  }
+}
+
+/**
+ * Sem acesso (403) ou não existe mais nesta loja (404): tentar de novo não resolve — a leitura
+ * automática para e a tela explica (sugestão S-2 da revisão).
+ */
+export const isGone = (error: unknown) =>
+  error instanceof HttpError && (error.status === 403 || error.status === 404);
+
 async function readJson<T>(url: string): Promise<T> {
   const response = await fetch(url, { cache: 'no-store', headers: { accept: 'application/json' } });
   if (response.status === 401) {
     // Sessão acabou (ou o aparelho foi bloqueado): a página leva ao login
     window.location.reload();
   }
-  if (!response.ok) throw new Error(`HTTP ${String(response.status)}`);
+  if (!response.ok) throw new HttpError(response.status);
   return (await response.json()) as T;
 }
 
@@ -27,7 +41,8 @@ export function useFloor(initial: FloorView, enabled = true) {
     queryKey: floorKey,
     queryFn: () => readJson<FloorView>('/api/salao'),
     initialData: initial,
-    refetchInterval: enabled ? REFRESH_MS : false,
+    refetchInterval: (query) => (enabled && !isGone(query.state.error) ? REFRESH_MS : false),
+    retry: (count, error) => !isGone(error) && count < 1,
     enabled,
   });
 }
@@ -37,7 +52,8 @@ export function useOrder(initial: OrderView) {
     queryKey: orderKey(initial.id),
     queryFn: () => readJson<OrderView>(`/api/comandas/${initial.id}`),
     initialData: initial,
-    refetchInterval: REFRESH_MS,
+    refetchInterval: (query) => (isGone(query.state.error) ? false : REFRESH_MS),
+    retry: (count, error) => !isGone(error) && count < 1,
   });
 }
 

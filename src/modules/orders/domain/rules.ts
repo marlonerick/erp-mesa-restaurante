@@ -24,6 +24,8 @@ export const ITEM_STATUS_LABEL: Readonly<Record<OrderItemStatus, string>> = {
 };
 
 export const MAX_ITEMS_PER_ORDER = 300;
+/** Mesas juntadas numa conta (achado I-1): 12 números de até 10 letras + " + " cabem em 160. */
+export const MAX_TABLES_PER_ORDER = 12;
 export const MAX_ITEM_QUANTITY = 99;
 export const ITEM_NOTES_MAX_LENGTH = 140;
 export const MERGED_REASON = 'MESCLADA';

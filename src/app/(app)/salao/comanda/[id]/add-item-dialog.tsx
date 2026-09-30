@@ -173,8 +173,11 @@ function ItemForm({
   const toggle = (groupId: string, optionId: string, single: boolean) => {
     setPicked((current) => {
       const next = new Set(current);
-      if (single) {
-        const group = product.groups.find((item) => item.id === groupId);
+      const group = product.groups.find((item) => item.id === groupId);
+      if (single && next.has(optionId) && group?.minSelect === 0) {
+        // Grupo opcional de uma escolha: tocar de novo desmarca (sugestão S-4)
+        next.delete(optionId);
+      } else if (single) {
         for (const option of group?.options ?? []) next.delete(option.id);
         next.add(optionId);
       } else if (next.has(optionId)) {
@@ -249,7 +252,8 @@ function ItemForm({
                 )}
               >
                 <input
-                  type={single ? 'radio' : 'checkbox'}
+                  // Opcional de uma escolha vira caixa de marcar: dá para desmarcar tocando de novo
+                  type={single && group.minSelect > 0 ? 'radio' : 'checkbox'}
                   name={`grupo-${group.id}`}
                   className="size-6 accent-azulejo"
                   checked={picked.has(option.id)}

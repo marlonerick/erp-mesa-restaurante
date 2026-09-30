@@ -89,7 +89,8 @@ autorização, pedir a conta, transferir, juntar e separar mesas.
   - B `LIVRE`: passa a apontar para a conta de A.
   - B com outra conta aberta: itens, rodadas (renumeradas depois das de A) e tickets vão para a
     conta de A; a conta de B é encerrada como `CANCELADO` com motivo `MESCLADA`, sem valor.
-  - Depois de juntar, todas as mesas da conta ficam `OCUPADA`. B em `EM_PAGAMENTO` ou `LIMPEZA`
+  - Depois de juntar, todas as mesas da conta ficam `OCUPADA`. Uma conta junta **até 12 mesas**
+    (`ORDER_TABLE_LIMIT`) e continua com no máximo 300 itens (`ORDER_ITEM_LIMIT`) — revisão, I-1/S-1. B em `EM_PAGAMENTO` ou `LIMPEZA`
     → `TABLE_NOT_AVAILABLE`; B já na mesma conta → `SAME_ORDER`. Auditoria `ORDERS_MERGED`.
 - **RN-ORD-19** — **Separar** (`orders.update`): uma mesa sai de uma conta que tem **outras**
   mesas e volta a `LIVRE` (juntou por engano; parte do grupo foi embora). A última mesa não sai
@@ -163,6 +164,7 @@ stateDiagram-v2
 | Pedir conta com pendentes | `PENDING_ITEMS` | 422 | Envie ou remova os itens ainda não enviados. |
 | Ação só para mesa | `NOT_A_TABLE_ORDER` | 422 | Esta ação vale só para conta de mesa. |
 | Juntar mesa já na conta | `SAME_ORDER` | 422 | Esta mesa já está nesta conta. |
+| Mais de 12 mesas na conta | `ORDER_TABLE_LIMIT` | 422 | Uma conta pode juntar até 12 mesas. |
 | Separar a última mesa | `ORDER_NEEDS_TABLE` | 422 | A conta precisa ficar com pelo menos uma mesa. |
 | Cancelar conta com itens enviados | `ORDER_HAS_SENT_ITEMS` | 422 | Cancele os itens enviados antes de cancelar a conta. |
 | Outra pessoa alterou antes | `CONCURRENT_MODIFICATION` | 409 | Outra pessoa alterou esta conta. A tela foi atualizada; confira e tente de novo. |
@@ -202,7 +204,7 @@ stateDiagram-v2
   operational_date): numeração da conta por dia (E3-5), incrementada com trava da linha.
 - `customer_order` (id, store_id, number, opened_date, type ENUM(`MESA`,`BALCAO`), status
   ENUM(`ABERTO`,`FECHADO`,`CANCELADO`), label NULL, guests NULL, opened_by, opened_at, closed_by
-  NULL, closed_at NULL, cancel_reason NULL, merged_into_order_id NULL, version, timestamps) — UQ
+  NULL, closed_at NULL, cancel_reason NULL, merged_into_order_id NULL, version, timestamps; `label` com 160 caracteres — migration 0009) — UQ
   (store_id, opened_date, number); IX (store_id, status); CK balcão tem nome.
 - `order_round` (id, store_id, order_id, number, sent_by, sent_at) — UQ (order_id, number).
 - `order_item` (id, store_id, order_id, round_id NULL, product_id, product_name, unit_price_cents,

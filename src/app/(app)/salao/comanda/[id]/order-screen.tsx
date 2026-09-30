@@ -13,7 +13,7 @@ import { cn } from '@/ui/cn';
 import { FormMessage } from '@/ui/form-message';
 import { formatBRL } from '@/ui/money';
 import { SubmitButton } from '@/ui/submit-button';
-import { useOrder, useRefreshAfter } from '../../live';
+import { isGone, useOrder, useRefreshAfter } from '../../live';
 import { AddItemDialog } from './add-item-dialog';
 import { CancelItemDialog } from './cancel-item-dialog';
 import { OrderActions } from './order-actions';
@@ -53,7 +53,7 @@ export function OrderScreen({
   readonly can: OrderPermissions;
   readonly limits: { readonly notes: number; readonly quantity: number };
 }) {
-  const { data: order, isError } = useOrder(initial);
+  const { data: order, isError, error } = useOrder(initial);
   const title = order.type === 'MESA' ? `Mesa ${order.label}` : `Balcão · ${order.label}`;
   const open = order.status === 'ABERTO';
 
@@ -83,7 +83,9 @@ export function OrderScreen({
           role="status"
           className="rounded-md bg-atencao-claro px-4 py-2 font-semibold text-atencao"
         >
-          Sem conexão com o servidor. Tentando de novo…
+          {isGone(error)
+            ? 'Esta conta não está disponível nesta loja (a loja foi trocada em outra aba?). Volte ao salão.'
+            : 'Sem conexão com o servidor. Tentando de novo…'}
         </p>
       ) : null}
 

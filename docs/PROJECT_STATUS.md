@@ -4,7 +4,8 @@
 
 ## Etapa atual
 **Etapa 6 — Salão, mesas e pedidos** — plano aprovado em 2026-09-30 (Q-04, Q-08, Q-15, Q-18
-respondidas; decisões E6-1 a E6-7) — implementada na `main`, em revisão pelo `reviewer`.
+respondidas; decisões E6-1 a E6-7) — implementada na `main` (revisão: 1ª reprovada, achados
+corrigidos, aguardando reverificação).
 
 ## Progresso do MVP
 
@@ -47,7 +48,7 @@ respondidas; decisões E6-1 a E6-7) — implementada na `main`, em revisão pelo
 - Nada bloqueado.
 
 ## Testes
-- Vitest: 1347 testes (479 unitários + 868 de integração com MySQL 8.4 real).
+- Vitest: 1383 testes (479 unitários + 904 de integração com MySQL 8.4 real).
 - Playwright: 114 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
 
 ## Bugs
@@ -70,6 +71,10 @@ gravaria 1 g no lugar de 1000 g — ver `docs/weeks/etapa-05.md`.
 - Juntar mesas trava as mesas em duas consultas (não numa ordem única): um deadlock raro é refeito
   automaticamente (ADR-0008); medir no piloto.
 - Banco de E2E acumula mesas de teste (números E…): limpar junto com o resto dos dados de teste.
+- `order_item.stock_consumed` fica verdadeiro mesmo para produto sem ficha técnica: a auditoria do
+  cancelamento diz "voltou ao estoque" sem ter havido baixa (saldos corretos) — S-6 da revisão.
+- Lançar item não é idempotente: toque duplo com rede ruim pode duplicar um item PENDENTE (o garçom
+  remove) — S-7 da revisão; avaliar no piloto.
 - Horário de funcionamento da loja (abre/fecha) configurável — pedido na Q-05, sem uso ainda.
 - `authenticate` consulta os perfis duas vezes por requisição (lojas acessíveis + permissões);
   unificar se aparecer no monitoramento de desempenho.

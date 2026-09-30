@@ -24,6 +24,12 @@ export const tableErrors = {
     ),
   inUse: () =>
     new DomainError('TABLE_IN_USE', 'Só dá para desativar uma mesa livre.', 'BUSINESS_RULE'),
+  numberInUse: () =>
+    new DomainError(
+      'TABLE_IN_USE',
+      'Só dá para trocar o número de uma mesa livre.',
+      'BUSINESS_RULE',
+    ),
   notInCleaning: () =>
     new DomainError('TABLE_NOT_IN_CLEANING', 'Esta mesa não está em limpeza.', 'BUSINESS_RULE'),
   concurrent: () =>
@@ -139,6 +145,10 @@ export async function updateTable(
       if (current.version !== input.version) throw tableErrors.concurrent();
       // Mesa em uso não sai do mapa (RN-TAB-03)
       if (current.active && !data.active && current.status !== 'LIVRE') throw tableErrors.inUse();
+      // A conta aberta guarda o número da mesa no rótulo: trocar o número agora o deixaria velho
+      if (current.number !== data.number && current.status !== 'LIVRE') {
+        throw tableErrors.numberInUse();
+      }
       const before: Record<string, unknown> = {};
       const after: Record<string, unknown> = {};
       for (const key of ['number', 'area', 'seats', 'active'] as const) {

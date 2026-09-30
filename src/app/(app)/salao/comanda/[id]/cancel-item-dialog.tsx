@@ -82,8 +82,8 @@ export function CancelItemDialog({
       <DialogContent
         title={`Cancelar ${String(item.quantity)} × ${item.productName}`}
         description={
-          item.status === 'ENVIADO'
-            ? 'A cozinha ainda não começou: os insumos voltam para o estoque.'
+          item.cancelEffect === 'ESTORNO'
+            ? 'Ainda dá para aproveitar: os insumos voltam para o estoque.'
             : 'O item já foi preparado ou entregue: os insumos contam como perda.'
         }
       >

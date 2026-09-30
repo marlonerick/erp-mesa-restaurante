@@ -19,7 +19,8 @@ GERENTE/ADMIN (cadastro), GARÇOM/CAIXA/GERENTE (mapa, liberar mesa limpa).
   números, espaço e hífen: "10", "V1", "Varanda 2"), único na loja sem diferenciar maiúsculas e
   acentos; **área** opcional (até 40 caracteres, ex.: "Salão", "Varanda"); **lugares** de 1 a 99
   (padrão 4). Mesa nunca é apagada: é desativada.
-- **RN-TAB-03** — Só se desativa mesa **LIVRE**. Mesa desativada some do mapa e não pode ser
+- **RN-TAB-03** — Só se desativa (ou troca o número de) mesa **LIVRE** — o número está no rótulo da
+  conta aberta (sugestão S-5 da revisão). Mesa desativada some do mapa e não pode ser
   aberta; o histórico das contas continua.
 - **RN-TAB-04** — Estados: `LIVRE → OCUPADA → AGUARDANDO_CONTA → EM_PAGAMENTO → LIMPEZA → LIVRE`.
   `AGUARDANDO_CONTA → OCUPADA` é permitido (cliente pediu mais algo), com auditoria. Abrir,
@@ -62,6 +63,7 @@ stateDiagram-v2
 | Lugares inválidos | `INVALID_SEATS` | 400 | Informe de 1 a 99 lugares. |
 | Número repetido | `TABLE_NUMBER_TAKEN` | 409 | Já existe uma mesa com este número nesta loja. |
 | Desativar mesa em uso | `TABLE_IN_USE` | 422 | Só dá para desativar uma mesa livre. |
+| Trocar o número de mesa em uso | `TABLE_IN_USE` | 422 | Só dá para trocar o número de uma mesa livre. |
 | Mesa inexistente ou de outra loja | `TABLE_NOT_FOUND` | 404 | Mesa não encontrada. |
 | Liberar mesa que não está em limpeza | `TABLE_NOT_IN_CLEANING` | 422 | Esta mesa não está em limpeza. |
 | Outra pessoa alterou antes | `CONCURRENT_MODIFICATION` | 409 | Outra pessoa alterou estes dados. Recarregue a página e tente de novo. |

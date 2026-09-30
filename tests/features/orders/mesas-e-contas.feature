@@ -66,3 +66,24 @@ Funcionalidade: Pedir a conta, transferir, juntar e separar mesas
   Cenário: Conta com item enviado não é cancelada
     Quando "joão" tenta cancelar a conta da mesa "10"
     Então a ação é recusada com o código "ORDER_HAS_SENT_ITEMS"
+
+  Cenário: Pedir a conta de mesas juntadas muda todas elas
+    Dado "joão" juntou a mesa "11" na conta da mesa "10"
+    Quando "joão" pede a conta da mesa "10"
+    Então o mapa do "Centro" mostra a mesa "10" como "AGUARDANDO_CONTA"
+    E o mapa do "Centro" mostra a mesa "11" como "AGUARDANDO_CONTA"
+
+  Cenário: Cliente de mesas juntadas pede mais depois de pedir a conta
+    Dado "joão" juntou a mesa "11" na conta da mesa "10"
+    E "joão" pediu a conta da mesa "10"
+    Quando "joão" lança 1 "X-Burger" na mesa "11"
+    Então o mapa do "Centro" mostra a mesa "10" como "OCUPADA"
+    E o mapa do "Centro" mostra a mesa "11" como "OCUPADA"
+
+  Cenário: Juntar uma conta que já tem duas mesas
+    Dado "joão" abriu a mesa "12"
+    E "joão" juntou a mesa "11" na conta da mesa "12"
+    Quando "joão" junta a mesa "12" na conta da mesa "10"
+    Então a mesa "11" está na mesma conta da mesa "10"
+    E a mesa "12" está na mesma conta da mesa "10"
+    E o rótulo da conta da mesa "10" é "10 + 11 + 12"

@@ -23,6 +23,7 @@ import {
   itemNotes,
   itemQuantity,
   MAX_ITEMS_PER_ORDER,
+  MAX_TABLES_PER_ORDER,
   MERGED_REASON,
   optionalReason,
   subtotal,
@@ -64,6 +65,8 @@ export const orderErrors = {
   pendingItems: () => rule('PENDING_ITEMS', 'Envie ou remova os itens ainda não enviados.'),
   notTableOrder: () => rule('NOT_A_TABLE_ORDER', 'Esta ação vale só para conta de mesa.'),
   sameOrder: () => rule('SAME_ORDER', 'Esta mesa já está nesta conta.'),
+  tooManyTables: () =>
+    rule('ORDER_TABLE_LIMIT', `Uma conta pode juntar até ${String(MAX_TABLES_PER_ORDER)} mesas.`),
   needsTable: () => rule('ORDER_NEEDS_TABLE', 'A conta precisa ficar com pelo menos uma mesa.'),
   hasSentItems: () =>
     rule('ORDER_HAS_SENT_ITEMS', 'Cancele os itens enviados antes de cancelar a conta.'),
@@ -149,12 +152,16 @@ async function changeTables(
     changed.map((table) => table.id),
     { status, currentOrderId: orderId },
   );
-  await recordAuditFromContext(tx, ctx, 'TABLE_STATUS_CHANGED', {
-    entityType: 'dining_table',
-    entityId: changed.map((table) => table.id).join(','),
-    before: { tables: changed.map((table) => ({ number: table.number, status: table.status })) },
-    after: { status },
-  });
+  // Um registro por mesa: o id de cada uma cabe no campo da auditoria (achado B-1 da revisão —
+  // juntar os ids de várias mesas estourava a coluna e o "pedir a conta" de mesas juntadas falhava)
+  for (const table of changed) {
+    await recordAuditFromContext(tx, ctx, 'TABLE_STATUS_CHANGED', {
+      entityType: 'dining_table',
+      entityId: table.id,
+      before: { number: table.number, status: table.status },
+      after: { status, order: orderId },
+    });
+  }
 }
 
 // ---- Leitura ----
@@ -698,6 +705,13 @@ export async function join(
       const source = orders.find((order) => order.id === sourceId);
       if (source?.status !== 'ABERTO') throw orderErrors.concurrent();
       moved = await deps.tables.lockOfOrder(tx, ctx.storeId, source.id);
+    }
+    // Limite de mesas por conta (achado I-1): o rótulo "10 + 11 + …" cabe na coluna
+    if (targetTables.length + moved.length > MAX_TABLES_PER_ORDER)
+      throw orderErrors.tooManyTables();
+    if (sourceId) {
+      const source = orders.find((order) => order.id === sourceId);
+      if (!source) throw orderErrors.concurrent();
       const targetRounds = await deps.repo.listRounds(tx, target.id, LOCK);
       const sourceRounds = await deps.repo.listRounds(tx, source.id, LOCK);
       const last = targetRounds.reduce((max, round) => Math.max(max, round.number), 0);
@@ -707,6 +721,9 @@ export async function join(
         sourceRounds.map((round, index) => ({ roundId: round.id, number: last + index + 1 })),
       );
       const sourceItems = await deps.repo.listItems(tx, source.id, LOCK);
+      // A conta juntada também respeita o limite de itens (sugestão S-1)
+      const targetCount = await deps.repo.countItems(tx, target.id, LOCK);
+      if (targetCount + sourceItems.length > MAX_ITEMS_PER_ORDER) throw orderErrors.itemLimit();
       await deps.repo.moveItems(tx, source.id, target.id);
       await deps.repo.moveTickets(tx, source.id, target.id);
       await deps.repo.closeOrderAsCancelled(tx, source.id, {

@@ -78,7 +78,8 @@ export const customerOrder = mysqlTable(
     openedDate: date('opened_date', { mode: 'string' }).notNull(),
     type: mysqlEnum('type', ORDER_TYPES).notNull(),
     status: mysqlEnum('status', ORDER_STATUSES).notNull().default('ABERTO'),
-    label: varchar('label', { length: 60 }).notNull(),
+    /** Até 12 mesas juntadas (MAX_TABLES_PER_ORDER): 12 × 10 + 11 × 3 = 153 caracteres. */
+    label: varchar('label', { length: 160 }).notNull(),
     guests: tinyint('guests', { unsigned: true }),
     openedBy: uuidBinary('opened_by')
       .notNull()

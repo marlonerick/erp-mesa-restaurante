@@ -2,7 +2,7 @@ import type { MenuProduct } from '@/modules/catalog';
 import { TABLE_STATUS_LABEL, type TableStatus } from '@/modules/tables';
 import type { Floor, OrderDetail, OrderItemView } from '../application/orders';
 import type { OpenOrderSummary } from '../application/ports';
-import { ITEM_STATUS_LABEL, type OrderItemStatus } from '../domain/rules';
+import { cancelStockEffect, ITEM_STATUS_LABEL, type OrderItemStatus } from '../domain/rules';
 
 // Dados prontos para a tela e para a leitura automática (JSON): datas em texto ISO, textos dos
 // estados já traduzidos. A tela nunca importa o domínio (ADR-0014).
@@ -44,6 +44,8 @@ export interface ItemView {
   readonly modifiers: { readonly name: string; readonly priceDeltaCents: number }[];
   readonly totalCents: number;
   readonly cancelReason: string | null;
+  /** O que acontece com o estoque se o item for cancelado agora (RN-ORD-13 — achado I-2). */
+  readonly cancelEffect: 'ESTORNO' | 'PERDA' | null;
 }
 
 export interface RoundView {
@@ -129,6 +131,8 @@ const itemView = (item: OrderItemView): ItemView => ({
   })),
   totalCents: item.totalCents,
   cancelReason: item.cancelReason,
+  cancelEffect:
+    item.status === 'PENDENTE' || item.status === 'CANCELADO' ? null : cancelStockEffect(item),
 });
 
 export function toOrderView(order: OrderDetail): OrderView {

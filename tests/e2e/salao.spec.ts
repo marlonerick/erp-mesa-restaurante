@@ -127,9 +127,8 @@ test.describe('Salão e comanda (Etapa 6)', () => {
     await expect(dialog).toContainText('os insumos voltam para o estoque');
     await dialog.getByLabel('Motivo').fill('cliente desistiu');
     await dialog.getByLabel('Usuário do gerente').fill(TEAM.gerente.username);
-    await dialog.getByLabel('PIN do gerente').fill('000000');
-    await dialog.getByRole('button', { name: 'Cancelar item' }).click();
-    await expect(dialog.getByRole('alert')).toContainText('inválidos');
+    // Sem PIN errado de propósito: cada erro conta para travar o PIN do gerente, que é o MESMO
+    // usuário para todos os testes em paralelo (PIN errado já é testado na integração)
     await dialog.getByLabel('PIN do gerente').fill(PIN_GERENTE);
     await dialog.getByRole('button', { name: 'Cancelar item' }).click();
     // Cancelado, o item perde o botão "Cancelar" e a janela fecha; a linha mostra o motivo

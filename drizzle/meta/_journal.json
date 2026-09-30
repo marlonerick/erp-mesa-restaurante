@@ -64,6 +64,13 @@
       "when": 1790774250348,
       "tag": "0008_salao_mesas_e_pedidos",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1790781694642,
+      "tag": "0009_rotulo_da_conta",
+      "breakpoints": true
     }
   ]
 }

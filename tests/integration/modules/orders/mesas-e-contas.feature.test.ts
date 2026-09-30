@@ -156,4 +156,44 @@ describeFeature(feature, ({ Background, Scenario }) => {
       w.expectFailure('ORDER_HAS_SENT_ITEMS');
     });
   });
+
+  // Achado B-1 da revisão: várias mesas mudando de estado juntas
+  Scenario('Pedir a conta de mesas juntadas muda todas elas', ({ Given, When, Then, And }) => {
+    Given('"joão" juntou a mesa "11" na conta da mesa "10"', () => w.join('joão', '11', '10'));
+    When('"joão" pede a conta da mesa "10"', () => requestBill('10'));
+    Then(
+      'o mapa do "Centro" mostra a mesa "10" como "AGUARDANDO_CONTA"',
+      status('10', 'AGUARDANDO_CONTA'),
+    );
+    And(
+      'o mapa do "Centro" mostra a mesa "11" como "AGUARDANDO_CONTA"',
+      status('11', 'AGUARDANDO_CONTA'),
+    );
+  });
+
+  Scenario(
+    'Cliente de mesas juntadas pede mais depois de pedir a conta',
+    ({ Given, And, When, Then }) => {
+      Given('"joão" juntou a mesa "11" na conta da mesa "10"', () => w.join('joão', '11', '10'));
+      And('"joão" pediu a conta da mesa "10"', () => requestBill('10'));
+      When('"joão" lança 1 "X-Burger" na mesa "11"', () => w.add('joão', at('11'), 1, 'X-Burger'));
+      Then('o mapa do "Centro" mostra a mesa "10" como "OCUPADA"', status('10', 'OCUPADA'));
+      And('o mapa do "Centro" mostra a mesa "11" como "OCUPADA"', status('11', 'OCUPADA'));
+    },
+  );
+
+  Scenario('Juntar uma conta que já tem duas mesas', ({ Given, And, When, Then }) => {
+    Given('"joão" abriu a mesa "12"', () => w.open('joão', '12'));
+    And('"joão" juntou a mesa "11" na conta da mesa "12"', () => w.join('joão', '11', '12'));
+    When('"joão" junta a mesa "12" na conta da mesa "10"', () => w.join('joão', '12', '10'));
+    Then('a mesa "11" está na mesma conta da mesa "10"', async () => {
+      expect(await w.orderOfTable('11')).toBe(await w.orderOfTable('10'));
+    });
+    And('a mesa "12" está na mesma conta da mesa "10"', async () => {
+      expect(await w.orderOfTable('12')).toBe(await w.orderOfTable('10'));
+    });
+    And('o rótulo da conta da mesa "10" é "10 + 11 + 12"', async () => {
+      expect((await w.order('10')).label).toBe('10 + 11 + 12');
+    });
+  });
 });
