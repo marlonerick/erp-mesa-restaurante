@@ -77,6 +77,8 @@ export interface OrganizationsRepository {
   setStoreStatus(tx: Transaction, id: Id, version: number, status: RecordStatus): Promise<boolean>;
   countActiveStores(tx: Transaction, organizationId: Id): Promise<number>;
   insertDefaultStation(tx: Transaction, storeId: Id): Promise<void>;
+  /** Estação padrão da loja (RN-ORG-10): para onde vão os itens com preparo. */
+  findDefaultStation(tx: Transaction, storeId: Id): Promise<{ id: Id; name: string } | null>;
 
   listTerminals(tx: Transaction, storeId: Id): Promise<TerminalRecord[]>;
   findTerminal(

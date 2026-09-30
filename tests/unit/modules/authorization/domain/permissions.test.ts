@@ -10,9 +10,10 @@ import { FakeRequestContext } from '../../../../support/request-context';
 const store = { id: 's-centro', companyId: 'c-1', organizationId: 'o-1' };
 
 describe('catálogo de permissões', () => {
-  it('tem as 34 permissões do README + terminals.manage (E3-1) + products.availability (E4-1)', () => {
-    expect(PERMISSIONS).toHaveLength(36);
-    expect(new Set(PERMISSIONS).size).toBe(36);
+  it('tem as 34 permissões do README + terminals.manage (E3-1) + products.availability (E4-1) + tables.configure (E6-2)', () => {
+    expect(PERMISSIONS).toHaveLength(37);
+    expect(new Set(PERMISSIONS).size).toBe(37);
+    expect(isPermission('tables.configure')).toBe(true);
     expect(isPermission('terminals.manage')).toBe(true);
     expect(isPermission('products.availability')).toBe(true);
     expect(isPermission('orders.cancel')).toBe(true);

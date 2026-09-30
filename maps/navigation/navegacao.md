@@ -40,7 +40,8 @@ flowchart TD
 
 | Tela | Dispositivo alvo | Permissão mínima |
 |---|---|---|
-| Mapa de mesas / comanda | Celular | tables.read, orders.read |
+| Mapa de mesas `/salao` e comanda `/salao/comanda/:id` (abrir, lançar, enviar, cancelar com PIN, pedir conta, transferir, juntar, separar, balcão) — Etapa 6 | Celular (Q-15) | tables.read, orders.read (lançar: orders.create; mexer na conta: orders.update; cancelar enviado: orders.cancel ou PIN do gerente) |
+| Cadastro de mesas `/mesas`, `/mesas/:id` — Etapa 6 | Desktop/tablet | tables.configure (E6-2) |
 | KDS | Tablet/monitor | kds.read |
 | PDV | Desktop/tablet | cashier.read |
 | Dashboard | Desktop | dashboard.read |

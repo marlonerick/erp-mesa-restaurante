@@ -30,7 +30,7 @@ async function insertEntry(after: Record<string, unknown> = {}) {
   return entityId;
 }
 
-describe('catálogo de permissões e perfis (migrations 0002, 0003 e 0005)', () => {
+describe('catálogo de permissões e perfis (migrations 0002, 0003, 0005 e 0008)', () => {
   it('as permissões do banco são exatamente as do código', async () => {
     const rows = await db.select({ code: permission.code }).from(permission);
     expect(rows.map((r) => r.code).sort()).toEqual([...PERMISSIONS].sort());
@@ -46,8 +46,8 @@ describe('catálogo de permissões e perfis (migrations 0002, 0003 e 0005)', () 
       .innerJoin(rolePermission, eq(rolePermission.roleId, role.id))
       .groupBy(role.code);
     expect(Object.fromEntries(rows.map((r) => [r.code, Number(r.total)]))).toEqual({
-      ADMIN: 36,
-      GERENTE: 35,
+      ADMIN: 37,
+      GERENTE: 36,
       CAIXA: 15,
       GARCOM: 8,
       COZINHA: 7,

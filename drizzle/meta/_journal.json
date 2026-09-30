@@ -57,6 +57,13 @@
       "when": 1790716216525,
       "tag": "0007_consistencia_do_estoque",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1790774250348,
+      "tag": "0008_salao_mesas_e_pedidos",
+      "breakpoints": true
     }
   ]
 }

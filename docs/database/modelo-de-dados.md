@@ -118,7 +118,7 @@ sem `deleted_at` (desativar = arquivar), `value_cents` e `loss_reason` novos, `r
 
 | Tabela | Colunas principais | Chaves e constraints |
 |---|---|---|
-| `dining_table` | id, store_id, number VARCHAR(10), area VARCHAR(40) NULL, capacity, status ENUM(`LIVRE`,`OCUPADA`,`AGUARDANDO_CONTA`,`EM_PAGAMENTO`,`LIMPEZA`), current_order_id NULL, active, version | *UQ* (store_id, number); *IX* (store_id, status); FK current_order_id → order |
+| `dining_table` | id, store_id, number VARCHAR(10), area VARCHAR(40) NULL, seats TINYINT, status ENUM(`LIVRE`,`OCUPADA`,`AGUARDANDO_CONTA`,`EM_PAGAMENTO`,`LIMPEZA`), current_order_id NULL, active, version | *UQ* (store_id, number); *IX* (store_id, status); *IX* current_order_id; FK current_order_id → customer_order; *CK* lugares 1–99; *CK* conta ⇔ estado ≠ LIVRE/LIMPEZA (migration 0008) |
 
 Juntar mesas: as mesas passam a apontar para a **mesma** `current_order_id` (itens da conta
 de origem são movidos; a conta de origem é encerrada como `CANCELADO` com motivo `MESCLADA`
@@ -128,10 +128,11 @@ e sem valor). Uma mesa tem no máximo uma conta aberta por construção (uma col
 
 | Tabela | Colunas principais | Chaves e constraints |
 |---|---|---|
-| `order` (nome físico `customer_order`) | id, store_id, number, type ENUM(`MESA`,`BALCAO`), status ENUM(`ABERTO`,`FECHADO`,`CANCELADO`), label NULL, guests_count, opened_by, opened_at, closed_by, closed_at, cancel_reason, operational_date NULL (definida no fechamento), subtotal_cents, items_discount_cents, order_discount_cents, service_fee_bp, service_fee_cents, service_fee_removed_by NULL, total_cents, paid_cents, version | *UQ* (store_id, operational_date, number); *IX* (store_id, status); *IX* (store_id, operational_date, status) |
+| `store_sequence` | store_id, name, operational_date, last_value | PK (store_id, name, operational_date) — número da conta por dia (E3-5) |
+| `order` (nome físico `customer_order`) | id, store_id, number, opened_date (dia operacional da abertura), type ENUM(`MESA`,`BALCAO`), status ENUM(`ABERTO`,`FECHADO`,`CANCELADO`), label (mesas "10 + 11" ou nome do balcão), guests NULL, opened_by, opened_at, closed_by, closed_at, cancel_reason, merged_into_order_id NULL, version | *UQ* (store_id, opened_date, number); *IX* (store_id, status); *CK* pessoas 1–99; *CK* mesclada ⇒ CANCELADO. Totais (taxa, descontos, pago) entram na Etapa 8 |
 | `order_round` | id, store_id, order_id, number, sent_by, sent_at | *UQ* (order_id, number) |
-| `order_item` | id, store_id, order_id, round_id NULL, product_id, product_name, unit_price_cents, quantity DECIMAL(14,3), modifiers_cents, discount_cents, notes, status ENUM(`PENDENTE`,`ENVIADO`,`EM_PREPARO`,`PRONTO`,`ENTREGUE`,`CANCELADO`), station_id NULL, kitchen_ticket_id NULL, created_by, sent_at, started_at, ready_at, delivered_at, cancelled_at, cancelled_by, cancel_authorized_by, cancel_reason, stock_consumed BOOL | *IX* (order_id, status); *IX* (store_id, status, sent_at); *IX* (kitchen_ticket_id); *CK* quantity > 0 |
-| `order_item_modifier` | id, order_item_id, modifier_id, name, price_delta_cents, quantity | FK → order_item |
+| `order_item` | id, store_id, order_id, round_id NULL, product_id, product_name, unit_price_cents, modifiers_cents, quantity TINYINT (1–99, E6-3), notes, requires_preparation, status ENUM(`PENDENTE`,`ENVIADO`,`EM_PREPARO`,`PRONTO`,`ENTREGUE`,`CANCELADO`), station_id NULL, kitchen_ticket_id NULL, created_by, created_at, sent_at, started_at, ready_at, delivered_at, delivered_by, cancelled_at, cancelled_by, cancel_authorized_by, cancel_reason, stock_consumed | *IX* (order_id, status); *IX* (store_id, status, sent_at); *IX* kitchen_ticket_id; *CK* quantidade 1–99; *CK* rodada ⇔ não pendente; *CK* motivo ⇔ cancelado |
+| `order_item_modifier` | id, order_item_id, modifier_id, name, price_delta_cents | *UQ* (order_item_id, modifier_id); FK → order_item ON DELETE CASCADE (item pendente removido) |
 | `kitchen_ticket` | id, store_id, order_id, round_id, station_id, status ENUM(`NOVO`,`EM_PREPARO`,`PRONTO`,`CANCELADO`), created_at, started_at, ready_at, version | *UQ* (round_id, station_id); *IX* (store_id, station_id, status, created_at) |
 
 Snapshot no item: `product_name`, `unit_price_cents` e adicionais são **congelados** no lançamento.

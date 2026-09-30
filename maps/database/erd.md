@@ -238,6 +238,7 @@ erDiagram
 
 ```mermaid
 erDiagram
+  store ||--o{ store_sequence : "numero da conta por dia"
   store ||--o{ dining_table : possui
   dining_table }o--o| customer_order : "conta aberta"
   customer_order ||--o{ order_round : "rodadas"
@@ -262,6 +263,8 @@ erDiagram
     binary id PK
     binary store_id FK
     string number
+    string area
+    int seats
     enum status
     binary current_order_id FK
     int version
@@ -270,11 +273,11 @@ erDiagram
     binary id PK
     binary store_id FK
     int number
+    date opened_date
     enum type
     enum status
-    date operational_date
-    bigint total_cents
-    bigint paid_cents
+    string label
+    binary merged_into_order_id
     int version
   }
   order_round {
@@ -288,8 +291,9 @@ erDiagram
     binary round_id FK
     binary kitchen_ticket_id FK
     string product_name
-    bigint unit_price_cents
-    decimal quantity
+    int unit_price_cents
+    int modifiers_cents
+    int quantity
     enum status
     bool stock_consumed
   }

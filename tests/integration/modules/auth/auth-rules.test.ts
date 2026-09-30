@@ -367,11 +367,17 @@ describe('autorização do gerente — regras de borda', () => {
 describe('limpeza periódica (Q-13b)', () => {
   it('apaga sessões antigas e vínculos de aparelho, mas NUNCA a auditoria', async () => {
     const { services, username, userId, clock } = await scenario();
+    // A limpeza vale para o banco INTEIRO (compartilhado pelos testes que rodam em paralelo). Este
+    // teste vive 400 dias antes do relógio dos outros: assim só os dados DELE ficam velhos o bastante
+    // para sumir — antes, ele apagava os contadores de senha/PIN errados de outros arquivos no meio
+    // dos cenários de bloqueio (falha intermitente achada na Etapa 6)
+    const past = TEST_START.getTime() - 400 * DAY;
+    clock.set(new Date(past));
     const { sessionToken } = await loginAs(services, username, 'Senha@2026');
     await services.auth.logout(sessionToken, meta());
     const auditBefore = await db.select().from(auditLog).where(eq(auditLog.actorUserId, userId));
 
-    clock.set(new Date(TEST_START.getTime() + 91 * DAY));
+    clock.set(new Date(past + 91 * DAY));
     const removed = await services.auth.purgeExpiredData();
 
     expect(removed.sessoes).toBeGreaterThanOrEqual(1);

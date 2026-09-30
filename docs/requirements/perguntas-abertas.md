@@ -8,11 +8,11 @@ padrão que será adotada se você responder "use a proposta".
 | Q-01 | ~~Momento da baixa de estoque?~~ **Respondida (2026-09-29): A** — ao enviar para a cozinha; cancelado antes do preparo volta ao estoque (estorno), depois do preparo vira perda (ADR-0006 aceito) | — | — |
 | Q-02 | O piloto precisa de impressora na cozinha (impressão automática)? A pré-conta precisa ser impressa? Há impressora térmica? Qual modelo e conexão (USB/rede)? | Pré-conta via navegador; cozinha só KDS | Etapa 7 |
 | Q-03 | Onde será hospedado? Há provedor preferido ou orçamento mensal? Como é a internet do restaurante (fibra, 4G de contingência)? | Container Node + MySQL gerenciado, região São Paulo | Etapa 10 (staging desde a Etapa 1 se possível) |
-| Q-04 | O restaurante piloto usa comanda **por mesa** ou **por cliente** (cartão/comanda individual)? Como funciona o balcão (nome, senha numérica)? | Por mesa; balcão identificado por rótulo livre | Etapa 6 |
+| Q-04 | ~~Comanda por mesa ou por cliente? Balcão?~~ **Respondida (2026-09-30):** comanda **por mesa**; no balcão, um **nome livre** identifica o pedido | — | — |
 | Q-05 | ~~Horário e corte do dia?~~ **Respondida (2026-09-29):** o piloto funciona geralmente até as **15:00** (horário de funcionamento configurável fica para o futuro); virada do dia operacional às **05:00**, configurável por loja; **vários caixas abertos ao mesmo tempo**, com limite configurável por loja (padrão 1) | — | — |
 | Q-06 | Taxa de serviço: calculada sobre o subtotal **após** descontos? Incide sobre todos os produtos (inclusive bebidas)? Aplica-se ao balcão? | Após descontos; todos os produtos; não se aplica ao balcão | Etapa 8 |
 | Q-07 | Limites de desconto por perfil (ex.: GARCOM 0%, CAIXA 10%, GERENTE 100%)? | Os do exemplo | Etapa 8 |
-| Q-08 | Itens sem preparo (refrigerante, água) devem aparecer no KDS? Existe **bar** como estação separada no piloto? | Não aparecem (marcados como prontos ao enviar); 1 estação | Etapa 6 |
+| Q-08 | ~~Itens sem preparo no KDS? Bar separado?~~ **Respondida (2026-09-30):** itens sem preparo **não aparecem** na cozinha (ficam prontos ao enviar); **uma estação só** | — | — |
 | Q-09 | ~~Adicionais consomem estoque? Preço por loja?~~ **Respondida (2026-09-29):** o preço do adicional é **único na empresa** (só o produto tem preço por loja); o adicional **consome estoque pela própria ficha técnica**, ligada na Etapa 5 | — | — |
 | Q-10 | ~~Venda por peso?~~ **Respondida (2026-09-29):** **não** no piloto — todo produto é vendido por unidade; a quantidade decimal do kernel permite incluir depois | — | — |
 | Q-11 | ~~Onde fica o repositório Git?~~ **Respondida (2026-09-28):** GitHub `marlonerick/erp-mesa-restaurante`, já com o primeiro commit; CI com GitHub Actions | — | — |
@@ -20,10 +20,10 @@ padrão que será adotada se você responder "use a proposta".
 | Q-13 | ~~Retenção de dados?~~ **Respondida (2026-09-28):** os dados ficam guardados **para sempre** no banco (vendas, caixa, estoque, auditoria). Ver Q-13b | — | — |
 | Q-13b | ~~Apagar dados técnicos de sessões expiradas e logs após 90 dias?~~ **Aprovada (2026-09-28):** sim, via `npm run maintenance:purge`; vendas e auditoria continuam para sempre | — | — |
 | Q-14 | No KDS, "iniciar/pronto" é por **ticket inteiro** ou **por item**? Tempos de alerta (ex.: amarelo 10 min, vermelho 20 min)? | Por item, com atalho "tudo" no ticket; 10/20 min configurável | Etapa 7 |
-| Q-15 | Dispositivos do piloto: garçons usam celular próprio ou da casa? KDS em TV, monitor ou tablet? | Celulares da casa; KDS em tablet ≥ 10" ou monitor touch | Etapa 6 |
+| Q-15 | ~~Aparelhos do piloto?~~ **Respondida (2026-09-30):** garçons com **celulares da casa**; cozinha com **tablet de 10" ou mais** | — | — |
 | Q-16 | Fechamento cego: o operador informa só o **dinheiro** ou também os totais de cartão e PIX conferidos? | Dinheiro obrigatório; cartão/PIX opcional | Etapa 8 |
 | Q-17 | Couvert artístico, consumação mínima ou taxa de entrega existem no piloto? | Fora do MVP | Etapa 8 |
-| Q-18 | Garçom pode **transferir e juntar** mesas, ou só gerente/caixa? (ver matriz de permissões) | Garçom pode (com auditoria) | Etapa 6 |
+| Q-18 | ~~Garçom transfere e junta mesas?~~ **Respondida (2026-09-30):** **sim**, o garçom pode, e tudo fica registrado na auditoria | — | — |
 | Q-19 | ~~Custo unitário de insumo em `DECIMAL(18,6)`?~~ **Aprovado (2026-09-28)** | — | — |
 | Q-20 | ~~Aprova os 6 subagentes?~~ **Aprovado (2026-09-28)** | — | — |
 
@@ -86,12 +86,25 @@ padrão que será adotada se você responder "use a proposta".
 | E5-5 | Cada baixa guarda o custo do momento; mudar a ficha técnica não altera o passado |
 | E5-6 | Cálculo do CMV pronto e testado nesta etapa; a tela vai para os relatórios da Etapa 9 |
 
+## Decisões tomadas na aprovação do plano da Etapa 6 (2026-09-30)
+
+| ID | Decisão |
+|---|---|
+| E6-1 | O garçom vê o **subtotal** da conta; taxa de serviço e descontos entram no caixa (Etapa 8) |
+| E6-2 | Mesas cadastradas por ADMIN e GERENTE (permissão nova `tables.configure`); número em texto livre ("10", "V1") |
+| E6-3 | Quantidade do item: inteiro de 1 a 99 (sem venda por peso — Q-10) |
+| E6-4 | Conta aberta por engano pode ser cancelada enquanto nada foi enviado (mesa volta a LIVRE); com itens enviados, cancelar os itens antes |
+| E6-5 | Instalar o shadcn/ui (Radix) para janelas: adicionais, PIN do gerente, transferir, juntar |
+| E6-6 | Instalar o TanStack Query para atualizar o mapa e a comanda sozinhos (ADR-0012) |
+| E6-7 | Número de pessoas na mesa: opcional ao abrir |
+
 ## Pontos da especificação que interpretei (confirme ou corrija)
 
 1. **Juntar mesas**: as mesas passam a compartilhar a mesma conta; a conta de origem é encerrada
    como `CANCELADO` com motivo `MESCLADA`, sem valor (o README só define `ABERTO → FECHADO | CANCELADO`).
-2. **`tables.manage`** = cadastro de mesas e forçar estado (ex.: liberar mesa em `LIMPEZA`).
-   Abrir mesa = `orders.create`; transferir/juntar = `orders.update`.
+2. **`tables.manage`** = mudar o estado da mesa (ex.: liberar mesa em `LIMPEZA`); o **cadastro** de
+   mesas usa a permissão nova `tables.configure` (E6-2). Abrir mesa = `orders.create`;
+   transferir/juntar = `orders.update` (garçom incluído — Q-18).
 3. **Receita financeira** das vendas é gerada no **fechamento do caixa**, uma entrada por método de pagamento.
 4. **Movimentos de estoque de venda** usam tipos próprios (`CONSUMO_VENDA`, `ESTORNO_VENDA`) além dos
    quatro do README (entrada, saída, ajuste, perda), para os relatórios separarem venda de ajuste manual.

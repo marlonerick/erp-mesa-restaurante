@@ -79,6 +79,14 @@ export async function findTerminalOfDevice(
   return found ? { id: found.id, code: found.code, name: found.name } : null;
 }
 
+/** Estação padrão da loja (RN-ORG-10) — a comanda manda os itens com preparo para ela. */
+export function getDefaultStation(
+  tx: Transaction,
+  storeId: Id,
+): Promise<{ id: Id; name: string } | null> {
+  return repo.findDefaultStation(tx, storeId);
+}
+
 // ---- Primeira instalação e seed ----
 
 export interface NewOrganization {

@@ -11,7 +11,9 @@ import {
   createOrganizationWithStore,
   organizationAdministration,
 } from '@/modules/organizations';
+import { ordersService } from '@/modules/orders';
 import { recipesService } from '@/modules/recipes';
+import { tablesService } from '@/modules/tables';
 import { insertUser, storePinHash, userAdministration } from '@/modules/users';
 import type { Database } from '@/shared/db/client';
 import { runInTransaction } from '@/shared/db/transaction';
@@ -111,7 +113,9 @@ export function testServices(db: Database, clock = new FakeClock(TEST_START)) {
   const catalog = catalogService({ db });
   const inventory = inventoryService({ db });
   const recipes = recipesService({ db });
-  return { auth, users, organizations, catalog, inventory, recipes, clock };
+  const tables = tablesService({ db });
+  const orders = ordersService({ db });
+  return { auth, users, organizations, catalog, inventory, recipes, tables, orders, clock };
 }
 
 /** Entra com senha e devolve o contexto da requisição, como o servidor faria. */

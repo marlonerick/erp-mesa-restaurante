@@ -43,7 +43,11 @@
 - Cancelado depois do preparo: `consumptionToLoss` — em vez de uma `PERDA` extra (que baixaria o
   insumo duas vezes), grava `ESTORNO_VENDA` + `PERDA` (`CANCELAMENTO_APOS_PREPARO`) de mesmo valor:
   o saldo não muda, o CMV deixa de contar o item e a perda aparece no relatório.
-- `order_item.stock_consumed` fica para a Etapa 6 (a origem das movimentações já é o item).
+- `order_item.stock_consumed` criado na Etapa 6: marcado no envio da rodada, na mesma transação
+  da baixa; o cancelamento só estorna/lança perda de item com a marca.
+- Etapa 6: `orders.sendRound` chama `recipes.consumeForItems` (produto × quantidade + adicionais);
+  `orders.cancelItem` chama `reverseConsumption` (item ENVIADO, ou sem preparo ainda não entregue)
+  ou `consumptionToLoss` (em preparo, pronto ou entregue).
 - Idempotência (revisão, achado B-1): estorno e perda leem o consumo pendente da origem **com trava**
   (`SELECT … FOR UPDATE`). Em REPEATABLE READ uma leitura comum usa a "foto" do início da transação:
   dois cancelamentos simultâneos estornavam em dobro. A garantia é do Inventory — não depende da

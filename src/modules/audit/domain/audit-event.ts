@@ -58,6 +58,13 @@ export const AUDIT_EVENTS = [
   'STOCK_ADJUSTMENT',
   'STOCK_LOSS',
   'RECIPE_UPDATED',
+  // Etapa 6 — salão, mesas e pedidos (docs/modules/tables.md §8, orders.md §8)
+  'TABLE_CREATED',
+  'TABLE_UPDATED',
+  'TABLE_STATUS_CHANGED',
+  'TABLE_DETACHED',
+  'ORDER_ROUND_SENT',
+  'ORDERS_MERGED',
 ] as const;
 
 export type AuditEvent = (typeof AUDIT_EVENTS)[number];

@@ -156,6 +156,20 @@ export const ICONS = {
       <circle cx="16" cy="12" r="3" />
     </Icon>
   ),
+  // Salão (Etapa 6)
+  salao: (
+    <Icon>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+    </Icon>
+  ),
+  mesas: (
+    <Icon>
+      <path d="M3 9h18" />
+      <path d="M6 9v11M18 9v11" />
+      <path d="M5 5h14" />
+    </Icon>
+  ),
 } as const;
 
 export type IconName = keyof typeof ICONS;

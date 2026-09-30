@@ -20,6 +20,7 @@ import { newId, type SystemRole } from '@/shared/kernel';
 import { argon2Hasher } from '@/shared/security/password-hasher';
 import { seedDemoCatalog } from './lib/demo-catalog';
 import { seedDemoStock } from './lib/demo-stock';
+import { seedDemoTables } from './lib/demo-tables';
 
 if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== 'true') {
   console.error('O seed de desenvolvimento nunca roda em produção.');
@@ -147,7 +148,8 @@ try {
     ]);
   }
 
-  // Cardápio (Etapa 4) e estoque (Etapa 5) de demonstração: rodam também em bancos antigos
+  // Cardápio (Etapa 4), estoque (Etapa 5) e mesas (Etapa 6) de demonstração: rodam também em
+  // bancos antigos
   const created = await runInTransaction(db, async (tx) => {
     const [centro] = await tx
       .select({ id: store.id, companyId: store.companyId })
@@ -155,13 +157,13 @@ try {
       .where(eq(store.code, 'CENTRO'))
       .orderBy(asc(store.createdAt))
       .limit(1);
-    if (!centro) return { catalog: false, stock: false };
+    if (!centro) return { catalog: false, stock: false, tables: false };
     const [praia] = await tx
       .select({ id: store.id })
       .from(store)
       .where(and(eq(store.companyId, centro.companyId), eq(store.code, 'PRAIA')));
     const admin = await findUserByUsername(tx, 'admin');
-    if (!praia || !admin) return { catalog: false, stock: false };
+    if (!praia || !admin) return { catalog: false, stock: false, tables: false };
     const catalog = await seedDemoCatalog(tx, {
       companyId: centro.companyId,
       centro: centro.id,
@@ -172,7 +174,12 @@ try {
       stores: [centro.id, praia.id],
       userId: admin.id,
     });
-    return { catalog, stock };
+    const tables = await seedDemoTables(tx, {
+      centro: centro.id,
+      praia: praia.id,
+      userId: admin.id,
+    });
+    return { catalog, stock, tables };
   });
   console.info(
     created.catalog
@@ -183,6 +190,11 @@ try {
     created.stock
       ? 'Estoque e fichas técnicas de demonstração criados (compra inicial no Centro e na Praia).'
       : 'Estoque já existe: ignorado.',
+  );
+  console.info(
+    created.tables
+      ? 'Mesas de demonstração criadas (12 no Centro, 8 na Praia; mesa 2 do Centro com conta aberta).'
+      : 'Mesas já existem: ignorado.',
   );
 } finally {
   await close();

@@ -17,6 +17,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   // Só aparece o que a pessoa pode usar NESTA loja (o servidor confere de novo em cada tela)
   const admin = [
+    hasPermission(context, 'tables.configure') && {
+      href: '/mesas',
+      label: 'Mesas',
+      icon: 'mesas' as const,
+    },
     hasPermission(context, 'users.read') && {
       href: '/admin/usuarios',
       label: 'Usuários',
@@ -41,6 +46,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   const operation = [
     { href: '/inicio', label: 'Início', icon: 'inicio' as const },
+    // Salão e comanda (Etapa 6): garçom, caixa e gerente
+    hasPermission(context, 'tables.read') &&
+      hasPermission(context, 'orders.read') && {
+        href: '/salao',
+        label: 'Salão',
+        icon: 'salao' as const,
+      },
     hasPermission(context, 'products.availability') && {
       href: '/disponibilidade',
       label: 'Disponibilidade',

@@ -94,4 +94,4 @@ Sugestões novas: S-9 (teste E2E de conflito esperava pouco antes de recarregar)
 - [x] Revisão do `reviewer` (1ª reprovada; achados corrigidos; reverificação **aprovada**)
 - [x] Docs e maps
 - [x] `PROJECT_STATUS.md`
-- [ ] `APROVADO` do usuário
+- [x] `APROVADO` do usuário (2026-09-30)

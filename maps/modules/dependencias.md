@@ -3,10 +3,20 @@
 Seta `A --> B` = A chama caso de uso público de B ou assina evento de B. Nenhum módulo acessa
 tabelas de outro. Ciclos são proibidos (verificado no lint).
 
-## Implementado (Etapas 2 a 5 — ADR-0014)
+## Implementado (Etapas 2 a 6 — ADR-0014)
 
 ```mermaid
 flowchart LR
+  ORD[Orders] --> TAB[Tables]
+  ORD --> CAT
+  ORD --> REC
+  ORD --> INV
+  ORD --> ORG
+  ORD --> AUTHZ
+  ORD --> USERS
+  ORD --> AUDIT
+  TAB --> ORG
+  TAB --> AUDIT
   REC[Recipes] --> CAT
   REC --> INV[Inventory]
   REC --> ORG
@@ -45,6 +55,11 @@ virada) e Users (nome de quem fez cada movimentação); Recipes usa Catalog (pro
 preço na loja), Inventory (custo médio e **baixa por venda**) e Organizations. A comanda (Etapa 6)
 chamará `recipes.consumeForItems` e `inventory.reverseConsumption`/`consumptionToLoss` na própria
 transação (ADR-0006 A).
+Na Etapa 6, Orders usa Tables (estado das mesas, com trava), Catalog (cardápio vendável), Recipes
+(baixa ao enviar a rodada), Inventory (estorno e perda no cancelamento), Organizations (loja, dia
+operacional, estação padrão), Authorization (autorização do gerente) e Users (nome de quem enviou).
+Nenhum deles depende de Orders. O ticket da cozinha pertence ao Orders: o KDS da Etapa 7 lê e
+atualiza pela API pública dele (sem o evento `RoundSent` — a chamada é direta, na mesma transação).
 
 ## Planejado (MVP completo)
 

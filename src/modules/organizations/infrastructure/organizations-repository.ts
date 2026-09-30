@@ -144,6 +144,14 @@ export const organizationsRepository: OrganizationsRepository = {
       .values({ id: newId(), storeId, name: 'Cozinha', isDefault: true });
   },
 
+  async findDefaultStation(tx, storeId) {
+    const [row] = await tx
+      .select({ id: kitchenStation.id, name: kitchenStation.name })
+      .from(kitchenStation)
+      .where(eq(kitchenStation.defaultStoreId, storeId));
+    return row ?? null;
+  },
+
   listTerminals(tx, storeId) {
     return tx
       .select(terminalColumns)

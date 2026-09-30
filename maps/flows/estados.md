@@ -11,12 +11,16 @@ stateDiagram-v2
   AGUARDANDO_CONTA --> EM_PAGAMENTO: caixa inicia pagamento
   EM_PAGAMENTO --> AGUARDANDO_CONTA: pagamento interrompido
   EM_PAGAMENTO --> LIMPEZA: conta FECHADO
-  OCUPADA --> LIVRE: conta CANCELADO (sem itens / mesclada)
+  OCUPADA --> LIVRE: conta CANCELADO (nada enviado) / transferir (origem) / separar
+  AGUARDANDO_CONTA --> LIVRE: transferir (origem) / separar
   LIMPEZA --> LIVRE: liberar mesa
 ```
 
-Transferir: conta aberta vai da mesa origem para a destino (`LIVRE`); origem → `LIVRE`.
-Juntar: mesa origem passa a apontar para a conta da mesa destino; itens movidos.
+Implementado na Etapa 6 (docs/modules/tables.md, orders.md); `EM_PAGAMENTO` e `LIMPEZA` chegam
+com o PDV (Etapa 8). Transferir: a conta vai para a mesa destino (`LIVRE`), que assume o estado da
+origem; origem → `LIVRE`. Juntar: a mesa passa a apontar para a conta de destino; se tinha conta,
+itens, rodadas (renumeradas) e tickets são movidos e a conta dela fica `CANCELADO` (`MESCLADA`);
+todas as mesas da conta → `OCUPADA`. Separar: a mesa sai de uma conta com outras mesas → `LIVRE`.
 
 ## Conta (`customer_order.status`)
 
@@ -41,11 +45,11 @@ stateDiagram-v2
   ENVIADO --> EM_PREPARO: cozinha inicia
   EM_PREPARO --> PRONTO: cozinha marca pronto
   PRONTO --> ENTREGUE: garçom entrega
-  ENVIADO --> PRONTO: item sem preparo (Q-08)
-  ENVIADO --> CANCELADO: orders.cancel + motivo (estorno de estoque)
-  EM_PREPARO --> CANCELADO: orders.cancel + motivo (perda)
-  PRONTO --> CANCELADO: orders.cancel + motivo (perda)
-  ENTREGUE --> CANCELADO: orders.cancel + motivo + autorização elevada (perda)
+  PENDENTE --> PRONTO: rodada enviada, item sem preparo (Q-08)
+  ENVIADO --> CANCELADO: orders.cancel ou PIN do gerente + motivo (estorno)
+  EM_PREPARO --> CANCELADO: orders.cancel ou PIN do gerente + motivo (perda)
+  PRONTO --> CANCELADO: orders.cancel ou PIN do gerente + motivo (perda; estorno se sem preparo)
+  ENTREGUE --> CANCELADO: orders.cancel ou PIN do gerente + motivo (perda)
 ```
 
 ## Ticket de cozinha (`kitchen_ticket.status`)

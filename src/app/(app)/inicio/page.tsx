@@ -55,6 +55,11 @@ export default async function HomePage({
       </div>
 
       <ul className="flex flex-col divide-y divide-borda border-y border-borda">
+        {context.permissions.has('tables.read') && context.permissions.has('orders.read') ? (
+          <HomeLink href="/salao" title="Salão">
+            Mapa das mesas, comandas e pedidos de balcão.
+          </HomeLink>
+        ) : null}
         {context.permissions.has('users.read') ? (
           <HomeLink href="/admin/usuarios" title="Usuários">
             Cadastre a equipe, defina perfis e redefina senhas.
@@ -75,9 +80,7 @@ export default async function HomePage({
         </HomeLink>
       </ul>
 
-      <p className="text-tinta-suave">
-        As telas de mesas, cozinha e caixa chegam nas próximas etapas.
-      </p>
+      <p className="text-tinta-suave">As telas da cozinha e do caixa chegam nas próximas etapas.</p>
     </div>
   );
 }

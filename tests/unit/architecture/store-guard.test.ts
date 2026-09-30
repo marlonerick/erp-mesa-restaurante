@@ -37,7 +37,29 @@ const GUARDED: Readonly<Record<string, readonly string[]>> = {
     'bindTerminalAction',
     'unbindTerminalAction',
   ],
+  'src/modules/tables/interface/actions.ts': [
+    'createTableAction',
+    'updateTableAction',
+    'releaseTableAction',
+  ],
 };
+
+/** Comanda (Etapa 6): TODA ação passa por `run`, que confere a loja da tela antes de executar. */
+const ORDERS_FILE = 'src/modules/orders/interface/actions.ts';
+const ORDER_ACTIONS = [
+  'openTableAction',
+  'openCounterAction',
+  'addItemAction',
+  'removeItemAction',
+  'sendRoundAction',
+  'deliverItemAction',
+  'cancelItemAction',
+  'requestBillAction',
+  'transferAction',
+  'joinAction',
+  'detachAction',
+  'cancelOrderAction',
+];
 
 describe('formulários da loja ativa conferem a loja da tela (STORE_CHANGED)', () => {
   for (const [file, names] of Object.entries(GUARDED)) {
@@ -45,4 +67,25 @@ describe('formulários da loja ativa conferem a loja da tela (STORE_CHANGED)', (
       expect(actionBody(file, name)).toContain('requireSameStore(ctx, input.expectedStoreId)');
     });
   }
+});
+
+describe('comanda: todas as ações conferem a loja da tela (RN-ORD-23)', () => {
+  const source = readFileSync(ORDERS_FILE, 'utf8');
+
+  it('run confere a loja antes de executar a ação', () => {
+    const run = source.slice(source.indexOf('async function run('), source.indexOf('const ids ='));
+    expect(run).toContain('requireSameStore(context, expectedStoreId)');
+    expect(run.indexOf('requireSameStore')).toBeLessThan(run.indexOf('await action('));
+  });
+
+  it('não há ação da comanda fora da lista', () => {
+    const exported = [...source.matchAll(/export async function (\w+)\(/g)].map(
+      (match) => match[1],
+    );
+    expect(exported.sort()).toEqual([...ORDER_ACTIONS].sort());
+  });
+
+  it.each(ORDER_ACTIONS)('%s passa por run', (name) => {
+    expect(actionBody(ORDERS_FILE, name)).toMatch(/(await|return) run\(formData,/);
+  });
 });

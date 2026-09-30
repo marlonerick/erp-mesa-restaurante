@@ -18,6 +18,9 @@
   --color-alerta-claro: #fdecea;
   --color-confirma: #2e7d4f;
   --color-confirma-claro: #e6f4ec;
+  /* Salão (Etapa 6): mesa que pediu a conta — sempre junto com o texto do estado */
+  --color-atencao: #7a4d00;
+  --color-atencao-claro: #fff1d1;
 
   --font-sans: var(--font-atkinson), ui-sans-serif, system-ui, sans-serif;
 }
