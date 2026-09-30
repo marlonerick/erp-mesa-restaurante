@@ -5,7 +5,7 @@
 ## Etapa atual
 **Etapa 6 — Salão, mesas e pedidos** — plano aprovado em 2026-09-30 (Q-04, Q-08, Q-15, Q-18
 respondidas; decisões E6-1 a E6-7) — implementada na `main` (revisão: 1ª reprovada, achados
-corrigidos, aguardando reverificação).
+corrigidos, reverificação **aprovada**), **aguardando aprovação do usuário**.
 
 ## Progresso do MVP
 
@@ -17,7 +17,7 @@ corrigidos, aguardando reverificação).
 | 3 | Organização e contexto | **Aprovada** em 2026-09-29 |
 | 4 | Catálogo | **Aprovada** em 2026-09-29 |
 | 5 | Estoque e ficha técnica | **Aprovada** em 2026-09-30 |
-| 6 | Salão, mesas e pedidos | Em andamento |
+| 6 | Salão, mesas e pedidos | Entregue — aguardando `APROVADO` |
 | 7 | KDS | Não iniciada |
 | 8 | PDV e caixa | Não iniciada |
 | 9 | Financeiro básico, dashboard e relatórios | Não iniciada |
@@ -42,7 +42,7 @@ corrigidos, aguardando reverificação).
 - ADRs: 14 aceitos (0001–0014) — ADR-0006 aceito em 2026-09-29 (Q-01 = A).
 
 ## Em andamento
-- Revisão da Etapa 6.
+- Revisão da Etapa 6 pelo usuário.
 
 ## Bloqueado
 - Nada bloqueado.
@@ -75,6 +75,8 @@ gravaria 1 g no lugar de 1000 g — ver `docs/weeks/etapa-05.md`.
   cancelamento diz "voltou ao estoque" sem ter havido baixa (saldos corretos) — S-6 da revisão.
 - Lançar item não é idempotente: toque duplo com rede ruim pode duplicar um item PENDENTE (o garçom
   remove) — S-7 da revisão; avaliar no piloto.
+- Teste de navegador da mensagem de PIN errado no cancelamento, com um gerente só para ele (não travar
+  o PIN do gerente compartilhado) — S-8 da reverificação.
 - Horário de funcionamento da loja (abre/fecha) configurável — pedido na Q-05, sem uso ainda.
 - `authenticate` consulta os perfis duas vezes por requisição (lojas acessíveis + permissões);
   unificar se aparecer no monitoramento de desempenho.

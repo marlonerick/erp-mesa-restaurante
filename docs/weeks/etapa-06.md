@@ -80,6 +80,10 @@ recusado (a mensagem é igual de propósito — RN-AUTHZ-10); PIN travado ainda 
 que deixava o servidor mais lento para os outros testes. O passo foi retirado (PIN errado continua
 testado na integração); duas execuções completas seguidas passaram (114/114).
 
+2ª revisão (reverificação): **aprovada** — todos os achados conferidos, 479 unitários e 904 de integração
+passando, `drizzle-kit check` limpo. Sugestão nova S-8 (a mensagem de PIN errado na janela de
+cancelamento ficou sem teste de navegador) — débito técnico.
+
 ## Como experimentar (banco de desenvolvimento)
 1. `npm run db:migrate` (aplica a 0008 e a 0009), `npm run db:seed` (cria as mesas), `npm run dev`.
 2. Entre como `joao` / `Garcom@2026` (de preferência no celular) → **Salão**.
@@ -103,8 +107,8 @@ testado na integração); duas execuções completas seguidas passaram (114/114)
 - [x] Migration revisada (índices antes das FKs; aplicada no banco de desenvolvimento)
 - [x] Testes unitários, integração (MySQL real), BDD, concorrência, isolamento entre lojas, E2E
 - [x] Lint, typecheck, build
-- [ ] CI no GitHub
-- [ ] Revisão do `reviewer` (1ª reprovada; achados corrigidos; aguardando reverificação)
+- [x] CI no GitHub (verde no commit da implementação e no das correções)
+- [x] Revisão do `reviewer` (1ª reprovada; achados corrigidos; reverificação **aprovada**)
 - [x] Docs e maps
 - [x] `PROJECT_STATUS.md`
 - [ ] `APROVADO` do usuário
