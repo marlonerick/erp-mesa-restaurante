@@ -111,4 +111,4 @@ cancelamento ficou sem teste de navegador) — débito técnico.
 - [x] Revisão do `reviewer` (1ª reprovada; achados corrigidos; reverificação **aprovada**)
 - [x] Docs e maps
 - [x] `PROJECT_STATUS.md`
-- [ ] `APROVADO` do usuário
+- [x] `APROVADO` do usuário (2026-09-30)

@@ -26,6 +26,13 @@ estado das mesas. Piloto: 1 estação, ~5 dispositivos. Monólito sem Redis.
 Gatilho para migrar a SSE (novo ADR): > 30 dispositivos por loja ou exigência de latência < 1 s,
 ou custo de polling mensurável.
 
+## Implementação (Etapa 7, 2026-09-30)
+KDS a cada 3 s pela rota `GET /api/cozinha`, que devolve a **fila completa** da estação (não só as
+mudanças) + a hora do servidor para o cronômetro. O cursor `since` foi adiado: com dezenas de
+tickets a leitura completa é barata (índices da fila e de "prontos há pouco"), e um cursor por hora
+pode perder uma mudança gravada com hora anterior e confirmada depois da leitura. Rever com mais de
+100 tickets na fila ou se o polling aparecer no monitoramento (docs/modules/kitchen.md §12).
+
 ## Consequências
 - (+) Simples, robusto a rede instável, sem infraestrutura nova.
 - (−) Até 3 s de atraso no KDS — aceitável para cozinha (confirmar no piloto).

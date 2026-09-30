@@ -1,59 +1,17 @@
-import { type Browser, expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import {
+  addItem,
+  closeDialog,
+  createTables,
+  openTable,
+  sendRound,
+  tableNumber,
+} from './floor-helpers';
 import { login, openMenuIfMobile, TEAM } from './helpers';
 
-// Salão e comanda (Etapa 6). Cada teste cadastra as PRÓPRIAS mesas (número único): os três
-// aparelhos rodam ao mesmo tempo no mesmo banco de E2E.
+// Salão e comanda (Etapa 6). Cada teste cadastra as PRÓPRIAS mesas (floor-helpers.ts).
 
 const PIN_GERENTE = '739104';
-
-/** Número de mesa único (até 10 letras/números — RN-TAB-02). */
-const tableNumber = () => `E${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-
-/** O gerente cadastra as mesas numa sessão separada (outro aparelho). */
-async function createTables(browser: Browser, numbers: readonly string[]) {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await login(page, TEAM.gerente.username, TEAM.gerente.password);
-  for (const number of numbers) {
-    await page.goto('/mesas');
-    await page.getByLabel('Número', { exact: true }).fill(number);
-    await page.getByLabel('Área (opcional)').fill('Testes E2E');
-    await page.getByRole('button', { name: 'Cadastrar mesa' }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'Mesa cadastrada.' })).toBeVisible();
-  }
-  await context.close();
-}
-
-async function openTable(page: Page, number: string) {
-  await page.goto('/salao');
-  await page.getByRole('button', { name: new RegExp(`^Mesa ${number}\\b`) }).click();
-  await page.getByLabel('Pessoas (opcional)').fill('2');
-  await page.getByRole('button', { name: 'Abrir mesa' }).click();
-  await page.waitForURL(/\/salao\/comanda\/.+/);
-  await expect(page.getByRole('heading', { name: `Mesa ${number}`, level: 1 })).toBeVisible();
-}
-
-async function addItem(page: Page, product: string, choose: readonly string[] = []) {
-  const dialog = page.getByRole('dialog');
-  if (!(await dialog.isVisible())) {
-    await page.getByRole('button', { name: 'Adicionar item' }).click();
-  }
-  await dialog.getByLabel('Buscar produto').fill(product);
-  await dialog.getByRole('button', { name: new RegExp(`^${product}`) }).click();
-  for (const option of choose) await dialog.getByLabel(option).check();
-  await dialog.getByRole('button', { name: 'Lançar na conta' }).click();
-  await expect(dialog.getByRole('status')).toContainText('Item lançado');
-}
-
-async function closeDialog(page: Page) {
-  await page.getByRole('dialog').getByRole('button', { name: 'Fechar janela' }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-}
-
-async function sendRound(page: Page) {
-  await page.getByRole('button', { name: /^Enviar para a cozinha/ }).click();
-  await expect(page.getByRole('status').filter({ hasText: /Rodada \d+ enviada/ })).toBeVisible();
-}
 
 test.describe('Salão e comanda (Etapa 6)', () => {
   test('garçom abre a mesa, lança com adicionais e observação, envia e pede a conta', async ({
@@ -86,7 +44,7 @@ test.describe('Salão e comanda (Etapa 6)', () => {
     await expect(pending).toContainText('Obs.: sem cebola');
     await expect(page.getByText('Subtotal R$ 74,00')).toBeVisible();
 
-    await sendRound(page);
+    await sendRound(page, 1);
     const round = page.getByRole('list', { name: 'Rodada 1' });
     await expect(round).toContainText('Na cozinha');
     await expect(page.getByText('Nenhum item esperando envio.')).toBeVisible();
@@ -111,7 +69,7 @@ test.describe('Salão e comanda (Etapa 6)', () => {
     await addItem(page, 'Refrigerante lata');
     await addItem(page, 'X-Salada');
     await closeDialog(page);
-    await sendRound(page);
+    await sendRound(page, 2);
     const round = page.getByRole('list', { name: 'Rodada 1' });
     await expect(
       round.getByRole('listitem').filter({ hasText: 'Refrigerante lata' }),
@@ -146,7 +104,7 @@ test.describe('Salão e comanda (Etapa 6)', () => {
     await openTable(page, a);
     await addItem(page, 'Pudim');
     await closeDialog(page);
-    await sendRound(page);
+    await sendRound(page, 1);
 
     await page.getByRole('button', { name: 'Transferir' }).click();
     const dialog = page.getByRole('dialog');

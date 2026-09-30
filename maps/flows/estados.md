@@ -43,7 +43,9 @@ stateDiagram-v2
   PENDENTE --> [*]: removido (orders.update, sem auditoria de cancelamento)
   PENDENTE --> ENVIADO: rodada enviada
   ENVIADO --> EM_PREPARO: cozinha inicia
+  ENVIADO --> PRONTO: cozinha marca pronto (sem iniciar) / tudo pronto
   EM_PREPARO --> PRONTO: cozinha marca pronto
+  PRONTO --> EM_PREPARO: cozinha desfaz, antes de entregar (E7-2, auditado)
   PRONTO --> ENTREGUE: garçom entrega
   PENDENTE --> PRONTO: rodada enviada, item sem preparo (Q-08)
   ENVIADO --> CANCELADO: orders.cancel ou PIN do gerente + motivo (estorno)
@@ -54,14 +56,17 @@ stateDiagram-v2
 
 ## Ticket de cozinha (`kitchen_ticket.status`)
 
-Derivado dos itens: `NOVO` (todos `ENVIADO`) → `EM_PREPARO` (algum em preparo) → `PRONTO`
-(todos prontos/entregues/cancelados) ; `CANCELADO` (todos cancelados).
+Calculado dos itens não cancelados (RN-KDS-06, Etapa 7): `NOVO` (todos `ENVIADO`),
+`EM_PREPARO` (algum começou ou ficou pronto), `PRONTO` (todos prontos/entregues), `CANCELADO`
+(todos cancelados). `PRONTO` e `CANCELADO` gravam `finished_at` (saída da fila).
 
 ```mermaid
 stateDiagram-v2
   [*] --> NOVO
   NOVO --> EM_PREPARO
+  NOVO --> PRONTO: tudo pronto
   EM_PREPARO --> PRONTO
+  PRONTO --> EM_PREPARO: desfazer
   NOVO --> CANCELADO
   EM_PREPARO --> CANCELADO
 ```

@@ -47,7 +47,10 @@ Cobertura mínima (gate de CI, a partir da Etapa 2): 90% de linhas/branches em `
   usuário da aplicação (apenas DML). **Sem truncamento**: cada teste usa uma loja (`store_id`)
   própria gerada com `newId()`, o que isola os dados e ainda exercita o isolamento multi-tenant.
 - E2E: banco `erp_e2e` no MySQL do compose; o Playwright aplica as migrations, compila e sobe o
-  **servidor standalone de produção** antes dos testes.
+  **servidor standalone de produção** antes dos testes. Cada execução deixa mesas e contas de teste
+  no banco; quando o salão e a cozinha ficarem pesados (testes lentos), `npm run db:e2e:reset`
+  recria o `erp_e2e` vazio (só local — no CI o banco já nasce vazio). O mesmo comando zera o limite
+  de tentativas de login por IP se uma rodada de estresse (`--repeat-each`) o esgotar.
 - BDD: `.feature` em `tests/features/`. Na camada de domínio com `@amiceli/vitest-cucumber`
   (`loadFeature(..., { language: 'pt' })`, arquivos `*.feature.test.ts`); no navegador com
   `playwright-bdd` (passos em `tests/e2e/steps/`).

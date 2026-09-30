@@ -267,6 +267,8 @@ const storeData = (record: StoreRecord): StoreData => ({
   serviceFeeBp: record.serviceFeeBp,
   negativeStockPolicy: record.negativeStockPolicy,
   maxOpenCashSessions: record.maxOpenCashSessions,
+  kdsWarningMinutes: record.kdsWarningMinutes,
+  kdsLateMinutes: record.kdsLateMinutes,
 });
 
 /**

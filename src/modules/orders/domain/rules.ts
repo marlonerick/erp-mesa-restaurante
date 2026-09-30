@@ -181,6 +181,25 @@ export function subtotal(items: readonly PricedItem[]): number {
   );
 }
 
+// ---- Ticket da cozinha (RN-ORD-14, RN-KDS-06) ----
+
+export type KitchenTicketStatus = 'NOVO' | 'EM_PREPARO' | 'PRONTO' | 'CANCELADO';
+
+/** Item que já saiu da cozinha: pronto ou entregue. */
+export const isDone = (status: OrderItemStatus) => status === 'PRONTO' || status === 'ENTREGUE';
+
+/**
+ * Situação do ticket CALCULADA dos itens não cancelados: todos cancelados → CANCELADO; todos
+ * prontos/entregues → PRONTO; todos ainda na fila → NOVO; senão → EM_PREPARO.
+ */
+export function deriveTicketStatus(items: readonly OrderItemStatus[]): KitchenTicketStatus {
+  const live = items.filter((status) => status !== 'CANCELADO');
+  if (live.length === 0) return 'CANCELADO';
+  if (live.every(isDone)) return 'PRONTO';
+  if (live.every((status) => status === 'ENVIADO')) return 'NOVO';
+  return 'EM_PREPARO';
+}
+
 // ---- Cancelamento (RN-ORD-12, RN-ORD-13) ----
 
 /** Item já foi para a cozinha (ou ficou pronto) e ainda não foi cancelado. */

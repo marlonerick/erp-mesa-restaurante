@@ -60,6 +60,11 @@ Na Etapa 6, Orders usa Tables (estado das mesas, com trava), Catalog (cardápio 
 operacional, estação padrão), Authorization (autorização do gerente) e Users (nome de quem enviou).
 Nenhum deles depende de Orders. O ticket da cozinha pertence ao Orders: o KDS da Etapa 7 lê e
 atualiza pela API pública dele (sem o evento `RoundSent` — a chamada é direta, na mesma transação).
+Na Etapa 7, **Kitchen** usa Orders (`kitchenOrders`: fila, tickets e itens, com a conta travada antes),
+Organizations (loja, estação padrão, tempos de alerta), Users (nome de quem enviou) e Audit. Orders
+não depende de Kitchen: o cancelamento recalcula a situação do ticket com uma regra do próprio Orders
+(`deriveTicketStatus`). Os eventos `KitchenItemStatusChanged` e `OrderItemCancelled` abaixo viraram
+chamadas diretas.
 
 ## Planejado (MVP completo)
 
@@ -87,7 +92,7 @@ flowchart TD
   ORD --> TAB
   ORD -->|consumo ADR-0006 A| REC
 
-  KIT[Kitchen/KDS] -->|assina RoundSent| ORD
+  KIT[Kitchen/KDS] -->|API na transação — Etapa 7| ORD
 
   CASH[Cashier] --> ORG
   PAY[POS/Payments] --> ORD

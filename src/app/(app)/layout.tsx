@@ -53,6 +53,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         label: 'Salão',
         icon: 'salao' as const,
       },
+    // Tela da cozinha (Etapa 7): a cozinha marca; o garçom acompanha
+    hasPermission(context, 'kds.read') && {
+      href: '/cozinha',
+      label: 'Cozinha',
+      icon: 'cozinha' as const,
+    },
     hasPermission(context, 'products.availability') && {
       href: '/disponibilidade',
       label: 'Disponibilidade',

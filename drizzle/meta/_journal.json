@@ -71,6 +71,13 @@
       "when": 1790781694642,
       "tag": "0009_rotulo_da_conta",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1790790654124,
+      "tag": "0010_cozinha_kds",
+      "breakpoints": true
     }
   ]
 }

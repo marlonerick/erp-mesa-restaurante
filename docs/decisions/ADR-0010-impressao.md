@@ -20,6 +20,11 @@ depende da operação (KDS pode substituir).
 - ESC/POS (opção 2): **P1**, ou **P0** se o piloto exigir impressão automática na cozinha — neste caso
   vira ADR próprio antes da Etapa 7.
 
+## Resposta da Q-02 (2026-09-30)
+Opção **1** também na cozinha: a tela do KDS é o canal principal e cada ticket tem o botão
+**Imprimir** (layout de 80 mm, `window.print()`). Impressão automática — computador com Chrome em
+modo quiosque ou ESC/POS com agente local — continua P1 e, se o piloto pedir, ganha ADR próprio.
+
 ## Consequências
 - (+) Zero infraestrutura nova no MVP.
 - (−) `window.print()` mostra diálogo (a menos que o navegador seja configurado em modo quiosque) — aceitável para pré-conta.

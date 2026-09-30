@@ -33,7 +33,7 @@ Notação: **PK**, FK →, *UQ* = único, *IX* = índice, *CK* = check.
 |---|---|---|
 | `organization` | id, name, status | PK id |
 | `company` | id, organization_id, legal_name, trade_name, cnpj CHAR(14) NULL (opcional — E3-3), status, version | FK → organization; *UQ* cnpj |
-| `store` | id, organization_id, company_id, name, code, timezone VARCHAR(64) (`America/Sao_Paulo`), operational_day_cutoff TIME (`05:00`), service_fee_bp INT (1000), negative_stock_policy ENUM(`PERMITIR_COM_ALERTA`,`BLOQUEAR`), max_open_cash_sessions SMALLINT (1 — Q-05), status, version | FK → company; *UQ* (company_id, code); *CK* service_fee_bp ≤ 10000; *CK* max_open_cash_sessions 1–20 |
+| `store` | id, organization_id, company_id, name, code, timezone VARCHAR(64) (`America/Sao_Paulo`), operational_day_cutoff TIME (`05:00`), service_fee_bp INT (1000), negative_stock_policy ENUM(`PERMITIR_COM_ALERTA`,`BLOQUEAR`), max_open_cash_sessions SMALLINT (1 — Q-05), kds_warning_minutes SMALLINT (10), kds_late_minutes SMALLINT (20 — Q-14, migration 0010), status, version | FK → company; *UQ* (company_id, code); *CK* service_fee_bp ≤ 10000; *CK* max_open_cash_sessions 1–20; *CK* 1 ≤ kds_warning < kds_late ≤ 240 |
 | `terminal` | id, organization_id, store_id, code, name, kind ENUM(`CAIXA`,`KDS`,`MOVEL`), device_id NULL, active, version | FK → organization; FK → store; FK → known_device (ON DELETE SET NULL); *UQ* (store_id, code); *UQ* (organization_id, device_id) |
 | `kitchen_station` | id, store_id, name, is_default, default_store_id (calculada) | FK → store; *UQ* (store_id, name); *UQ* default_store_id (uma padrão por loja) |
 | `store_sequence` | store_id, name, operational_date, value | PK (store_id, name, operational_date) — numeração de contas por dia (**Etapa 6** — E3-5) |
@@ -133,7 +133,7 @@ e sem valor). Uma mesa tem no máximo uma conta aberta por construção (uma col
 | `order_round` | id, store_id, order_id, number, sent_by, sent_at | *UQ* (order_id, number) |
 | `order_item` | id, store_id, order_id, round_id NULL, product_id, product_name, unit_price_cents, modifiers_cents, quantity TINYINT (1–99, E6-3), notes, requires_preparation, status ENUM(`PENDENTE`,`ENVIADO`,`EM_PREPARO`,`PRONTO`,`ENTREGUE`,`CANCELADO`), station_id NULL, kitchen_ticket_id NULL, created_by, created_at, sent_at, started_at, ready_at, delivered_at, delivered_by, cancelled_at, cancelled_by, cancel_authorized_by, cancel_reason, stock_consumed | *IX* (order_id, status); *IX* (store_id, status, sent_at); *IX* kitchen_ticket_id; *CK* quantidade 1–99; *CK* rodada ⇔ não pendente; *CK* motivo ⇔ cancelado |
 | `order_item_modifier` | id, order_item_id, modifier_id, name, price_delta_cents | *UQ* (order_item_id, modifier_id); FK → order_item ON DELETE CASCADE (item pendente removido) |
-| `kitchen_ticket` | id, store_id, order_id, round_id, station_id, status ENUM(`NOVO`,`EM_PREPARO`,`PRONTO`,`CANCELADO`), created_at, started_at, ready_at, version | *UQ* (round_id, station_id); *IX* (store_id, station_id, status, created_at) |
+| `kitchen_ticket` | id, store_id, order_id, round_id, station_id, status ENUM(`NOVO`,`EM_PREPARO`,`PRONTO`,`CANCELADO`), created_at, started_at, ready_at, finished_at (migration 0010), version | *UQ* (round_id, station_id); *IX* (store_id, station_id, status, created_at); *IX* (store_id, station_id, finished_at) |
 
 Snapshot no item: `product_name`, `unit_price_cents` e adicionais são **congelados** no lançamento.
 `order` é palavra reservada no MySQL — nome físico `customer_order`.
@@ -179,7 +179,8 @@ Receitas de venda são geradas **no fechamento do caixa** (uma por método de pa
 | Mapa de mesas | `dining_table (store_id, status)` + PK de `customer_order` |
 | Comanda | `order_item (order_id, status)` |
 | KDS (fila) | `kitchen_ticket (store_id, station_id, status, created_at)` |
-| Polling com cursor | `updated_at` incluído nos índices de `kitchen_ticket` e `dining_table` (definir na Etapa 6/7 com `EXPLAIN`) |
+| KDS (prontos há pouco / cancelados agora) | `kitchen_ticket (store_id, station_id, finished_at)` (Etapa 7) |
+| Polling com cursor | Adiado: o KDS lê a fila completa (docs/modules/kitchen.md §12) |
 | Pagamento idempotente | `payment (store_id, idempotency_key)` |
 | Caixa aberto do terminal | `cash_session (open_terminal_id)` |
 | Relatório de vendas | `customer_order (store_id, operational_date, status)`; `payment (cash_session_id, method)` |

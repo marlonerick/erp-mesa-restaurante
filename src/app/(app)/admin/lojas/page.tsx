@@ -5,6 +5,7 @@ import {
   BRAZIL_TIMEZONES,
   DEFAULT_STORE_SETTINGS,
   formatPercent,
+  MAX_KDS_ALERT_MINUTES,
   MAX_OPEN_CASH_LIMIT,
 } from '@/modules/organizations';
 import { orgAdmin } from '@/modules/organizations/web';
@@ -79,6 +80,7 @@ export default async function StoresPage() {
             }}
             timezones={BRAZIL_TIMEZONES}
             maxOpenCashLimit={MAX_OPEN_CASH_LIMIT}
+            maxKdsAlertMinutes={MAX_KDS_ALERT_MINUTES}
             companies={companies.map((item) => ({ id: item.id, name: item.tradeName }))}
           />
         </section>

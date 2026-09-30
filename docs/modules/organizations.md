@@ -104,6 +104,7 @@ Perfis: `stores.manage` só ADMIN (inalterado); `terminals.manage` ADMIN e GEREN
 | Virada inválida | `INVALID_CUTOFF` | 400 | Informe a virada do dia no formato HH:MM (00:00 a 23:59). |
 | Taxa inválida | `INVALID_SERVICE_FEE` | 400 | A taxa de serviço deve ficar entre 0% e 100%, com até 2 casas decimais. |
 | Caixas abertos inválido | `INVALID_MAX_OPEN_CASH` | 400 | Informe de 1 a 20 caixas abertos ao mesmo tempo. |
+| Tempos de alerta da cozinha inválidos | `INVALID_KDS_ALERTS` | 400 | O alerta amarelo precisa vir antes do vermelho (de 1 a 240 minutos). |
 | Empresa/loja/terminal inexistente ou de outra organização | `COMPANY_NOT_FOUND` / `STORE_NOT_FOUND` / `TERMINAL_NOT_FOUND` | 404 | … não encontrada(o). |
 | Desativar a loja em uso | `CANNOT_DISABLE_ACTIVE_STORE` | 422 | Troque para outra loja antes de desativar esta. |
 | Desativar a última loja | `LAST_ACTIVE_STORE` | 422 | A organização precisa de pelo menos uma loja ativa. |
@@ -135,7 +136,8 @@ Perfis: `stores.manage` só ADMIN (inalterado); `terminals.manage` ADMIN e GEREN
 
 ## 7. Modelo de dados (migration 0003)
 - `store` + `operational_day_cutoff TIME`, `service_fee_bp INT` (CK 0–10000),
-  `negative_stock_policy ENUM`, `max_open_cash_sessions SMALLINT` (CK 1–20).
+  `negative_stock_policy ENUM`, `max_open_cash_sessions SMALLINT` (CK 1–20); `kds_warning_minutes`
+  e `kds_late_minutes SMALLINT` (padrão 10 e 20; CK 1 ≤ amarelo < vermelho ≤ 240 — Etapa 7, E7-1).
 - `terminal` (id, organization_id, store_id, code, name, kind, device_id NULL → `known_device` com
   ON DELETE SET NULL, active, version, timestamps) — UQ (store_id, code); UQ (organization_id,
   device_id) — migration 0004, achado B-1 da revisão.

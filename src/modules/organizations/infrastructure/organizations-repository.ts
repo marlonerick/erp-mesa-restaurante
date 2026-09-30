@@ -29,6 +29,8 @@ const storeColumns = {
   serviceFeeBp: store.serviceFeeBp,
   negativeStockPolicy: store.negativeStockPolicy,
   maxOpenCashSessions: store.maxOpenCashSessions,
+  kdsWarningMinutes: store.kdsWarningMinutes,
+  kdsLateMinutes: store.kdsLateMinutes,
   status: store.status,
   version: store.version,
 };

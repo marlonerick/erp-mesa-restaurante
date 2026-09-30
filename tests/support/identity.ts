@@ -1,6 +1,7 @@
 import { authService } from '@/modules/auth';
 import { catalogService } from '@/modules/catalog';
 import { inventoryService } from '@/modules/inventory';
+import { kitchenService } from '@/modules/kitchen';
 import {
   grantOrganizationRole,
   grantStoreRoleUnchecked,
@@ -115,7 +116,19 @@ export function testServices(db: Database, clock = new FakeClock(TEST_START)) {
   const recipes = recipesService({ db });
   const tables = tablesService({ db });
   const orders = ordersService({ db });
-  return { auth, users, organizations, catalog, inventory, recipes, tables, orders, clock };
+  const kitchen = kitchenService({ db });
+  return {
+    auth,
+    users,
+    organizations,
+    catalog,
+    inventory,
+    recipes,
+    tables,
+    orders,
+    kitchen,
+    clock,
+  };
 }
 
 /** Entra com senha e devolve o contexto da requisição, como o servidor faria. */

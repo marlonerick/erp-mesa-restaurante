@@ -2,7 +2,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireSession } from '@/modules/auth/web';
-import { BRAZIL_TIMEZONES, formatPercent, MAX_OPEN_CASH_LIMIT } from '@/modules/organizations';
+import {
+  BRAZIL_TIMEZONES,
+  formatPercent,
+  MAX_KDS_ALERT_MINUTES,
+  MAX_OPEN_CASH_LIMIT,
+} from '@/modules/organizations';
 import { orgAdmin } from '@/modules/organizations/web';
 import { hasPermission, isDomainError, isId } from '@/shared/kernel';
 import { NoPermission } from '../../no-permission';
@@ -48,6 +53,7 @@ export default async function EditStorePage({ params }: { params: Promise<{ id: 
         values={{ ...store, serviceFee: formatPercent(store.serviceFeeBp) }}
         timezones={BRAZIL_TIMEZONES}
         maxOpenCashLimit={MAX_OPEN_CASH_LIMIT}
+        maxKdsAlertMinutes={MAX_KDS_ALERT_MINUTES}
         store={{ id: store.id, version: store.version }}
       />
 

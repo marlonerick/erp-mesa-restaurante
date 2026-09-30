@@ -7,7 +7,13 @@ import type { TableRecord, TableStatus } from '@/modules/tables';
 import type { Database } from '@/shared/db/client';
 import type { Transaction } from '@/shared/db/transaction';
 import type { Id, Permission, RequestContext } from '@/shared/kernel';
-import type { ChosenModifier, OrderItemStatus, OrderStatus, OrderType } from '../domain/rules';
+import type {
+  ChosenModifier,
+  KitchenTicketStatus,
+  OrderItemStatus,
+  OrderStatus,
+  OrderType,
+} from '../domain/rules';
 
 export interface OrderRecord {
   readonly id: Id;
@@ -84,6 +90,42 @@ export interface NewItem {
   readonly modifiers: readonly ChosenModifier[];
 }
 
+/** Ticket como a cozinha vê (RN-KDS-02): conta, rodada e quem enviou. */
+export interface KitchenTicketRecord {
+  readonly id: Id;
+  readonly stationId: Id;
+  readonly status: KitchenTicketStatus;
+  readonly orderId: Id;
+  readonly orderNumber: number;
+  readonly orderType: OrderType;
+  readonly orderLabel: string;
+  readonly roundNumber: number;
+  readonly sentBy: Id;
+  readonly createdAt: Date;
+  readonly startedAt: Date | null;
+  readonly readyAt: Date | null;
+  readonly finishedAt: Date | null;
+}
+
+/** Item com o que a cozinha precisa (sem preços). */
+export interface KitchenItemRecord {
+  readonly id: Id;
+  readonly orderId: Id;
+  readonly kitchenTicketId: Id | null;
+  readonly status: OrderItemStatus;
+  readonly requiresPreparation: boolean;
+  readonly productName: string;
+  readonly quantity: number;
+  readonly notes: string | null;
+  readonly startedAt: Date | null;
+  readonly startedBy: Id | null;
+  readonly readyAt: Date | null;
+  readonly readyBy: Id | null;
+  readonly cancelledAt: Date | null;
+  readonly cancelReason: string | null;
+  readonly modifiers: readonly ChosenModifier[];
+}
+
 /** Leitura COM TRAVA: vê o último dado confirmado, não a "foto" da transação (RN-ORD-21). */
 export interface LockOption {
   readonly forUpdate?: boolean;
@@ -154,9 +196,44 @@ export interface OrdersRepository {
     tx: Transaction,
     ticket: { id: Id; storeId: Id; orderId: Id; roundId: Id; stationId: Id; createdAt: Date },
   ): Promise<void>;
-  /** Ticket com todos os itens cancelados fica CANCELADO (RN-ORD-14). */
-  cancelTicketIfEmpty(tx: Transaction, ticketId: Id): Promise<void>;
+  /**
+   * Recalcula a situação do ticket pelos itens (RN-ORD-14, RN-KDS-06) e as horas de início,
+   * pronto e saída da fila. Chamado com a conta já travada.
+   */
+  refreshTicket(tx: Transaction, ticketId: Id, at: Date): Promise<void>;
   moveTickets(tx: Transaction, fromOrderId: Id, toOrderId: Id): Promise<void>;
+
+  // ---- Cozinha (Etapa 7 — usados pelo módulo Kitchen) ----
+
+  /** Fila da estação: NOVO e EM_PREPARO, do mais antigo para o mais novo (RN-KDS-02). */
+  listQueue(tx: Transaction, scope: { storeId: Id; stationId: Id }): Promise<KitchenTicketRecord[]>;
+  /** Tickets que saíram da fila com a situação dada desde `since`, o mais recente primeiro. */
+  listFinished(
+    tx: Transaction,
+    scope: { storeId: Id; stationId: Id },
+    filter: { status: 'PRONTO' | 'CANCELADO'; since: Date; limit: number },
+  ): Promise<KitchenTicketRecord[]>;
+  findTicket(
+    tx: Transaction,
+    scope: { storeId: Id; ticketId: Id },
+    options?: LockOption,
+  ): Promise<KitchenTicketRecord | null>;
+  listTicketItems(
+    tx: Transaction,
+    ticketIds: readonly Id[],
+    options?: LockOption,
+  ): Promise<KitchenItemRecord[]>;
+  findKitchenItem(
+    tx: Transaction,
+    scope: { storeId: Id; itemId: Id },
+    options?: LockOption,
+  ): Promise<KitchenItemRecord | null>;
+  /** ENVIADO → EM_PREPARO. */
+  startItems(tx: Transaction, itemIds: readonly Id[], data: { by: Id; at: Date }): Promise<void>;
+  /** ENVIADO/EM_PREPARO → PRONTO. */
+  readyItems(tx: Transaction, itemIds: readonly Id[], data: { by: Id; at: Date }): Promise<void>;
+  /** PRONTO → EM_PREPARO (desfazer — RN-KDS-07); `startedAt` = quando começou (ou agora). */
+  undoReady(tx: Transaction, itemId: Id, data: { startedAt: Date }): Promise<void>;
 }
 
 /** O que a comanda usa dos outros módulos (injetado — ADR-0014). */

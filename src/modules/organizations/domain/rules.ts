@@ -148,6 +148,31 @@ export function validateMaxOpenCashSessions(value: number): number {
   return value;
 }
 
+/** Limite dos alertas da cozinha: 4 horas. */
+export const MAX_KDS_ALERT_MINUTES = 240;
+
+/**
+ * Tempos de alerta da cozinha (Q-14, E7-1): minutos inteiros, de 1 a 240, e o amarelo ("Atenção")
+ * antes do vermelho ("Atrasado").
+ */
+export function validateKdsAlerts(alerts: { warningMinutes: number; lateMinutes: number }) {
+  const { warningMinutes, lateMinutes } = alerts;
+  const valid =
+    Number.isInteger(warningMinutes) &&
+    Number.isInteger(lateMinutes) &&
+    warningMinutes >= 1 &&
+    warningMinutes < lateMinutes &&
+    lateMinutes <= MAX_KDS_ALERT_MINUTES;
+  if (!valid) {
+    throw new DomainError(
+      'INVALID_KDS_ALERTS',
+      `O alerta amarelo precisa vir antes do vermelho (de 1 a ${String(MAX_KDS_ALERT_MINUTES)} minutos).`,
+      'VALIDATION',
+    );
+  }
+  return { warningMinutes, lateMinutes };
+}
+
 /** Configurações da loja (RN-ORG-04). */
 export interface StoreSettings {
   readonly timezone: string;
@@ -156,6 +181,9 @@ export interface StoreSettings {
   readonly serviceFeeBp: number;
   readonly negativeStockPolicy: NegativeStockPolicy;
   readonly maxOpenCashSessions: number;
+  /** Cozinha (RN-KDS-09): minutos até "Atenção" e até "Atrasado". */
+  readonly kdsWarningMinutes: number;
+  readonly kdsLateMinutes: number;
 }
 
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
@@ -164,14 +192,22 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   serviceFeeBp: 1000,
   negativeStockPolicy: 'PERMITIR_COM_ALERTA',
   maxOpenCashSessions: 1,
+  kdsWarningMinutes: 10,
+  kdsLateMinutes: 20,
 };
 
 export function validateStoreSettings(settings: StoreSettings): StoreSettings {
+  const alerts = validateKdsAlerts({
+    warningMinutes: settings.kdsWarningMinutes,
+    lateMinutes: settings.kdsLateMinutes,
+  });
   return {
     timezone: validateTimezone(settings.timezone),
     operationalDayCutoff: validateCutoff(settings.operationalDayCutoff),
     serviceFeeBp: validateServiceFeeBp(settings.serviceFeeBp),
     negativeStockPolicy: settings.negativeStockPolicy,
     maxOpenCashSessions: validateMaxOpenCashSessions(settings.maxOpenCashSessions),
+    kdsWarningMinutes: alerts.warningMinutes,
+    kdsLateMinutes: alerts.lateMinutes,
   };
 }

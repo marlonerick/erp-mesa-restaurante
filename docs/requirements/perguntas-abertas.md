@@ -6,7 +6,7 @@ padrão que será adotada se você responder "use a proposta".
 | ID | Pergunta | Proposta padrão | Bloqueia |
 |---|---|---|---|
 | Q-01 | ~~Momento da baixa de estoque?~~ **Respondida (2026-09-29): A** — ao enviar para a cozinha; cancelado antes do preparo volta ao estoque (estorno), depois do preparo vira perda (ADR-0006 aceito) | — | — |
-| Q-02 | O piloto precisa de impressora na cozinha (impressão automática)? A pré-conta precisa ser impressa? Há impressora térmica? Qual modelo e conexão (USB/rede)? | Pré-conta via navegador; cozinha só KDS | Etapa 7 |
+| Q-02 | ~~Impressora na cozinha?~~ **Respondida (2026-09-30): opção A** — a tela da cozinha é o canal principal e cada pedido tem um botão **Imprimir** (navegador, 80 mm). Impressão automática (computador em modo quiosque ou ESC/POS com agente local) fica para depois do piloto, se precisar. **Ainda em aberto:** modelo/conexão da impressora térmica e se o tablet é Android ou iPad | — | — |
 | Q-03 | Onde será hospedado? Há provedor preferido ou orçamento mensal? Como é a internet do restaurante (fibra, 4G de contingência)? | Container Node + MySQL gerenciado, região São Paulo | Etapa 10 (staging desde a Etapa 1 se possível) |
 | Q-04 | ~~Comanda por mesa ou por cliente? Balcão?~~ **Respondida (2026-09-30):** comanda **por mesa**; no balcão, um **nome livre** identifica o pedido | — | — |
 | Q-05 | ~~Horário e corte do dia?~~ **Respondida (2026-09-29):** o piloto funciona geralmente até as **15:00** (horário de funcionamento configurável fica para o futuro); virada do dia operacional às **05:00**, configurável por loja; **vários caixas abertos ao mesmo tempo**, com limite configurável por loja (padrão 1) | — | — |
@@ -19,7 +19,7 @@ padrão que será adotada se você responder "use a proposta".
 | Q-12 | ~~Duração de sessão e aparelhos compartilhados?~~ **Respondida (2026-09-28):** sessão expira após **12 h sem uso** e, no máximo, **7 dias** (depois exige login de novo). Celulares e tablets **serão compartilhados** entre garçons → a Etapa 2 precisa de troca rápida de usuário no mesmo aparelho | — | — |
 | Q-13 | ~~Retenção de dados?~~ **Respondida (2026-09-28):** os dados ficam guardados **para sempre** no banco (vendas, caixa, estoque, auditoria). Ver Q-13b | — | — |
 | Q-13b | ~~Apagar dados técnicos de sessões expiradas e logs após 90 dias?~~ **Aprovada (2026-09-28):** sim, via `npm run maintenance:purge`; vendas e auditoria continuam para sempre | — | — |
-| Q-14 | No KDS, "iniciar/pronto" é por **ticket inteiro** ou **por item**? Tempos de alerta (ex.: amarelo 10 min, vermelho 20 min)? | Por item, com atalho "tudo" no ticket; 10/20 min configurável | Etapa 7 |
+| Q-14 | ~~Iniciar/pronto por ticket ou por item? Tempos de alerta?~~ **Respondida (2026-09-30):** **por item**, com um atalho **"tudo pronto"** no pedido; **amarelo aos 10 minutos e vermelho aos 20**, configurável | — | — |
 | Q-15 | ~~Aparelhos do piloto?~~ **Respondida (2026-09-30):** garçons com **celulares da casa**; cozinha com **tablet de 10" ou mais** | — | — |
 | Q-16 | Fechamento cego: o operador informa só o **dinheiro** ou também os totais de cartão e PIX conferidos? | Dinheiro obrigatório; cartão/PIX opcional | Etapa 8 |
 | Q-17 | Couvert artístico, consumação mínima ou taxa de entrega existem no piloto? | Fora do MVP | Etapa 8 |
@@ -97,6 +97,15 @@ padrão que será adotada se você responder "use a proposta".
 | E6-5 | Instalar o shadcn/ui (Radix) para janelas: adicionais, PIN do gerente, transferir, juntar |
 | E6-6 | Instalar o TanStack Query para atualizar o mapa e a comanda sozinhos (ADR-0012) |
 | E6-7 | Número de pessoas na mesa: opcional ao abrir |
+
+## Decisões tomadas na aprovação do plano da Etapa 7 (2026-09-30)
+
+| ID | Decisão |
+|---|---|
+| E7-1 | Os tempos de alerta da cozinha (10 e 20 minutos) ficam nas configurações da loja, alteradas só pelo ADMIN (como E3-2) |
+| E7-2 | A cozinha pode **desfazer um "Pronto"** marcado por engano enquanto o garçom ainda não entregou o item |
+| E7-3 | Aviso sonoro quando chega pedido novo, ligado pelo botão **"Ativar som"** (o navegador só toca som depois de um toque na tela) |
+| E7-4 | A tela da cozinha mantém o tablet **aceso** enquanto está aberta, onde o navegador permitir |
 
 ## Pontos da especificação que interpretei (confirme ou corrija)
 

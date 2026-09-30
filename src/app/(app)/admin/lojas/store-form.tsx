@@ -16,12 +16,15 @@ export interface StoreFormValues {
   readonly serviceFee: string;
   readonly negativeStockPolicy: 'PERMITIR_COM_ALERTA' | 'BLOQUEAR';
   readonly maxOpenCashSessions: number;
+  readonly kdsWarningMinutes: number;
+  readonly kdsLateMinutes: number;
 }
 
 interface Props {
   readonly values: StoreFormValues;
   readonly timezones: readonly { readonly id: string; readonly label: string }[];
   readonly maxOpenCashLimit: number;
+  readonly maxKdsAlertMinutes: number;
   /** Edição: loja e versão lida (bloqueio otimista). Cadastro: empresas disponíveis. */
   readonly store?: { readonly id: string; readonly version: number };
   readonly companies?: readonly { readonly id: string; readonly name: string }[];
@@ -41,7 +44,14 @@ const POLICIES = [
 ] as const;
 
 /** Cadastro e edição de loja com as configurações (RN-ORG-03, RN-ORG-04). */
-export function StoreForm({ values, timezones, maxOpenCashLimit, store, companies }: Props) {
+export function StoreForm({
+  values,
+  timezones,
+  maxOpenCashLimit,
+  maxKdsAlertMinutes,
+  store,
+  companies,
+}: Props) {
   const [state, action] = useActionState(store ? updateStoreAction : createStoreAction, null);
   const errors = state?.fieldErrors;
   const policyId = useId();
@@ -127,6 +137,30 @@ export function StoreForm({ values, timezones, maxOpenCashLimit, store, companie
           hint={`De 1 a ${String(maxOpenCashLimit)}. Vale quando o caixa for usado (próximas etapas).`}
           required
           errors={errors?.maxOpenCashSessions}
+        />
+        <TextField
+          label="Cozinha: “Atenção” (amarelo) aos minutos"
+          name="kdsWarningMinutes"
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={maxKdsAlertMinutes}
+          defaultValue={values.kdsWarningMinutes}
+          hint="Tempo desde o envio do pedido até o cartão ficar amarelo na tela da cozinha."
+          required
+          errors={errors?.kdsWarningMinutes}
+        />
+        <TextField
+          label="Cozinha: “Atrasado” (vermelho) aos minutos"
+          name="kdsLateMinutes"
+          type="number"
+          inputMode="numeric"
+          min={2}
+          max={maxKdsAlertMinutes}
+          defaultValue={values.kdsLateMinutes}
+          hint={`Maior que o amarelo, até ${String(maxKdsAlertMinutes)} minutos.`}
+          required
+          errors={errors?.kdsLateMinutes}
         />
 
         <fieldset className="flex min-w-0 flex-col gap-2" aria-describedby={`${policyId}-dica`}>

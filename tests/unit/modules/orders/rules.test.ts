@@ -5,6 +5,7 @@ import {
   cancelStockEffect,
   chooseModifiers,
   counterLabel,
+  deriveTicketStatus,
   guestsCount,
   itemNotes,
   itemQuantity,
@@ -147,5 +148,31 @@ describe('estoque do item cancelado (RN-ORD-13, ADR-0006)', () => {
     ['ENTREGUE', false, 'PERDA'],
   ] as const)('%s (com preparo: %s) → %s', (status, requiresPreparation, effect) => {
     expect(cancelStockEffect({ status, requiresPreparation })).toBe(effect);
+  });
+});
+
+describe('situação do ticket da cozinha (RN-ORD-14, RN-KDS-06)', () => {
+  it.each([
+    [['ENVIADO', 'ENVIADO'], 'NOVO'],
+    [['ENVIADO', 'EM_PREPARO'], 'EM_PREPARO'],
+    [['ENVIADO', 'PRONTO'], 'EM_PREPARO'],
+    [['PRONTO', 'ENTREGUE'], 'PRONTO'],
+    [['PRONTO', 'CANCELADO'], 'PRONTO'],
+    [['ENVIADO', 'CANCELADO'], 'NOVO'],
+    [['CANCELADO', 'CANCELADO'], 'CANCELADO'],
+    [[], 'CANCELADO'],
+  ] as const)('%j → %s', (items, status) => {
+    expect(deriveTicketStatus(items)).toBe(status);
+  });
+
+  it('cancelados não contam, e a ordem dos itens não importa', () => {
+    const sent = fc.constantFrom('ENVIADO', 'EM_PREPARO', 'PRONTO', 'ENTREGUE', 'CANCELADO');
+    fc.assert(
+      fc.property(fc.array(sent, { maxLength: 8 }), (items) => {
+        const status = deriveTicketStatus(items);
+        expect(deriveTicketStatus([...items].reverse())).toBe(status);
+        expect(deriveTicketStatus([...items, 'CANCELADO'])).toBe(status);
+      }),
+    );
   });
 });

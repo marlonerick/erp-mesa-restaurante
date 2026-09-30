@@ -8,6 +8,7 @@ import { listActiveTables, lockTables, lockTablesOfOrder, setTablesState } from 
 import { findUsersByIds } from '@/modules/users';
 import { type Database, getDatabase } from '@/shared/db/client';
 import type { RequestContext } from '@/shared/kernel';
+import { kitchenPort } from './application/kitchen-port';
 import * as useCases from './application/orders';
 import type { OrdersDependencies } from './application/ports';
 import { ordersRepository as repo } from './infrastructure/orders-repository';
@@ -20,13 +21,19 @@ export type {
   RoundView,
   SendResult,
 } from './application/orders';
-export type { OpenOrderSummary } from './application/ports';
+export type { KitchenItemRecord, KitchenTicketRecord, OpenOrderSummary } from './application/ports';
+export type { KitchenPort } from './application/kitchen-port';
 export {
   ITEM_NOTES_MAX_LENGTH,
   ITEM_STATUS_LABEL,
+  type KitchenTicketStatus,
   MAX_ITEM_QUANTITY,
   type OrderItemStatus,
+  type OrderType,
 } from './domain/rules';
+
+/** Fila, tickets e itens para a cozinha, na transação de quem chama (Etapa 7). */
+export const kitchenOrders = kitchenPort(repo);
 
 /**
  * Casos de uso da comanda. Os módulos usados (mesas, cardápio, ficha técnica, estoque, lojas,

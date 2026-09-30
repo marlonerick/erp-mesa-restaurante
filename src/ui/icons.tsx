@@ -170,6 +170,14 @@ export const ICONS = {
       <path d="M5 5h14" />
     </Icon>
   ),
+  // Cozinha (Etapa 7): chapéu de cozinheiro
+  cozinha: (
+    <Icon>
+      <path d="M7 14a4 4 0 0 1-1-7.9 5 5 0 0 1 12 0A4 4 0 0 1 17 14" />
+      <path d="M7 14h10v6H7z" />
+      <path d="M7 17h10" />
+    </Icon>
+  ),
 } as const;
 
 export type IconName = keyof typeof ICONS;

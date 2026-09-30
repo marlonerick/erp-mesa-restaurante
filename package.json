@@ -24,6 +24,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate.ts",
     "db:seed": "npm run ts-script -- scripts/seed-dev.ts",
+    "db:e2e:reset": "node scripts/e2e-reset.ts",
     "admin:create": "npm run ts-script -- scripts/admin-create.ts",
     "maintenance:purge": "npm run ts-script -- scripts/maintenance-purge.ts",
     "ts-script": "node --env-file-if-exists=.env --experimental-transform-types --disable-warning=ExperimentalWarning --import ./scripts/register-alias.mjs",

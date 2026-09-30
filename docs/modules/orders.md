@@ -16,7 +16,7 @@ autorização, pedir a conta, transferir, juntar e separar mesas.
 | Conta (order) | Tudo o que uma mesa (ou um cliente do balcão) consumiu. `ABERTO → FECHADO` (Etapa 8) ou `CANCELADO`. |
 | Item | Uma linha da conta: produto, quantidade, adicionais, observação. Nome e preços **congelados** no lançamento. |
 | Rodada | Um envio para a cozinha: os itens que estavam pendentes naquele momento. |
-| Ticket de cozinha | A "via da cozinha" de uma rodada numa estação (praça). A tela do KDS chega na Etapa 7. |
+| Ticket de cozinha | A "via da cozinha" de uma rodada numa estação (praça). A tela do KDS (Etapa 7) é do módulo Kitchen (docs/modules/kitchen.md). |
 | Balcão | Conta sem mesa, identificada por um nome livre (Q-04). |
 
 ## 3. Regras de negócio
@@ -63,8 +63,8 @@ autorização, pedir a conta, transferir, juntar e separar mesas.
   5. auditoria `ORDER_ROUND_SENT`.
 - **RN-ORD-11** — **Reenvio** (internet caiu depois de enviar): a mesma chave devolve o resultado do
   primeiro envio, sem criar outra rodada nem baixar o estoque de novo.
-- **RN-ORD-11a** — **Entregar** (`orders.update`): item `PRONTO` → `ENTREGUE`. Nesta etapa só itens
-  sem preparo chegam a `PRONTO`; o KDS (Etapa 7) marcará os demais.
+- **RN-ORD-11a** — **Entregar** (`orders.update`): item `PRONTO` → `ENTREGUE`. Itens sem preparo chegam
+  a `PRONTO` no envio; os demais, quando a cozinha marca pronto (RN-KDS-04, Etapa 7).
 
 ### Cancelamento de item enviado
 - **RN-ORD-12** — Cancelar item `ENVIADO`, `EM_PREPARO`, `PRONTO` ou `ENTREGUE` exige
@@ -74,7 +74,8 @@ autorização, pedir a conta, transferir, juntar e separar mesas.
   - **voltou ao estoque** (estorno com o custo do consumo): item `ENVIADO` (a cozinha ainda não
     começou), ou item **sem preparo** ainda não entregue (a lata ainda está fechada);
   - **perda** (`CANCELAMENTO_APOS_PREPARO`): item em preparo, pronto ou entregue.
-- **RN-ORD-14** — Ticket cujos itens foram todos cancelados fica `CANCELADO`. Cancelar de novo →
+- **RN-ORD-14** — A situação do ticket é **calculada dos itens** (RN-KDS-06, Etapa 7): todos cancelados →
+  `CANCELADO`; se o item cancelado era o único que faltava, o ticket fica `PRONTO`. Cancelar de novo →
   `ITEM_ALREADY_CANCELLED`.
 
 ### Conta e mesas
@@ -119,9 +120,9 @@ autorização, pedir a conta, transferir, juntar e separar mesas.
 |---|---|---|
 | Order (`customer_order`) | store, number, opened_date, type, status, label?, guests?, opened_by/at, closed_by/at, cancel_reason?, merged_into?, version | número único por (loja, dia de abertura); balcão tem nome |
 | OrderRound | order, number, sent_by, sent_at | número único na conta |
-| OrderItem | order, round?, product, product_name, unit_price, modifiers_total, quantity, notes?, requires_preparation, status, station?, kitchen_ticket?, created_by/at, sent_at, ready_at, delivered_at, cancelled_at/by, cancel_authorized_by, cancel_reason, stock_consumed | quantidade 1–99; round ⇔ enviado |
+| OrderItem | order, round?, product, product_name, unit_price, modifiers_total, quantity, notes?, requires_preparation, status, station?, kitchen_ticket?, created_by/at, sent_at, started_at/by, ready_at/by, delivered_at, cancelled_at/by, cancel_authorized_by, cancel_reason, stock_consumed | quantidade 1–99; round ⇔ enviado |
 | OrderItemModifier | item, modifier, name, price_delta | congelado |
-| KitchenTicket | order, round, station, status (`NOVO`, `EM_PREPARO`, `PRONTO`, `CANCELADO`), created_at, version | único por (rodada, estação) |
+| KitchenTicket | order, round, station, status (`NOVO`, `EM_PREPARO`, `PRONTO`, `CANCELADO` — calculado), created_at, started_at, ready_at, finished_at, version | único por (rodada, estação) |
 
 ## 5. Estados do item
 ```mermaid
@@ -131,7 +132,9 @@ stateDiagram-v2
   PENDENTE --> ENVIADO: enviar (com preparo)
   PENDENTE --> PRONTO: enviar (sem preparo — Q-08)
   ENVIADO --> EM_PREPARO: cozinha inicia (Etapa 7)
+  ENVIADO --> PRONTO: cozinha marca pronto (Etapa 7)
   EM_PREPARO --> PRONTO: cozinha termina (Etapa 7)
+  PRONTO --> EM_PREPARO: cozinha desfaz, antes de entregar (E7-2)
   PRONTO --> ENTREGUE: garçom entrega
   ENVIADO --> CANCELADO: estorno
   EM_PREPARO --> CANCELADO: perda
@@ -209,17 +212,20 @@ stateDiagram-v2
 - `order_round` (id, store_id, order_id, number, sent_by, sent_at) — UQ (order_id, number).
 - `order_item` (id, store_id, order_id, round_id NULL, product_id, product_name, unit_price_cents,
   modifiers_cents, quantity SMALLINT, notes NULL, requires_preparation, status ENUM, station_id NULL,
-  kitchen_ticket_id NULL, created_by, created_at, sent_at, ready_at, delivered_at, cancelled_at,
+  kitchen_ticket_id NULL, created_by, created_at, sent_at, started_at/by, ready_at/by (migration
+  0010), delivered_at, cancelled_at,
   cancelled_by, cancel_authorized_by, cancel_reason, stock_consumed, version) — IX (order_id,
   status); IX (store_id, status, sent_at); IX kitchen_ticket_id; CK quantidade 1–99; CK enviado ⇔
   rodada.
 - `order_item_modifier` (id, order_item_id, modifier_id, name, price_delta_cents).
 - `kitchen_ticket` (id, store_id, order_id, round_id, station_id, status ENUM, created_at,
-  started_at, ready_at, version) — UQ (round_id, station_id); IX (store_id, station_id, status,
-  created_at).
+  started_at, ready_at, finished_at, version) — UQ (round_id, station_id); IX (store_id, station_id,
+  status, created_at) para a fila; IX (store_id, station_id, finished_at) para "prontos há pouco"
+  (migration 0010).
 - Diferenças do modelo inicial: quantidade inteira (E6-3); `opened_date` + `store_sequence` para a
   numeração; `merged_into_order_id`; totais (taxa, descontos, pago) ficam para a migration da Etapa 8,
-  quando forem usados; o ticket pertence ao Orders (o KDS da Etapa 7 lê e atualiza pela API dele).
+  quando forem usados; o ticket pertence ao Orders; o KDS (Etapa 7) lê e atualiza pela API `kitchenOrders`
+  (`application/kitchen-port.ts`), sempre na transação e com a conta travada antes.
 
 ## 10. Critérios de aceite
 - **CA-ORD-01** — Abrir mesa e balcão → `tests/features/orders/comanda.feature`
@@ -236,6 +242,5 @@ Inventory (estorno e perda), Organizations (loja, estação padrão, dia operaci
 (autorização do gerente), Audit. Nenhum deles depende de Orders.
 
 ## 12. Fora do escopo
-Taxa de serviço, descontos, pré-conta, pagamento, fechamento e reabertura (Etapa 8); tela do KDS
-(Etapa 7); cancelar parte da quantidade de um item (cancela a linha inteira); comanda por cliente
-(Q-04); impressão (Q-02, Etapa 7); mover itens entre contas sem juntar.
+Taxa de serviço, descontos, pré-conta, pagamento, fechamento e reabertura (Etapa 8); cancelar parte da quantidade de um item (cancela a linha inteira); comanda por cliente
+(Q-04); mover itens entre contas sem juntar.

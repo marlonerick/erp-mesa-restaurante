@@ -8,6 +8,7 @@ import {
   normalizeStoreCode,
   normalizeTerminalCode,
   parsePercentText,
+  validateKdsAlerts,
   validateMaxOpenCashSessions,
   validateStoreSettings,
   validateTimezone,
@@ -113,9 +114,37 @@ describe('configurações da loja (RN-ORG-04)', () => {
           serviceFeeBp: 1000,
           negativeStockPolicy: 'BLOQUEAR',
           maxOpenCashSessions: 1,
+          kdsWarningMinutes: 10,
+          kdsLateMinutes: 20,
         }),
       ),
     ).toBe('INVALID_CUTOFF');
+  });
+});
+
+describe('tempos de alerta da cozinha (Q-14, E7-1)', () => {
+  it('aceita amarelo antes do vermelho, de 1 a 240 minutos', () => {
+    expect(validateKdsAlerts({ warningMinutes: 10, lateMinutes: 20 })).toEqual({
+      warningMinutes: 10,
+      lateMinutes: 20,
+    });
+    expect(validateKdsAlerts({ warningMinutes: 1, lateMinutes: 240 })).toEqual({
+      warningMinutes: 1,
+      lateMinutes: 240,
+    });
+  });
+
+  it.each([
+    [0, 20],
+    [20, 20],
+    [25, 20],
+    [10, 241],
+    [7.5, 20],
+    [Number.NaN, 20],
+  ])('recusa amarelo %s e vermelho %s', (warningMinutes, lateMinutes) => {
+    expect(errorCode(() => validateKdsAlerts({ warningMinutes, lateMinutes }))).toBe(
+      'INVALID_KDS_ALERTS',
+    );
   });
 });
 

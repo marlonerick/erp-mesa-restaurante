@@ -59,6 +59,8 @@ erDiagram
     int service_fee_bp
     enum negative_stock_policy
     int max_open_cash_sessions
+    int kds_warning_minutes
+    int kds_late_minutes
     int version
   }
   terminal {
@@ -295,6 +297,8 @@ erDiagram
     int modifiers_cents
     int quantity
     enum status
+    binary started_by FK
+    binary ready_by FK
     bool stock_consumed
   }
   kitchen_ticket {
@@ -302,6 +306,7 @@ erDiagram
     binary round_id FK
     binary station_id FK
     enum status
+    datetime finished_at
     int version
   }
   cash_session {

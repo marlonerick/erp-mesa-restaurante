@@ -57,6 +57,66 @@ body {
     inset 0 0 0 6px rgb(31 78 156 / 0.35);
 }
 
+/*
+ * Via da cozinha (Etapa 7, Q-02 = A, ADR-0010): impressão pelo navegador em bobina de 80 mm.
+ * Na tela ela não aparece; na impressão, SÓ ela aparece (fica direto no <body>).
+ */
+.area-impressao {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 3mm;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  body > :not(.area-impressao) {
+    display: none !important;
+  }
+
+  .area-impressao {
+    display: block;
+    width: 74mm;
+    color: #000;
+    font-size: 11pt;
+    line-height: 1.3;
+  }
+
+  .area-impressao hr {
+    margin: 2mm 0;
+    border: 0;
+    border-top: 1px dashed #000;
+  }
+
+  .area-impressao .via-centro {
+    text-align: center;
+    font-weight: 700;
+  }
+
+  .area-impressao .via-titulo {
+    font-size: 16pt;
+    font-weight: 700;
+  }
+
+  .area-impressao .via-item {
+    margin-bottom: 2mm;
+  }
+
+  .area-impressao .via-produto {
+    font-size: 13pt;
+    font-weight: 700;
+  }
+
+  .area-impressao .via-obs {
+    font-weight: 700;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;

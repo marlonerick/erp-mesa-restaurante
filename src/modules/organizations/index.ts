@@ -28,6 +28,7 @@ export {
   BRAZIL_TIMEZONES,
   DEFAULT_STORE_SETTINGS,
   formatPercent,
+  MAX_KDS_ALERT_MINUTES,
   MAX_OPEN_CASH_LIMIT,
   NEGATIVE_STOCK_POLICIES,
   type NegativeStockPolicy,
@@ -65,6 +66,8 @@ export async function getStoreSettings(
         serviceFeeBp: found.serviceFeeBp,
         negativeStockPolicy: found.negativeStockPolicy,
         maxOpenCashSessions: found.maxOpenCashSessions,
+        kdsWarningMinutes: found.kdsWarningMinutes,
+        kdsLateMinutes: found.kdsLateMinutes,
       }
     : null;
 }

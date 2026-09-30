@@ -70,6 +70,8 @@ describeFeature(feature, ({ Scenario }) => {
     serviceFeeBp,
     negativeStockPolicy: store.negativeStockPolicy,
     maxOpenCashSessions: store.maxOpenCashSessions,
+    kdsWarningMinutes: store.kdsWarningMinutes,
+    kdsLateMinutes: store.kdsLateMinutes,
   });
 
   Scenario('Admin cadastra uma loja com as configurações padrão', ({ Given, When, Then, And }) => {

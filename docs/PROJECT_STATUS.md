@@ -3,9 +3,9 @@
 Última atualização: 2026-09-30
 
 ## Etapa atual
-**Etapa 6 — Salão, mesas e pedidos** — plano aprovado em 2026-09-30 (Q-04, Q-08, Q-15, Q-18
-respondidas; decisões E6-1 a E6-7) — implementada na `main` (revisão: 1ª reprovada, achados
-corrigidos, reverificação **aprovada**), **aguardando aprovação do usuário**.
+**Etapa 7 — KDS (tela da cozinha)** — plano aprovado em 2026-09-30 (Q-02 = opção A: tela +
+botão "Imprimir"; Q-14: por item com "tudo pronto", alertas de 10/20 min configuráveis; decisões
+E7-1 a E7-4) — implementada na `main`, em revisão pelo `reviewer`.
 
 ## Progresso do MVP
 
@@ -17,8 +17,8 @@ corrigidos, reverificação **aprovada**), **aguardando aprovação do usuário*
 | 3 | Organização e contexto | **Aprovada** em 2026-09-29 |
 | 4 | Catálogo | **Aprovada** em 2026-09-29 |
 | 5 | Estoque e ficha técnica | **Aprovada** em 2026-09-30 |
-| 6 | Salão, mesas e pedidos | Entregue — aguardando `APROVADO` |
-| 7 | KDS | Não iniciada |
+| 6 | Salão, mesas e pedidos | **Aprovada** em 2026-09-30 |
+| 7 | KDS | Entregue — em revisão |
 | 8 | PDV e caixa | Não iniciada |
 | 9 | Financeiro básico, dashboard e relatórios | Não iniciada |
 | 10 | Estabilização e piloto (MVP Gate) | Não iniciada |
@@ -39,20 +39,25 @@ corrigidos, reverificação **aprovada**), **aguardando aprovação do usuário*
 - Etapa 6: mesas por loja, mapa do salão que se atualiza sozinho, comanda no celular (itens com
   adicionais e observação, rodadas para a cozinha com baixa de estoque, cancelamento com motivo e PIN
   do gerente), pedir conta, transferir, juntar e separar mesas, balcão (`docs/weeks/etapa-06.md`).
+- Etapa 7: tela da cozinha no tablet (fila do mais antigo ao mais novo, cronômetro pela hora do
+  servidor, alertas de 10/20 min configuráveis por loja, iniciar/pronto por item, "tudo pronto",
+  desfazer antes da entrega, item cancelado riscado, som, tela acesa, via de 80 mm pelo navegador)
+  (`docs/weeks/etapa-07.md`).
 - ADRs: 14 aceitos (0001–0014) — ADR-0006 aceito em 2026-09-29 (Q-01 = A).
 
 ## Em andamento
-- Revisão da Etapa 6 pelo usuário.
+- Etapa 7: revisão do `reviewer` e CI.
 
 ## Bloqueado
 - Nada bloqueado.
 
 ## Testes
-- Vitest: 1383 testes (479 unitários + 904 de integração com MySQL 8.4 real).
-- Playwright: 114 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
+- Vitest: 1599 testes (525 unitários + 1074 de integração com MySQL 8.4 real).
+- Playwright: 129 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
 
 ## Bugs
-Nenhum aberto. Corrigidos na Etapa 6: leitura sem trava depois da trava da conta (cancelamento e
+Nenhum aberto. Corrigido na Etapa 7: teste de navegador do salão que enviava a rodada antes de a
+lista mostrar todos os itens (instável sob carga) — ver `docs/weeks/etapa-07.md`. Corrigidos na Etapa 6: leitura sem trava depois da trava da conta (cancelamento e
 envio simultâneos), `count(*)` lido como número, teste de limpeza que apagava dados de outros
 testes — ver `docs/weeks/etapa-06.md`. Corrigidos na Etapa 5: estorno em dobro com cancelamentos simultâneos (B-1 da
 revisão), unidade "toString" derrubava o lançamento, campo de quantidade com ponto de milhar
@@ -70,7 +75,13 @@ gravaria 1 g no lugar de 1000 g — ver `docs/weeks/etapa-05.md`.
 - Cancelar só parte da quantidade de um item (hoje cancela a linha) — avaliar no piloto.
 - Juntar mesas trava as mesas em duas consultas (não numa ordem única): um deadlock raro é refeito
   automaticamente (ADR-0008); medir no piloto.
-- Banco de E2E acumula mesas de teste (números E…): limpar junto com o resto dos dados de teste.
+- Banco de E2E acumula mesas e contas de teste (números E…): `npm run db:e2e:reset` recria vazio
+  (Etapa 7). Automatizar antes de cada execução local, se incomodar.
+- Q-02 em aberto: modelo/conexão da impressora térmica e se o tablet é Android ou iPad (define se
+  a impressão automática — quiosque ou ESC/POS — é possível no piloto).
+- Tela cheia no tablet da cozinha (Fullscreen API ou "adicionar à tela inicial") — avaliar no piloto.
+- KDS lê a fila completa a cada 3 s (cursor `since` adiado — kitchen.md §12): rever com mais de 100
+  tickets na fila.
 - `order_item.stock_consumed` fica verdadeiro mesmo para produto sem ficha técnica: a auditoria do
   cancelamento diz "voltou ao estoque" sem ter havido baixa (saldos corretos) — S-6 da revisão.
 - Lançar item não é idempotente: toque duplo com rede ruim pode duplicar um item PENDENTE (o garçom
@@ -93,6 +104,4 @@ R-01 (piloto sem fiscal), R-03 (pagamento duplicado), R-06 (isolamento entre loj
 R-10 (internet instável), R-11 (impressão na cozinha). Tabela completa: docs/requirements/riscos.md.
 
 ## Próxima etapa
-Etapa 7 — KDS (tela da cozinha no tablet: tickets, fila, cronômetro, alertas por tempo, iniciar e
-pronto, atualização em tempo real). Antes dela: **Q-02** (impressora na cozinha) e **Q-14** (iniciar/
-pronto por item ou por ticket; tempos de alerta).
+Etapa 8 — PDV e caixa. Antes dela: **Q-16** (fechamento cego) e **Q-17** (couvert, consumação).

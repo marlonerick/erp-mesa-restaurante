@@ -577,7 +577,10 @@ export async function cancelItem(
       reason,
       at: ctx.clock.now(),
     });
-    if (item.kitchenTicketId) await deps.repo.cancelTicketIfEmpty(tx, item.kitchenTicketId);
+    // Ticket todo cancelado sai da fila; se só faltava este item, fica pronto (RN-KDS-06)
+    if (item.kitchenTicketId) {
+      await deps.repo.refreshTicket(tx, item.kitchenTicketId, ctx.clock.now());
+    }
     await deps.repo.bumpOrder(tx, order.id);
     await recordAuditFromContext(tx, ctx, 'ORDER_ITEM_CANCELLED', {
       entityType: 'order_item',

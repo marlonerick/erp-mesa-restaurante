@@ -72,6 +72,9 @@ export const store = mysqlTable(
     maxOpenCashSessions: smallint('max_open_cash_sessions', { unsigned: true })
       .notNull()
       .default(1),
+    /** Tela da cozinha (Q-14, E7-1): minutos até "Atenção" (amarelo) e até "Atrasado" (vermelho). */
+    kdsWarningMinutes: smallint('kds_warning_minutes', { unsigned: true }).notNull().default(10),
+    kdsLateMinutes: smallint('kds_late_minutes', { unsigned: true }).notNull().default(20),
     status: mysqlEnum('status', recordStatus).notNull().default('ATIVO'),
     version: version(),
     ...timestamps,
@@ -81,6 +84,10 @@ export const store = mysqlTable(
     index('ix_store_organization').on(table.organizationId),
     check('ck_store_service_fee_bp', sql`${table.serviceFeeBp} <= 10000`),
     check('ck_store_max_open_cash_sessions', sql`${table.maxOpenCashSessions} BETWEEN 1 AND 20`),
+    check(
+      'ck_store_kds_alerts',
+      sql`${table.kdsWarningMinutes} >= 1 AND ${table.kdsWarningMinutes} < ${table.kdsLateMinutes} AND ${table.kdsLateMinutes} <= 240`,
+    ),
   ],
 );
 

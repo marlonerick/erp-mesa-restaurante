@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, sql } from 'drizzle-orm';
 import {
   customerOrder,
   kitchenTicket,
@@ -7,7 +7,8 @@ import {
   orderRound,
   storeSequence,
 } from '@/shared/db/schema';
-import { newId } from '@/shared/kernel';
+import { type Id, newId } from '@/shared/kernel';
+import { deriveTicketStatus } from '../domain/rules';
 import type { ItemRecord, LockOption, OrdersRepository } from '../application/ports';
 
 const ORDER_SEQUENCE = 'customer_order';
@@ -49,14 +50,55 @@ const itemColumns = {
   cancelReason: orderItem.cancelReason,
 };
 
-type ItemRow = Omit<ItemRecord, 'modifiers'>;
+const kitchenItemColumns = {
+  id: orderItem.id,
+  orderId: orderItem.orderId,
+  kitchenTicketId: orderItem.kitchenTicketId,
+  status: orderItem.status,
+  requiresPreparation: orderItem.requiresPreparation,
+  productName: orderItem.productName,
+  quantity: orderItem.quantity,
+  notes: orderItem.notes,
+  startedAt: orderItem.startedAt,
+  startedBy: orderItem.startedBy,
+  readyAt: orderItem.readyAt,
+  readyBy: orderItem.readyBy,
+  cancelledAt: orderItem.cancelledAt,
+  cancelReason: orderItem.cancelReason,
+};
+
+const ticketColumns = {
+  id: kitchenTicket.id,
+  stationId: kitchenTicket.stationId,
+  status: kitchenTicket.status,
+  orderId: kitchenTicket.orderId,
+  orderNumber: customerOrder.number,
+  orderType: customerOrder.type,
+  orderLabel: customerOrder.label,
+  roundNumber: orderRound.number,
+  sentBy: orderRound.sentBy,
+  createdAt: kitchenTicket.createdAt,
+  startedAt: kitchenTicket.startedAt,
+  readyAt: kitchenTicket.readyAt,
+  finishedAt: kitchenTicket.finishedAt,
+};
+
+type Tx = Parameters<OrdersRepository['listItems']>[0];
+
+/** Ticket com a conta e a rodada (a conta e a rodada são sempre da mesma loja). */
+const selectTickets = (tx: Tx) =>
+  tx
+    .select(ticketColumns)
+    .from(kitchenTicket)
+    .innerJoin(customerOrder, eq(customerOrder.id, kitchenTicket.orderId))
+    .innerJoin(orderRound, eq(orderRound.id, kitchenTicket.roundId));
 
 /** Junta os adicionais (congelados) aos itens. */
-async function withModifiers(
-  tx: Parameters<OrdersRepository['listItems']>[0],
-  rows: readonly ItemRow[],
+async function withModifiers<R extends { id: Id }>(
+  tx: Tx,
+  rows: readonly R[],
   options: LockOption = {},
-): Promise<ItemRecord[]> {
+): Promise<(R & { modifiers: ItemRecord['modifiers'] })[]> {
   if (rows.length === 0) return [];
   const query = tx
     .select({
@@ -306,17 +348,37 @@ export const ordersRepository: OrdersRepository = {
     await tx.insert(kitchenTicket).values({ ...ticket, status: 'NOVO' });
   },
 
-  async cancelTicketIfEmpty(tx, ticketId) {
-    // Leitura com trava: outro cancelamento do mesmo ticket pode ter acabado de confirmar
-    const [open] = await tx
-      .select({ total: sql<string>`count(*)` })
+  async refreshTicket(tx, ticketId, at) {
+    // Leituras COM TRAVA: outra ação no mesmo ticket pode ter acabado de confirmar (RN-ORD-21)
+    const [ticket] = await tx
+      .select({
+        status: kitchenTicket.status,
+        startedAt: kitchenTicket.startedAt,
+        readyAt: kitchenTicket.readyAt,
+        finishedAt: kitchenTicket.finishedAt,
+      })
+      .from(kitchenTicket)
+      .where(eq(kitchenTicket.id, ticketId))
+      .for('update');
+    if (!ticket) return;
+    const items = await tx
+      .select({ status: orderItem.status })
       .from(orderItem)
-      .where(and(eq(orderItem.kitchenTicketId, ticketId), ne(orderItem.status, 'CANCELADO')))
+      .where(eq(orderItem.kitchenTicketId, ticketId))
       .for('share');
-    if (Number(open?.total ?? 0) > 0) return;
+    const status = deriveTicketStatus(items.map((item) => item.status));
+    if (status === ticket.status) return;
+    const finished = status === 'PRONTO' || status === 'CANCELADO';
     await tx
       .update(kitchenTicket)
-      .set({ status: 'CANCELADO', version: sql`${kitchenTicket.version} + 1` })
+      .set({
+        status,
+        // Começou quando o primeiro item foi iniciado ou ficou pronto
+        startedAt: ticket.startedAt ?? (status === 'EM_PREPARO' || status === 'PRONTO' ? at : null),
+        readyAt: status === 'PRONTO' ? at : null,
+        finishedAt: finished ? at : null,
+        version: sql`${kitchenTicket.version} + 1`,
+      })
       .where(eq(kitchenTicket.id, ticketId));
   },
 
@@ -325,5 +387,93 @@ export const ordersRepository: OrdersRepository = {
       .update(kitchenTicket)
       .set({ orderId: toOrderId, version: sql`${kitchenTicket.version} + 1` })
       .where(eq(kitchenTicket.orderId, fromOrderId));
+  },
+
+  // ---- Cozinha ----
+
+  listQueue(tx, { storeId, stationId }) {
+    // Usa ix_kitchen_ticket_queue (loja, estação, situação, hora do envio)
+    return selectTickets(tx)
+      .where(
+        and(
+          eq(kitchenTicket.storeId, storeId),
+          eq(kitchenTicket.stationId, stationId),
+          inArray(kitchenTicket.status, ['NOVO', 'EM_PREPARO']),
+        ),
+      )
+      .orderBy(asc(kitchenTicket.createdAt), asc(kitchenTicket.id));
+  },
+
+  listFinished(tx, { storeId, stationId }, { status, since, limit }) {
+    // Usa ix_kitchen_ticket_finished (loja, estação, saída da fila)
+    return selectTickets(tx)
+      .where(
+        and(
+          eq(kitchenTicket.storeId, storeId),
+          eq(kitchenTicket.stationId, stationId),
+          gte(kitchenTicket.finishedAt, since),
+          eq(kitchenTicket.status, status),
+        ),
+      )
+      .orderBy(desc(kitchenTicket.finishedAt), desc(kitchenTicket.id))
+      .limit(limit);
+  },
+
+  async findTicket(tx, { storeId, ticketId }, options = {}) {
+    const query = selectTickets(tx).where(
+      and(eq(kitchenTicket.id, ticketId), eq(kitchenTicket.storeId, storeId)),
+    );
+    // Com trava, as linhas da conta e da rodada também ficam travadas: quem chama já travou a conta
+    const [row] = options.forUpdate ? await query.for('update') : await query;
+    return row ?? null;
+  },
+
+  async listTicketItems(tx, ticketIds, options = {}) {
+    if (ticketIds.length === 0) return [];
+    const query = tx
+      .select(kitchenItemColumns)
+      .from(orderItem)
+      .where(inArray(orderItem.kitchenTicketId, [...ticketIds]))
+      .orderBy(asc(orderItem.id));
+    const rows = options.forUpdate ? await query.for('update') : await query;
+    return withModifiers(tx, rows, options);
+  },
+
+  async findKitchenItem(tx, { storeId, itemId }, options = {}) {
+    const query = tx
+      .select(kitchenItemColumns)
+      .from(orderItem)
+      .where(and(eq(orderItem.id, itemId), eq(orderItem.storeId, storeId)));
+    const rows = options.forUpdate ? await query.for('update') : await query;
+    const [item] = await withModifiers(tx, rows, options);
+    return item ?? null;
+  },
+
+  async startItems(tx, itemIds, { by, at }) {
+    if (itemIds.length === 0) return;
+    await tx
+      .update(orderItem)
+      .set({ status: 'EM_PREPARO', startedAt: at, startedBy: by })
+      .where(and(inArray(orderItem.id, [...itemIds]), eq(orderItem.status, 'ENVIADO')));
+  },
+
+  async readyItems(tx, itemIds, { by, at }) {
+    if (itemIds.length === 0) return;
+    await tx
+      .update(orderItem)
+      .set({ status: 'PRONTO', readyAt: at, readyBy: by })
+      .where(
+        and(
+          inArray(orderItem.id, [...itemIds]),
+          inArray(orderItem.status, ['ENVIADO', 'EM_PREPARO']),
+        ),
+      );
+  },
+
+  async undoReady(tx, itemId, { startedAt }) {
+    await tx
+      .update(orderItem)
+      .set({ status: 'EM_PREPARO', startedAt, readyAt: null, readyBy: null })
+      .where(and(eq(orderItem.id, itemId), eq(orderItem.status, 'PRONTO')));
   },
 };

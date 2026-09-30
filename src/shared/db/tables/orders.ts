@@ -163,7 +163,10 @@ export const orderRound = mysqlTable(
   ],
 );
 
-/** Via da cozinha de uma rodada numa estação. A tela do KDS chega na Etapa 7. */
+/**
+ * Via da cozinha de uma rodada numa estação. A situação é CALCULADA dos itens (RN-KDS-06);
+ * `finished_at` = quando saiu da fila (pronto ou cancelado) — base dos "prontos há pouco".
+ */
 export const kitchenTicket = mysqlTable(
   'kitchen_ticket',
   {
@@ -184,6 +187,7 @@ export const kitchenTicket = mysqlTable(
     createdAt: utcDatetime('created_at').notNull(),
     startedAt: utcDatetime('started_at'),
     readyAt: utcDatetime('ready_at'),
+    finishedAt: utcDatetime('finished_at'),
     version: version(),
     updatedAt: timestamps.updatedAt,
   },
@@ -195,6 +199,8 @@ export const kitchenTicket = mysqlTable(
       table.status,
       table.createdAt,
     ),
+    // Prontos há pouco / cancelados agora (RN-KDS-08, RN-KDS-10)
+    index('ix_kitchen_ticket_finished').on(table.storeId, table.stationId, table.finishedAt),
     index('ix_kitchen_ticket_order').on(table.orderId),
     index('ix_kitchen_ticket_station').on(table.stationId),
   ],
@@ -234,7 +240,10 @@ export const orderItem = mysqlTable(
     createdAt: utcDatetime('created_at').notNull(),
     sentAt: utcDatetime('sent_at'),
     startedAt: utcDatetime('started_at'),
+    /** Quem iniciou e quem terminou na cozinha (Etapa 7). */
+    startedBy: uuidBinary('started_by').references(() => appUser.id),
     readyAt: utcDatetime('ready_at'),
+    readyBy: uuidBinary('ready_by').references(() => appUser.id),
     deliveredAt: utcDatetime('delivered_at'),
     deliveredBy: uuidBinary('delivered_by').references(() => appUser.id),
     cancelledAt: utcDatetime('cancelled_at'),
@@ -253,6 +262,8 @@ export const orderItem = mysqlTable(
     index('ix_order_item_product').on(table.productId),
     index('ix_order_item_station').on(table.stationId),
     index('ix_order_item_created_by').on(table.createdBy),
+    index('ix_order_item_started_by').on(table.startedBy),
+    index('ix_order_item_ready_by').on(table.readyBy),
     index('ix_order_item_delivered_by').on(table.deliveredBy),
     index('ix_order_item_cancelled_by').on(table.cancelledBy),
     index('ix_order_item_cancel_authorized_by').on(table.cancelAuthorizedBy),

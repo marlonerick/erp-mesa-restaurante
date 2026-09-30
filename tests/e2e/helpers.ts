@@ -7,6 +7,7 @@ export const TEAM = {
   caixa: { username: 'caixa', password: 'Caixa@2026', name: 'Bia Caixa' },
   joao: { username: 'joao', password: 'Garcom@2026', name: 'João Garçom', pin: '305917' },
   ana: { username: 'ana', password: 'Garcom@2026', name: 'Ana Garçom' },
+  cozinha: { username: 'cozinha', password: 'Cozinha@2026', name: 'Téo Cozinha' },
 };
 
 /** Texto único por execução (o banco de E2E é compartilhado entre testes e execuções). */

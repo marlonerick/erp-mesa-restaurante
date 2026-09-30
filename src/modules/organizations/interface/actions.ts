@@ -25,6 +25,8 @@ const settingsSchema = {
   serviceFee: z.string().max(10),
   negativeStockPolicy: z.enum(NEGATIVE_STOCK_POLICIES, 'Escolha uma política de estoque.'),
   maxOpenCashSessions: z.coerce.number('Informe um número.').int('Informe um número inteiro.'),
+  kdsWarningMinutes: z.coerce.number('Informe um número.').int('Informe minutos inteiros.'),
+  kdsLateMinutes: z.coerce.number('Informe um número.').int('Informe minutos inteiros.'),
 };
 const storeSchema = z.object({
   name: z.string().max(200),
@@ -64,6 +66,8 @@ function storeInput(input: z.infer<typeof storeSchema>) {
     serviceFeeBp: parsePercentText(input.serviceFee),
     negativeStockPolicy: input.negativeStockPolicy,
     maxOpenCashSessions: input.maxOpenCashSessions,
+    kdsWarningMinutes: input.kdsWarningMinutes,
+    kdsLateMinutes: input.kdsLateMinutes,
   };
 }
 
