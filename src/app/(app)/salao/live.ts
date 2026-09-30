@@ -16,11 +16,16 @@ export class HttpError extends Error {
 }
 
 /**
- * Sem acesso (403) ou não existe mais nesta loja (404): tentar de novo não resolve — a leitura
- * automática para e a tela explica (sugestão S-2 da revisão).
+ * Sem acesso (403), não existe mais nesta loja (404) ou a loja foi trocada em outra aba (409):
+ * tentar de novo não resolve — a leitura automática para e a tela explica (sugestão S-2 da revisão
+ * da Etapa 6, achado I-4 da Etapa 7).
  */
 export const isGone = (error: unknown) =>
-  error instanceof HttpError && (error.status === 403 || error.status === 404);
+  error instanceof HttpError && [403, 404, 409].includes(error.status);
+
+/** Leitura automática com a loja que a TELA mostra (`?loja=`): o servidor recusa se mudou. */
+export const withStore = (url: string, storeId: string) =>
+  `${url}?loja=${encodeURIComponent(storeId)}`;
 
 async function readJson<T>(url: string): Promise<T> {
   const response = await fetch(url, { cache: 'no-store', headers: { accept: 'application/json' } });
@@ -36,10 +41,10 @@ export const floorKey = ['salao'] as const;
 export const orderKey = (id: string) => ['comanda', id] as const;
 
 /** Mapa do salão vivo: começa com o que o servidor desenhou e se atualiza sozinho. */
-export function useFloor(initial: FloorView, enabled = true) {
+export function useFloor(initial: FloorView, storeId: string, enabled = true) {
   return useQuery({
     queryKey: floorKey,
-    queryFn: () => readJson<FloorView>('/api/salao'),
+    queryFn: () => readJson<FloorView>(withStore('/api/salao', storeId)),
     initialData: initial,
     refetchInterval: (query) => (enabled && !isGone(query.state.error) ? REFRESH_MS : false),
     retry: (count, error) => !isGone(error) && count < 1,

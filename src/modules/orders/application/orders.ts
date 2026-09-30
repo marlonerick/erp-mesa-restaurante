@@ -365,9 +365,13 @@ export async function addItem(
   const quantity = itemQuantity(input.quantity);
   const notes = itemNotes(input.notes);
   return runInTransaction(deps.db, async (tx) => {
-    const { companyId } = await activeStore(deps, tx, ctx);
+    // A trava da conta é a PRIMEIRA leitura da transação: a "foto" do REPEATABLE READ nasce depois
+    // dela e a contagem comum já vê os itens que o outro garçom confirmou. Contar com trava
+    // (FOR SHARE) travava também o fim do índice e dois garçons lançando nas duas contas mais novas
+    // entravam em deadlock (achado na Etapa 7)
     const order = await lockOrder(deps, tx, ctx, input.orderId);
-    if ((await deps.repo.countItems(tx, order.id, LOCK)) >= MAX_ITEMS_PER_ORDER) {
+    const { companyId } = await activeStore(deps, tx, ctx);
+    if ((await deps.repo.countItems(tx, order.id)) >= MAX_ITEMS_PER_ORDER) {
       throw orderErrors.itemLimit();
     }
     const product = (await deps.menu(tx, { companyId, storeId: ctx.storeId })).find(
@@ -579,7 +583,11 @@ export async function cancelItem(
     });
     // Ticket todo cancelado sai da fila; se só faltava este item, fica pronto (RN-KDS-06)
     if (item.kitchenTicketId) {
-      await deps.repo.refreshTicket(tx, item.kitchenTicketId, ctx.clock.now());
+      await deps.repo.refreshTicket(
+        tx,
+        { storeId: ctx.storeId, ticketId: item.kitchenTicketId },
+        ctx.clock.now(),
+      );
     }
     await deps.repo.bumpOrder(tx, order.id);
     await recordAuditFromContext(tx, ctx, 'ORDER_ITEM_CANCELLED', {

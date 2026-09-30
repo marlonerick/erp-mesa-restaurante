@@ -66,8 +66,12 @@ body {
 }
 
 @media print {
+  /*
+   * Sem `size`: "80mm auto" é inválido (o navegador descarta — achado I-2) e uma altura fixa
+   * desperdiçaria bobina. A largura do papel vem do driver da impressora térmica (80 mm); o
+   * conteúdo tem 74 mm. Conferir com a impressora real quando a Q-02 for respondida.
+   */
   @page {
-    size: 80mm auto;
     margin: 3mm;
   }
 

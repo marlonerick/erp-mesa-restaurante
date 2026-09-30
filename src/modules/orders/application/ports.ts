@@ -200,7 +200,7 @@ export interface OrdersRepository {
    * Recalcula a situação do ticket pelos itens (RN-ORD-14, RN-KDS-06) e as horas de início,
    * pronto e saída da fila. Chamado com a conta já travada.
    */
-  refreshTicket(tx: Transaction, ticketId: Id, at: Date): Promise<void>;
+  refreshTicket(tx: Transaction, scope: { storeId: Id; ticketId: Id }, at: Date): Promise<void>;
   moveTickets(tx: Transaction, fromOrderId: Id, toOrderId: Id): Promise<void>;
 
   // ---- Cozinha (Etapa 7 — usados pelo módulo Kitchen) ----
@@ -220,6 +220,7 @@ export interface OrdersRepository {
   ): Promise<KitchenTicketRecord | null>;
   listTicketItems(
     tx: Transaction,
+    storeId: Id,
     ticketIds: readonly Id[],
     options?: LockOption,
   ): Promise<KitchenItemRecord[]>;
@@ -229,11 +230,21 @@ export interface OrdersRepository {
     options?: LockOption,
   ): Promise<KitchenItemRecord | null>;
   /** ENVIADO → EM_PREPARO. */
-  startItems(tx: Transaction, itemIds: readonly Id[], data: { by: Id; at: Date }): Promise<void>;
+  startItems(
+    tx: Transaction,
+    storeId: Id,
+    itemIds: readonly Id[],
+    data: { by: Id; at: Date },
+  ): Promise<void>;
   /** ENVIADO/EM_PREPARO → PRONTO. */
-  readyItems(tx: Transaction, itemIds: readonly Id[], data: { by: Id; at: Date }): Promise<void>;
+  readyItems(
+    tx: Transaction,
+    storeId: Id,
+    itemIds: readonly Id[],
+    data: { by: Id; at: Date },
+  ): Promise<void>;
   /** PRONTO → EM_PREPARO (desfazer — RN-KDS-07); `startedAt` = quando começou (ou agora). */
-  undoReady(tx: Transaction, itemId: Id, data: { startedAt: Date }): Promise<void>;
+  undoReady(tx: Transaction, storeId: Id, itemId: Id, data: { startedAt: Date }): Promise<void>;
 }
 
 /** O que a comanda usa dos outros módulos (injetado — ADR-0014). */

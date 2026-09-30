@@ -51,6 +51,8 @@ Cobertura mínima (gate de CI, a partir da Etapa 2): 90% de linhas/branches em `
   no banco; quando o salão e a cozinha ficarem pesados (testes lentos), `npm run db:e2e:reset`
   recria o `erp_e2e` vazio (só local — no CI o banco já nasce vazio). O mesmo comando zera o limite
   de tentativas de login por IP se uma rodada de estresse (`--repeat-each`) o esgotar.
+- Deadlocks na integração: o MySQL de teste registra todos (`--innodb-print-all-deadlocks`); com
+  `DEADLOCK_LOG=<arquivo>` o log do container é salvo ao final da suíte para investigar (Etapa 7).
 - BDD: `.feature` em `tests/features/`. Na camada de domínio com `@amiceli/vitest-cucumber`
   (`loadFeature(..., { language: 'pt' })`, arquivos `*.feature.test.ts`); no navegador com
   `playwright-bdd` (passos em `tests/e2e/steps/`).

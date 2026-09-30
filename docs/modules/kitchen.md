@@ -57,13 +57,18 @@ COZINHA, GERENTE e ADMIN (veem e marcam); GARÇOM (só vê — acompanha o prepa
   e releem o item com trava: dois tablets marcando o mesmo item, ou a cozinha marcando enquanto o
   garçom cancela, entram em fila e o segundo vê o resultado do primeiro. As ações da cozinha **não
   mudam a versão da conta** (a versão protege as ações do garçom sobre a conta — transferir, juntar,
-  pedir a conta —, que não dependem do preparo).
+  pedir a conta —, que não dependem do preparo). A cozinha marca itens mesmo de conta já fechada
+  ou juntada (no balcão o cliente pode pagar antes de a comida sair — Etapa 8).
 - **RN-KDS-13** — **Aviso sonoro** (E7-3) quando chega ticket novo, depois que alguém toca em
   "Ativar som" (regra do navegador). **Tela acesa** (E7-4) enquanto a tela da cozinha está aberta, se
   o navegador permitir.
 - **RN-KDS-14** — **Imprimir** (Q-02 = A, ADR-0010): cada ticket tem o botão "Imprimir", que abre a
   impressão do navegador com a via da cozinha em 80 mm (mesa, conta, rodada, hora, garçom, itens,
-  adicionais e observações; sem preços).
+  adicionais e observações; sem preços). A via fica montada (invisível) até o próximo "Imprimir"
+  — no Android e no iPad a impressão não espera; a largura do papel vem do driver da térmica.
+- **RN-KDS-15** — A leitura automática confere a **loja da tela** (`?loja=`): se a loja foi trocada
+  em outra aba, responde 409 e a tela pede para recarregar, em vez de mostrar a fila de outra loja
+  com o nome da antiga (vale também para o mapa do salão).
 
 ## 4. Entidades
 | Entidade | Atributos | Invariantes |
@@ -135,12 +140,12 @@ sequenceDiagram
 ## 9. Contratos
 | Ação | Entrada | Saída | Auditoria |
 |---|---|---|---|
-| `GET /api/cozinha` (`kitchen.board`) | — | `{ serverNow, station, warningMinutes, lateMinutes, tickets[], recent[] }` | — |
+| `GET /api/cozinha?loja=<id>` (`kitchen.board`) | loja que a tela mostra (outra → 409 `STORE_CHANGED`) | `{ serverNow, stationName, warningMinutes, lateMinutes, queue[], cancelled[], recent[] }`; cada ticket: `{ id, status, title, orderNumber, roundNumber, sentByName, createdAt, finishedAt, items[] }`; cada item: `{ id, productName, quantity, modifiers[], notes, status, statusLabel, cancelReason }` (sem preços) | — |
 | `kitchen.startItem` | `{ itemId, expectedStoreId }` | `{ changed }` | — |
 | `kitchen.readyItem` | `{ itemId, expectedStoreId }` | `{ changed }` | — |
 | `kitchen.readyTicket` | `{ ticketId, expectedStoreId }` | `{ changed: número de itens }` | — |
 | `kitchen.undoReady` | `{ itemId, expectedStoreId }` | `{ changed }` | `KITCHEN_READY_UNDONE` |
-| Público do Orders (na transação) | `kitchenBoard`, `lockKitchenItem`, `lockKitchenTicket`, `setKitchenItems`, `refreshTicket` | — | — |
+| Público do Orders (na transação): `kitchenOrders` | `listQueue`, `listFinished`, `listTicketItems`, `lockItem`, `lockTicket`, `startItems`, `readyItems`, `undoReady`, `refreshTicket` — **todas com a loja** (leituras e alterações filtram `store_id` — achado I-3); `lockItem`/`lockTicket` travam a conta antes | — | — |
 
 ## 10. Critérios de aceite
 - **CA-KDS-01** — Fila em ordem de envio, com observação e sem itens sem preparo → `tests/features/kitchen/fila.feature`

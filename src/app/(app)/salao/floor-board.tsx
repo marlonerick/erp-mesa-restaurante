@@ -47,7 +47,7 @@ export function FloorBoard({
   readonly storeId: string;
   readonly can: FloorPermissions;
 }) {
-  const { data, isError, error } = useFloor(initial);
+  const { data, isError, error } = useFloor(initial, storeId);
   const areas = new Map<string, FloorTableView[]>();
   for (const table of data.tables) {
     const key = table.area ?? 'Outras mesas';

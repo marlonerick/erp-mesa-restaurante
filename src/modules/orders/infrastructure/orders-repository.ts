@@ -348,7 +348,7 @@ export const ordersRepository: OrdersRepository = {
     await tx.insert(kitchenTicket).values({ ...ticket, status: 'NOVO' });
   },
 
-  async refreshTicket(tx, ticketId, at) {
+  async refreshTicket(tx, { storeId, ticketId }, at) {
     // Leituras COM TRAVA: outra ação no mesmo ticket pode ter acabado de confirmar (RN-ORD-21)
     const [ticket] = await tx
       .select({
@@ -358,13 +358,13 @@ export const ordersRepository: OrdersRepository = {
         finishedAt: kitchenTicket.finishedAt,
       })
       .from(kitchenTicket)
-      .where(eq(kitchenTicket.id, ticketId))
+      .where(and(eq(kitchenTicket.id, ticketId), eq(kitchenTicket.storeId, storeId)))
       .for('update');
     if (!ticket) return;
     const items = await tx
       .select({ status: orderItem.status })
       .from(orderItem)
-      .where(eq(orderItem.kitchenTicketId, ticketId))
+      .where(and(eq(orderItem.kitchenTicketId, ticketId), eq(orderItem.storeId, storeId)))
       .for('share');
     const status = deriveTicketStatus(items.map((item) => item.status));
     if (status === ticket.status) return;
@@ -376,10 +376,12 @@ export const ordersRepository: OrdersRepository = {
         // Começou quando o primeiro item foi iniciado ou ficou pronto
         startedAt: ticket.startedAt ?? (status === 'EM_PREPARO' || status === 'PRONTO' ? at : null),
         readyAt: status === 'PRONTO' ? at : null,
-        finishedAt: finished ? at : null,
+        // Pedido que JÁ tinha saído da fila (pronto) e depois teve tudo cancelado não "volta" como
+        // cancelado agora: guarda a saída original (sugestão S-2 da revisão)
+        finishedAt: finished ? (ticket.status === 'PRONTO' ? (ticket.finishedAt ?? at) : at) : null,
         version: sql`${kitchenTicket.version} + 1`,
       })
-      .where(eq(kitchenTicket.id, ticketId));
+      .where(and(eq(kitchenTicket.id, ticketId), eq(kitchenTicket.storeId, storeId)));
   },
 
   async moveTickets(tx, fromOrderId, toOrderId) {
@@ -428,12 +430,14 @@ export const ordersRepository: OrdersRepository = {
     return row ?? null;
   },
 
-  async listTicketItems(tx, ticketIds, options = {}) {
+  async listTicketItems(tx, storeId, ticketIds, options = {}) {
     if (ticketIds.length === 0) return [];
     const query = tx
       .select(kitchenItemColumns)
       .from(orderItem)
-      .where(inArray(orderItem.kitchenTicketId, [...ticketIds]))
+      .where(
+        and(eq(orderItem.storeId, storeId), inArray(orderItem.kitchenTicketId, [...ticketIds])),
+      )
       .orderBy(asc(orderItem.id));
     const rows = options.forUpdate ? await query.for('update') : await query;
     return withModifiers(tx, rows, options);
@@ -449,31 +453,45 @@ export const ordersRepository: OrdersRepository = {
     return item ?? null;
   },
 
-  async startItems(tx, itemIds, { by, at }) {
+  // Alterações: SEMPRE com a loja no WHERE (ADR-0009 — achado I-3 da revisão)
+  async startItems(tx, storeId, itemIds, { by, at }) {
     if (itemIds.length === 0) return;
     await tx
       .update(orderItem)
       .set({ status: 'EM_PREPARO', startedAt: at, startedBy: by })
-      .where(and(inArray(orderItem.id, [...itemIds]), eq(orderItem.status, 'ENVIADO')));
+      .where(
+        and(
+          eq(orderItem.storeId, storeId),
+          inArray(orderItem.id, [...itemIds]),
+          eq(orderItem.status, 'ENVIADO'),
+        ),
+      );
   },
 
-  async readyItems(tx, itemIds, { by, at }) {
+  async readyItems(tx, storeId, itemIds, { by, at }) {
     if (itemIds.length === 0) return;
     await tx
       .update(orderItem)
       .set({ status: 'PRONTO', readyAt: at, readyBy: by })
       .where(
         and(
+          eq(orderItem.storeId, storeId),
           inArray(orderItem.id, [...itemIds]),
           inArray(orderItem.status, ['ENVIADO', 'EM_PREPARO']),
         ),
       );
   },
 
-  async undoReady(tx, itemId, { startedAt }) {
+  async undoReady(tx, storeId, itemId, { startedAt }) {
     await tx
       .update(orderItem)
       .set({ status: 'EM_PREPARO', startedAt, readyAt: null, readyBy: null })
-      .where(and(eq(orderItem.id, itemId), eq(orderItem.status, 'PRONTO')));
+      .where(
+        and(
+          eq(orderItem.storeId, storeId),
+          eq(orderItem.id, itemId),
+          eq(orderItem.status, 'PRONTO'),
+        ),
+      );
   },
 };

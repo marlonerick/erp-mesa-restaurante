@@ -67,6 +67,7 @@ export async function board(deps: KitchenDependencies, ctx: RequestContext): Pro
     const all = [...queue, ...cancelled, ...recent];
     const items = await deps.orders.listTicketItems(
       tx,
+      ctx.storeId,
       all.map((ticket) => ticket.id),
     );
     const names = await deps.userNames(tx, [...new Set(all.map((ticket) => ticket.sentBy))]);
@@ -101,8 +102,8 @@ export async function startItem(
     const item = await deps.orders.lockItem(tx, ctx.storeId, input.itemId);
     if (kitchenTransition('INICIAR', item) === 'NADA') return { changed: false };
     const at = ctx.clock.now();
-    await deps.orders.startItems(tx, [item.id], { by: ctx.userId, at });
-    await refresh(deps, tx, item, at);
+    await deps.orders.startItems(tx, ctx.storeId, [item.id], { by: ctx.userId, at });
+    await refresh(deps, tx, ctx, item, at);
     return { changed: true };
   });
 }
@@ -119,8 +120,8 @@ export async function readyItem(
     const item = await deps.orders.lockItem(tx, ctx.storeId, input.itemId);
     if (kitchenTransition('PRONTO', item) === 'NADA') return { changed: false };
     const at = ctx.clock.now();
-    await deps.orders.readyItems(tx, [item.id], { by: ctx.userId, at });
-    await refresh(deps, tx, item, at);
+    await deps.orders.readyItems(tx, ctx.storeId, [item.id], { by: ctx.userId, at });
+    await refresh(deps, tx, ctx, item, at);
     return { changed: true };
   });
 }
@@ -143,10 +144,11 @@ export async function readyTicket(
     const at = ctx.clock.now();
     await deps.orders.readyItems(
       tx,
+      ctx.storeId,
       pending.map((item) => item.id),
       { by: ctx.userId, at },
     );
-    await deps.orders.refreshTicket(tx, locked.ticket.id, at);
+    await deps.orders.refreshTicket(tx, { storeId: ctx.storeId, ticketId: locked.ticket.id }, at);
     return { changed: pending.length };
   });
 }
@@ -163,12 +165,16 @@ export async function undoReady(
     const item = await deps.orders.lockItem(tx, ctx.storeId, input.itemId);
     if (kitchenTransition('DESFAZER', item) === 'NADA') return { changed: false };
     const at = ctx.clock.now();
-    await deps.orders.undoReady(tx, item.id, { startedAt: item.startedAt ?? at });
-    await refresh(deps, tx, item, at);
+    await deps.orders.undoReady(tx, ctx.storeId, item.id, { startedAt: item.startedAt ?? at });
+    await refresh(deps, tx, ctx, item, at);
     await recordAuditFromContext(tx, ctx, 'KITCHEN_READY_UNDONE', {
       entityType: 'order_item',
       entityId: item.id,
-      before: { status: 'PRONTO', readyAt: item.readyAt?.toISOString() ?? null },
+      before: {
+        status: 'PRONTO',
+        readyAt: item.readyAt?.toISOString() ?? null,
+        readyBy: item.readyBy,
+      },
       after: { status: 'EM_PREPARO', product: item.productName, quantity: item.quantity },
     });
     return { changed: true };
@@ -178,8 +184,15 @@ export async function undoReady(
 async function refresh(
   deps: KitchenDependencies,
   tx: Transaction,
+  ctx: RequestContext,
   item: KitchenItemRecord,
   at: Date,
 ) {
-  if (item.kitchenTicketId) await deps.orders.refreshTicket(tx, item.kitchenTicketId, at);
+  if (item.kitchenTicketId) {
+    await deps.orders.refreshTicket(
+      tx,
+      { storeId: ctx.storeId, ticketId: item.kitchenTicketId },
+      at,
+    );
+  }
 }

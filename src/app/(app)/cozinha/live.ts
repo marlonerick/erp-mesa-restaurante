@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import type { KitchenView } from '@/modules/kitchen/web';
 import type { FormState } from '@/shared/errors/form-state';
-import { HttpError, isGone } from '../salao/live';
+import { HttpError, isGone, withStore } from '../salao/live';
 
 /** Intervalo da leitura automática da cozinha (ADR-0005, RN-KDS-11). */
 export const KITCHEN_REFRESH_MS = 3_000;
@@ -16,9 +16,9 @@ export interface LiveBoard extends KitchenView {
 
 export const kitchenKey = ['cozinha'] as const;
 
-async function readBoard(): Promise<LiveBoard> {
+async function readBoard(storeId: string): Promise<LiveBoard> {
   const sentAt = Date.now();
-  const response = await fetch('/api/cozinha', {
+  const response = await fetch(withStore('/api/cozinha', storeId), {
     cache: 'no-store',
     headers: { accept: 'application/json' },
   });
@@ -33,11 +33,11 @@ async function readBoard(): Promise<LiveBoard> {
 }
 
 /** Fila viva: começa com o que o servidor desenhou e se atualiza a cada 3 s (pausa na aba oculta). */
-export function useKitchen(initial: KitchenView) {
+export function useKitchen(initial: KitchenView, storeId: string) {
   const [first] = useState<LiveBoard>(() => ({ ...initial, receivedAt: Date.now() }));
   return useQuery({
     queryKey: kitchenKey,
-    queryFn: readBoard,
+    queryFn: () => readBoard(storeId),
     initialData: first,
     refetchInterval: (query) => (isGone(query.state.error) ? false : KITCHEN_REFRESH_MS),
     retry: (count, error) => !isGone(error) && count < 1,

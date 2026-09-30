@@ -25,28 +25,26 @@ interface Props {
  * hora do servidor, cor + texto do alerta, botões grandes, "prontos há pouco" e impressão de 80 mm.
  */
 export function KitchenBoard({ initial, storeId, storeName, canManage, sharedDevice }: Props) {
-  const { data: board, isError, error } = useKitchen(initial);
+  const { data: board, isError, error } = useKitchen(initial, storeId);
   const serverNow = useServerNow(board);
   const awake = useWakeLock();
   const sound = useNewTicketSound(board.queue.map((ticket) => ticket.id));
-  const [printing, setPrinting] = useState<KitchenTicketView | null>(null);
+  // A via fica montada (invisível na tela) até o próximo "Imprimir": no Android e no iPad o
+  // window.print() não espera a impressão, e desmontar logo sairia folha em branco (achado I-1).
+  // O número muda a cada toque: imprimir o mesmo pedido de novo também dispara.
+  const [printing, setPrinting] = useState<{ ticket: KitchenTicketView; nonce: number } | null>(
+    null,
+  );
   const thresholds = { warningMinutes: board.warningMinutes, lateMinutes: board.lateMinutes };
   const levelOf = (ticket: KitchenTicketView): AlertLevel =>
     alertLevel(serverNow - Date.parse(ticket.createdAt), thresholds);
   const late = board.queue.filter((ticket) => levelOf(ticket) === 'ATRASADO').length;
 
   // Imprime depois que a via da cozinha foi desenhada fora da tela (ADR-0010)
+  const printNonce = printing?.nonce ?? 0;
   useEffect(() => {
-    if (!printing) return;
-    const done = () => {
-      setPrinting(null);
-    };
-    window.addEventListener('afterprint', done, { once: true });
-    window.print();
-    return () => {
-      window.removeEventListener('afterprint', done);
-    };
-  }, [printing]);
+    if (printNonce > 0) window.print();
+  }, [printNonce]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -133,7 +131,10 @@ export function KitchenBoard({ initial, storeId, storeName, canManage, sharedDev
                   onPrint={
                     canManage
                       ? () => {
-                          setPrinting(ticket);
+                          setPrinting((previous) => ({
+                            ticket,
+                            nonce: (previous?.nonce ?? 0) + 1,
+                          }));
                         }
                       : null
                   }
@@ -167,7 +168,7 @@ export function KitchenBoard({ initial, storeId, storeName, canManage, sharedDev
 
       {printing
         ? createPortal(
-            <PrintTicket ticket={printing} stationName={board.stationName} />,
+            <PrintTicket ticket={printing.ticket} stationName={board.stationName} />,
             document.body,
           )
         : null}

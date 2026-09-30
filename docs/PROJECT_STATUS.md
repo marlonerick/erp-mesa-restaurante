@@ -52,11 +52,12 @@ E7-1 a E7-4) — implementada na `main`, em revisão pelo `reviewer`.
 - Nada bloqueado.
 
 ## Testes
-- Vitest: 1599 testes (525 unitários + 1074 de integração com MySQL 8.4 real).
+- Vitest: 1602 testes (525 unitários + 1077 de integração com MySQL 8.4 real).
 - Playwright: 129 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
 
 ## Bugs
-Nenhum aberto. Corrigido na Etapa 7: teste de navegador do salão que enviava a rodada antes de a
+Nenhum aberto. Corrigidos na Etapa 7: deadlock ao lançar item em duas contas novas ao mesmo tempo
+(vinha da Etapa 6); teste de navegador do salão que enviava a rodada antes de a
 lista mostrar todos os itens (instável sob carga) — ver `docs/weeks/etapa-07.md`. Corrigidos na Etapa 6: leitura sem trava depois da trava da conta (cancelamento e
 envio simultâneos), `count(*)` lido como número, teste de limpeza que apagava dados de outros
 testes — ver `docs/weeks/etapa-06.md`. Corrigidos na Etapa 5: estorno em dobro com cancelamentos simultâneos (B-1 da
@@ -79,6 +80,12 @@ gravaria 1 g no lugar de 1000 g — ver `docs/weeks/etapa-05.md`.
   (Etapa 7). Automatizar antes de cada execução local, se incomodar.
 - Q-02 em aberto: modelo/conexão da impressora térmica e se o tablet é Android ou iPad (define se
   a impressão automática — quiosque ou ESC/POS — é possível no piloto).
+- Envio de rodada: dois envios simultâneos em contas novas ainda geram deadlock no índice
+  `uq_order_round_number` (trava de intervalo ao listar as rodadas com trava); a repetição
+  automática resolve. Se aparecer no piloto, travar a conta como primeira leitura também no envio
+  (como no lançamento — Etapa 7).
+- Teste de navegador do cronômetro com o relógio do tablet adiantado/atrasado (S-5 da revisão da
+  Etapa 7; a regra dos alertas já tem teste unitário).
 - Tela cheia no tablet da cozinha (Fullscreen API ou "adicionar à tela inicial") — avaliar no piloto.
 - KDS lê a fila completa a cada 3 s (cursor `since` adiado — kitchen.md §12): rever com mais de 100
   tickets na fila.

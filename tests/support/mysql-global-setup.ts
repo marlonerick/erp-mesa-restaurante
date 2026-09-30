@@ -32,6 +32,7 @@ export default async function setup(project: TestProject): Promise<() => Promise
       '--sql-mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION,ONLY_FULL_GROUP_BY',
       '--transaction-isolation=REPEATABLE-READ',
       '--log-bin-trust-function-creators=1',
+      '--innodb-print-all-deadlocks=ON',
     ])
     .start();
 
@@ -58,6 +59,16 @@ export default async function setup(project: TestProject): Promise<() => Promise
   );
 
   return async () => {
+    const dump = process.env.DEADLOCK_LOG;
+    if (dump) {
+      const { writeFileSync } = await import('node:fs');
+      const chunks: string[] = [];
+      const stream = await container.logs();
+      stream.on('data', (chunk: Buffer | string) => chunks.push(String(chunk)));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      stream.destroy();
+      writeFileSync(dump, chunks.join(''));
+    }
     await container.stop();
   };
 }

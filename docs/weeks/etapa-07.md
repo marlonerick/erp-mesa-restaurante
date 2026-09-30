@@ -33,7 +33,7 @@ celular o que ficou pronto.
 | Ações da cozinha mudariam a versão da conta | **Não mudam**: a versão protege as ações do garçom sobre a conta (transferir, juntar, pedir a conta); se a cozinha a mudasse, o garçom levaria "outra pessoa alterou" a cada item pronto | RN-KDS-12 |
 | Eventos `KitchenItemStatusChanged`/`OrderItemCancelled` planejados | Chamadas diretas na mesma transação (como o `RoundSent` na Etapa 6) | dependencias.md |
 | Imprimir | Só para quem marca (`kds.manage`); o garçom acompanha sem botões | RN-KDS-14 |
-| Cozinha marca pronto em conta já fechada | Permitido: no balcão o cliente pode pagar antes de a comida sair (Etapa 8) | kitchen-port.ts |
+| Cozinha marca pronto em conta já fechada | Permitido: no balcão o cliente pode pagar antes de a comida sair (Etapa 8) | RN-KDS-12, kitchen-port.ts |
 
 ## Problemas encontrados e corrigidos
 1. **Tablet da cozinha travando sozinho**: quem entra marcando "Este aparelho é compartilhado" tem a
@@ -41,19 +41,53 @@ celular o que ficou pronto.
    cozinha agora avisa e explica como entrar sem essa opção.
 2. **Teste de navegador do salão instável sob carga**: o teste tocava em "Enviar para a cozinha"
    antes de a lista mostrar o segundo item lançado; como o envio manda exatamente o que a tela
-   mostra (RN-ORD-10), ia só o primeiro. O teste agora espera "Enviar para a cozinha (2)". O
-   comportamento do sistema está certo — era o teste que tinha pressa.
+   mostra (RN-ORD-10), ia só o primeiro. O teste agora espera "Enviar para a cozinha (2)". Do mesmo
+   jeito, o teste de transferir tocava em "Transferir" antes de a comanda ser relida depois do envio
+   e recebia, corretamente, "Outra pessoa alterou esta conta" (versão antiga); agora espera a tela
+   atualizar. As etapas de PREPARAÇÃO dos testes (cadastrar mesa, lançar, enviar) esperam até 15 s
+   (6 aparelhos simulados em paralelo); as verificações continuam com 5 s. O comportamento do
+   sistema estava certo — eram os testes que tinham pressa. Três execuções completas seguidas verdes.
 3. **Banco de E2E acumulado**: 206 mesas, 140 contas abertas e 62 pedidos na fila de execuções
    anteriores deixavam o salão e a cozinha pesados. Comando novo `npm run db:e2e:reset`.
 4. **Visual (prints do tablet)**: o botão "Pronto" do item em preparo ocupava meia largura; cartões
    curtos esticavam até a altura do vizinho.
 
+5. **Deadlock ao lançar item (vinha da Etapa 6), achado depois da revisão**: a bateria de
+   integração falhava de vez em quando ("Deadlock found" ao inserir o item). Com o registro de
+   deadlocks do MySQL ligado nos testes (`DEADLOCK_LOG=arquivo`), a causa apareceu: ao contar os itens
+   da conta com trava (`FOR SHARE`), o MySQL travava também o fim do índice; como as contas mais
+   novas ficam no fim (ids em ordem de criação), dois garçons lançando o primeiro item em duas contas
+   novas se travavam um ao outro, e 3 repetições seguidas às vezes não bastavam. Correção: lançar
+   item trava a conta como **primeira** leitura (a "foto" da transação nasce depois da trava e a
+   contagem comum já vê tudo) e a repetição automática passou de 3 para 5 tentativas com espera
+   crescente (ADR-0008). Medido: **15 → 0** deadlocks desse tipo; 5 rodadas completas seguidas
+   verdes. Sobra um padrão parecido em dois envios de rodada simultâneos (`order_round`), que a
+   repetição resolveu em todas as rodadas — débito técnico.
+
 Conferido: os testes de concorrência (**dois tablets marcando o mesmo item**; **cozinha marcando
 enquanto o gerente cancela**) **falham com a trava desligada** (os dois tablets "mudam"; o estoque
 volta sem ter voltado) e passam com ela.
 
-## Revisão do `reviewer`
-(em andamento)
+## Revisão do `reviewer` (2026-09-30)
+
+1ª revisão: **aprovada com ressalvas** — nenhum bloqueante, 5 importantes, 7 sugestões (lint,
+typecheck, 525 unitários, 1074 de integração e `drizzle-kit check` passaram; `npm audit` só com a
+exceção já registrada do esbuild em desenvolvimento). Correções:
+
+| # | Achado | Correção |
+|---|---|---|
+| I-1 | A via era desmontada no `afterprint`; no Android/iPad o `window.print()` não espera e a folha sairia em branco; imprimir de novo o mesmo pedido não fazia nada | A via fica montada (invisível) até o próximo "Imprimir"; cada toque tem um número próprio e chama a impressão de novo (E2E confere 2 impressões) |
+| I-2 | `@page { size: 80mm auto }` é inválido e era ignorado | Regra retirada: a largura vem do driver da térmica (80 mm), conteúdo com 74 mm; conferir com a impressora real (Q-02) |
+| I-3 | A API do Orders para a cozinha lia e alterava por id sem a loja (contra o ADR-0009) | Todas as funções recebem a loja e filtram `store_id` (leituras e `UPDATE`s); teste com a loja errada não lê nem altera nada |
+| I-4 | Trocar de loja em outra aba fazia a tela da cozinha (e o mapa do salão) mostrar a outra loja com o nome da antiga | A leitura automática manda `?loja=`; loja diferente → 409 `STORE_CHANGED` e a tela pede para recarregar (RN-KDS-15; E2E confere cozinha e salão) |
+| I-5 | Contratos do SDD diferentes do código | kitchen.md §9 atualizado |
+| S-1 | Faltava teste de "desfazer" × entrega ao mesmo tempo | Teste novo: um vence e o item fica coerente |
+| S-2 | Pedido pronto e depois todo cancelado "reaparecia" riscado | Mantém a saída original da fila; teste novo |
+| S-3 | Mapa de estados sem `EM_PREPARO → NOVO` e `PRONTO → CANCELADO` | estados.md |
+| S-4 | Auditoria do desfazer sem quem tinha marcado pronto | `readyBy` no "antes" |
+| S-6 | Cartão cancelado com opacidade reduzia o contraste | Opacidade retirada |
+| S-7 | Decisão "pronto em conta fechada" sem registro no código/SDD | Comentário em kitchen-port.ts e RN-KDS-12 |
+| S-5 | Cronômetro sem teste da correção de relógio na tela | Débito técnico (a regra de alerta tem teste unitário) |
 
 ## Como experimentar (banco de desenvolvimento)
 1. `npm run db:migrate` (aplica a 0010) e `npm run dev`.
@@ -72,7 +106,7 @@ volta sem ter voltado) e passam com ela.
 | Tipo | Resultado |
 |---|---|
 | Unitários (transições da cozinha, alertas, cronômetro, situação do ticket com fast-check, tempos de alerta) | ✅ 525 |
-| Integração com MySQL 8.4 real (BDD + dois tablets + cozinha × cancelamento + isolamento + janelas de tempo + CHECK) | ✅ 1074 |
+| Integração com MySQL 8.4 real (BDD + dois tablets + cozinha × cancelamento + isolamento + janelas de tempo + CHECK) | ✅ 1077 |
 | E2E no navegador (celular, tablet, desktop + BDD) | ✅ 129 (4 pulados de propósito), duas execuções completas seguidas |
 
 ## Definition of Done
@@ -80,8 +114,8 @@ volta sem ter voltado) e passam com ela.
 - [x] Migration revisada (índices antes das FKs; aplicada no banco de desenvolvimento)
 - [x] Testes unitários, integração (MySQL real), BDD, concorrência, isolamento entre lojas, E2E
 - [x] Lint, typecheck, build
-- [ ] CI no GitHub
-- [ ] Revisão do `reviewer`
+- [x] CI no GitHub (verde no commit da implementação)
+- [ ] Revisão do `reviewer` (1ª aprovada com ressalvas; achados corrigidos; aguardando reverificação)
 - [x] Docs e maps
 - [x] `PROJECT_STATUS.md`
 - [ ] `APROVADO` do usuário

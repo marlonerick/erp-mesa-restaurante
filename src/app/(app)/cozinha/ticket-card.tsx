@@ -219,7 +219,7 @@ export function TicketCard({
       aria-label={`${ticket.title}, rodada ${String(ticket.roundNumber)}`}
       className={cn(
         'flex flex-col overflow-hidden rounded-lg border-4 bg-white',
-        cancelled ? 'border-alerta opacity-80' : style.card,
+        cancelled ? 'border-alerta' : style.card,
       )}
     >
       <header className={cn('flex items-start justify-between gap-3 px-4 py-3', style.band)}>

@@ -4,6 +4,9 @@ import { login, TEAM } from './helpers';
 // Apoio do salão (Etapas 6 e 7). Cada teste cadastra as PRÓPRIAS mesas (número único): os três
 // aparelhos rodam ao mesmo tempo no mesmo banco de E2E.
 
+/** Espera das etapas de PREPARAÇÃO (cadastrar mesa, lançar, enviar) — as verificações usam 5 s. */
+const SETUP_TIMEOUT = 15_000;
+
 /** Número de mesa único (até 10 letras/números — RN-TAB-02). */
 export const tableNumber = () => `E${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
@@ -17,7 +20,10 @@ export async function createTables(browser: Browser, numbers: readonly string[])
     await page.getByLabel('Número', { exact: true }).fill(number);
     await page.getByLabel('Área (opcional)').fill('Testes E2E');
     await page.getByRole('button', { name: 'Cadastrar mesa' }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'Mesa cadastrada.' })).toBeVisible();
+    // Preparação do teste: com 6 aparelhos simulados em paralelo o servidor pode passar de 5 s
+    await expect(page.getByRole('status').filter({ hasText: 'Mesa cadastrada.' })).toBeVisible({
+      timeout: SETUP_TIMEOUT,
+    });
   }
   await context.close();
 }
@@ -28,7 +34,9 @@ export async function openTable(page: Page, number: string) {
   await page.getByLabel('Pessoas (opcional)').fill('2');
   await page.getByRole('button', { name: 'Abrir mesa' }).click();
   await page.waitForURL(/\/salao\/comanda\/.+/);
-  await expect(page.getByRole('heading', { name: `Mesa ${number}`, level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: `Mesa ${number}`, level: 1 })).toBeVisible({
+    timeout: SETUP_TIMEOUT,
+  });
 }
 
 export async function addItem(
@@ -46,7 +54,9 @@ export async function addItem(
   for (const option of choose) await dialog.getByLabel(option).check();
   if (notes) await dialog.getByLabel('Observação (opcional)').fill(notes);
   await dialog.getByRole('button', { name: 'Lançar na conta' }).click();
-  await expect(dialog.getByRole('status')).toContainText('Item lançado');
+  await expect(dialog.getByRole('status')).toContainText('Item lançado', {
+    timeout: SETUP_TIMEOUT,
+  });
 }
 
 export async function closeDialog(page: Page) {
@@ -57,9 +67,16 @@ export async function closeDialog(page: Page) {
 /**
  * Envia a rodada com `count` itens. Espera a comanda mostrar TODOS os itens lançados antes de
  * tocar: o envio manda exatamente o que a tela mostra (RN-ORD-10) e a lista se atualiza logo
- * depois de lançar — sob carga, tocar antes enviaria só parte dos itens.
+ * depois de lançar — sob carga, tocar antes enviaria só parte dos itens. Depois, espera a comanda
+ * ser relida (nenhum item pendente): o envio muda a versão da conta, e transferir/juntar com a
+ * versão antiga é recusado de propósito ("Outra pessoa alterou esta conta").
  */
 export async function sendRound(page: Page, count: number) {
   await page.getByRole('button', { name: `Enviar para a cozinha (${String(count)})` }).click();
-  await expect(page.getByRole('status').filter({ hasText: /Rodada \d+ enviada/ })).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: /Rodada \d+ enviada/ })).toBeVisible({
+    timeout: SETUP_TIMEOUT,
+  });
+  await expect(page.getByText('Nenhum item esperando envio.')).toBeVisible({
+    timeout: SETUP_TIMEOUT,
+  });
 }

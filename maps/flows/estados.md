@@ -67,8 +67,10 @@ stateDiagram-v2
   NOVO --> PRONTO: tudo pronto
   EM_PREPARO --> PRONTO
   PRONTO --> EM_PREPARO: desfazer
+  EM_PREPARO --> NOVO: salão cancela o único item iniciado
   NOVO --> CANCELADO
   EM_PREPARO --> CANCELADO
+  PRONTO --> CANCELADO: salão cancela tudo (mantém a saída original da fila)
 ```
 
 ## Sessão de caixa (`cash_session.status`)

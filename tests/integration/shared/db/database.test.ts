@@ -161,7 +161,8 @@ describe('runInTransaction (ADR-0008)', () => {
         return Promise.reject(Object.assign(new Error('Deadlock found'), { errno: 1213 }));
       }),
     ).rejects.toThrow('Deadlock found');
-    expect(attempts).toBe(3);
+    // 5 tentativas com espera crescente (Etapa 7)
+    expect(attempts).toBe(5);
   });
 
   it('não repete erros que não são de concorrência', async () => {

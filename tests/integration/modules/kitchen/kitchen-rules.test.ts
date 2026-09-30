@@ -1,6 +1,8 @@
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { toKitchenView } from '@/modules/kitchen/web';
+import { kitchenOrders } from '@/modules/orders';
+import { runInTransaction } from '@/shared/db/transaction';
 import { mysqlErrno } from '@/shared/db/mysql-errors';
 import { kitchenTicket, store } from '@/shared/db/schema';
 import { useTestDatabase } from '../../../support/database';
@@ -89,6 +91,28 @@ describe('dois tablets ao mesmo tempo (RN-KDS-12)', () => {
   });
 });
 
+describe('desfazer × entregar ao mesmo tempo (sugestão S-1 da revisão)', () => {
+  it('um dos dois vence e o item fica coerente', async () => {
+    await w.sendTo('joão', '1', [{ quantity: 1, product: 'X-Burger' }]);
+    await w.ready('rita', '1', 0);
+    const itemId = (await w.sentItem('1', 0)).id;
+    const [undo, deliver] = await Promise.all([
+      settle(w.services.kitchen.undoReady(w.ctx('rita'), { itemId })),
+      settle(w.services.orders.deliverItem(w.ctx('joão'), { itemId })),
+    ]);
+    const status = (await w.sentItem('1', 0)).status;
+    if (deliver.ok) {
+      // Entregou primeiro: o desfazer, que esperou a trava, encontra o item já entregue
+      expect(status).toBe('ENTREGUE');
+      expect(undo).toMatchObject({ ok: false, code: 'ITEM_ALREADY_DELIVERED' });
+    } else {
+      expect(deliver.code).toBe('ITEM_NOT_READY');
+      expect(undo.ok).toBe(true);
+      expect(status).toBe('EM_PREPARO');
+    }
+  });
+});
+
 describe('o que não passa pela cozinha', () => {
   it('bebida sem preparo e item não enviado são recusados', async () => {
     await w.sendTo('joão', '1', [{ quantity: 1, product: 'Refrigerante lata' }]);
@@ -119,6 +143,22 @@ describe('isolamento entre lojas (RN-KDS-01)', () => {
       w.expectFailure('ORDER_ITEM_NOT_FOUND');
     }
     expect((await w.sentItem('1', 0)).status).toBe('ENVIADO');
+  });
+
+  it('a API do Orders para a cozinha exige a loja em leituras e alterações (achado I-3)', async () => {
+    await w.sendTo('joão', '1', [{ quantity: 1, product: 'X-Burger' }]);
+    const ticketId = w.ticketIn((await w.refresh()).queue, 'Mesa 1').id;
+    const itemId = (await w.sentItem('1', 0)).id;
+    const praia = w.org.praia;
+    const at = w.services.clock.now();
+    await runInTransaction(db, async (tx) => {
+      expect(await kitchenOrders.listTicketItems(tx, praia, [ticketId])).toEqual([]);
+      await kitchenOrders.startItems(tx, praia, [itemId], { by: w.userId('rita'), at });
+      await kitchenOrders.readyItems(tx, praia, [itemId], { by: w.userId('rita'), at });
+      await kitchenOrders.refreshTicket(tx, { storeId: praia, ticketId }, at);
+    });
+    expect((await w.sentItem('1', 0)).status).toBe('ENVIADO');
+    expect((await ticketRow('Mesa 1')).status).toBe('NOVO');
   });
 });
 
@@ -176,6 +216,17 @@ describe('situação e horas do ticket (RN-KDS-06)', () => {
     await w.undo('rita', '1', 0);
     await w.refresh();
     w.expectQueue(['Mesa 1', 'Mesa 2']);
+  });
+
+  it('pedido já pronto e depois todo cancelado não reaparece riscado (sugestão S-2)', async () => {
+    await w.sendTo('joão', '1', [{ quantity: 1, product: 'X-Burger' }]);
+    await w.ready('rita', '1', 0);
+    const { id, finishedAt: readyAt } = await ticketRow('Mesa 1');
+    w.services.clock.advanceMinutes(5);
+    await w.cancel('carla', '1', 0, 'cliente desistiu');
+    const [row] = await db.select().from(kitchenTicket).where(eq(kitchenTicket.id, id));
+    expect(row).toMatchObject({ status: 'CANCELADO', finishedAt: readyAt });
+    expect((await w.refresh()).cancelled).toEqual([]);
   });
 
   it('as ações da cozinha não mudam a versão da conta (o garçom não recebe conflito)', async () => {

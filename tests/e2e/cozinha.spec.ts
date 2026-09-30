@@ -113,8 +113,13 @@ test.describe('Tela da cozinha (Etapa 7)', () => {
     await expect(slip).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Cozinha', level: 1 })).toBeHidden();
     await page.emulateMedia({ media: 'screen' });
-    await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
-    await expect(slip).toHaveCount(0);
+    // A via continua montada (invisível): o Android não espera a impressão (achado I-1). Imprimir de
+    // novo o mesmo pedido chama a impressão outra vez
+    await expect(slip).toBeHidden();
+    await ticket.getByRole('button', { name: `Imprimir Mesa ${number}` }).click();
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { printed: number }).printed))
+      .toBe(2);
 
     await ticket.getByRole('button', { name: `Tudo pronto Mesa ${number}` }).click();
     await expect(ticket).toHaveCount(0);
@@ -153,6 +158,12 @@ test.describe('Tela da cozinha (Etapa 7)', () => {
     await cashier.goto('/cozinha');
     await expect(cashier.getByRole('heading', { name: 'Sem permissão' })).toBeVisible();
     expect((await cashier.request.get('/api/cozinha')).status()).toBe(403);
+
+    // A tela mostrava outra loja (trocada em outra aba): a leitura automática recusa (achado I-4)
+    const changed = await page.request.get('/api/cozinha?loja=outra-loja');
+    expect(changed.status()).toBe(409);
+    expect(await changed.json()).toMatchObject({ code: 'STORE_CHANGED' });
+    expect((await page.request.get('/api/salao?loja=outra-loja')).status()).toBe(409);
     await context.close();
   });
 

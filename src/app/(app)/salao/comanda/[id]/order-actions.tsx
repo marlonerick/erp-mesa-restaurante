@@ -115,8 +115,8 @@ function OrderDialogBody({
 }
 
 /** Mesas para transferir/juntar, lidas do mapa ao abrir a janela. */
-function useTableChoices(floor: FloorView, open: boolean) {
-  const { data } = useFloor(floor, open);
+function useTableChoices(floor: FloorView, storeId: string, open: boolean) {
+  const { data } = useFloor(floor, storeId, open);
   return data.tables;
 }
 
@@ -236,7 +236,7 @@ function TransferFields({
   readonly storeId: string;
   readonly open: boolean;
 }) {
-  const tables = useTableChoices(floor, open);
+  const tables = useTableChoices(floor, storeId, open);
   const free = tables.filter((table) => table.status === 'LIVRE');
   return (
     <>
@@ -280,7 +280,7 @@ function JoinFields({
   readonly storeId: string;
   readonly open: boolean;
 }) {
-  const tables = useTableChoices(floor, open);
+  const tables = useTableChoices(floor, storeId, open);
   const mine = new Set(order.tables.map((table) => table.id));
   const options = tables.filter(
     (table) =>

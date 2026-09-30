@@ -11,6 +11,7 @@ const LOCK = { forUpdate: true } as const;
 const ATTEMPTS = 3;
 
 export function kitchenPort(repo: OrdersRepository) {
+  /** Trava a conta SEM exigir que esteja aberta: no balcão paga-se antes de a comida sair (RN-KDS-12). */
   async function lockOrderOf(tx: Transaction, storeId: Id, orderId: Id) {
     const order = await repo.findOrder(tx, { storeId, orderId }, LOCK);
     if (!order) throw orderErrors.orderNotFound();
@@ -56,7 +57,7 @@ export function kitchenPort(repo: OrdersRepository) {
         const ticket = await repo.findTicket(tx, { storeId, ticketId }, LOCK);
         if (!ticket) return null;
         if (ticket.orderId === seen.orderId) {
-          return { ticket, items: await repo.listTicketItems(tx, [ticket.id], LOCK) };
+          return { ticket, items: await repo.listTicketItems(tx, storeId, [ticket.id], LOCK) };
         }
         seen = ticket;
       }
