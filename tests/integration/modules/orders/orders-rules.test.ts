@@ -317,3 +317,34 @@ describe('consistência garantida pelo banco (migration 0008)', () => {
     expect(await set({ cancelReason: 'x' })).toBe(CHECK_VIOLATION);
   });
 });
+
+describe('limite de 300 itens por conta (RN-ORD-08)', () => {
+  it('dois garçons lançando o 300º item ao mesmo tempo: entra só um', async () => {
+    await w.open('joão', '1');
+    const orderId = await w.orderOfTable('1');
+    // 299 itens gravados direto (lançar um a um deixaria o teste lento)
+    await db.insert(orderItem).values(
+      Array.from({ length: 299 }, () => ({
+        id: newId(),
+        storeId: w.org.centro,
+        orderId,
+        productId: w.product('X-Burger'),
+        productName: 'X-Burger',
+        unitPriceCents: 3200,
+        quantity: 1,
+        requiresPreparation: true,
+        createdBy: w.userId('joão'),
+        createdAt: TEST_START,
+      })),
+    );
+    const results = await Promise.all([
+      settle(w.add('joão', mesa('1'), 1, 'X-Burger')),
+      settle(w.add('ana', mesa('1'), 1, 'X-Burger')),
+    ]);
+    // A contagem só enxerga o item do outro garçom porque a trava da conta é a primeira leitura
+    // da transação (orders.ts — addItem); se isso mudar, os dois entram e a conta fica com 301
+    expect(results.filter((result) => result.ok)).toHaveLength(1);
+    expect(results.find((result) => !result.ok)).toMatchObject({ code: 'ORDER_ITEM_LIMIT' });
+    expect((await w.order('1')).pending).toHaveLength(300);
+  });
+});

@@ -32,6 +32,9 @@ mudanças) + a hora do servidor para o cronômetro. O cursor `since` foi adiado:
 tickets a leitura completa é barata (índices da fila e de "prontos há pouco"), e um cursor por hora
 pode perder uma mudança gravada com hora anterior e confirmada depois da leitura. Rever com mais de
 100 tickets na fila ou se o polling aparecer no monitoramento (docs/modules/kitchen.md §12).
+Toda leitura automática manda a loja que a TELA mostra (`?loja=<id>`, `requireScreenStore`): se a
+loja foi trocada em outra aba, responde 409 `STORE_CHANGED` e a tela pede para recarregar. Sem o
+parâmetro o servidor não confere — **telas novas com leitura automática precisam mandá-lo**.
 
 ## Consequências
 - (+) Simples, robusto a rede instável, sem infraestrutura nova.

@@ -165,6 +165,17 @@ describe('runInTransaction (ADR-0008)', () => {
     expect(attempts).toBe(5);
   });
 
+  it('lock wait timeout é repetido só uma vez (cada espera pode levar 50 s)', async () => {
+    let attempts = 0;
+    await expect(
+      runInTransaction(db, () => {
+        attempts += 1;
+        return Promise.reject(Object.assign(new Error('Lock wait timeout'), { errno: 1205 }));
+      }),
+    ).rejects.toThrow('Lock wait timeout');
+    expect(attempts).toBe(2);
+  });
+
   it('não repete erros que não são de concorrência', async () => {
     let attempts = 0;
     await expect(

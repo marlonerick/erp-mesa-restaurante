@@ -5,7 +5,8 @@
 ## Etapa atual
 **Etapa 7 — KDS (tela da cozinha)** — plano aprovado em 2026-09-30 (Q-02 = opção A: tela +
 botão "Imprimir"; Q-14: por item com "tudo pronto", alertas de 10/20 min configuráveis; decisões
-E7-1 a E7-4) — implementada na `main`, em revisão pelo `reviewer`.
+E7-1 a E7-4) — implementada na `main` (revisão: 1ª aprovada com ressalvas, achados corrigidos,
+reverificação **aprovada**), **aguardando aprovação do usuário**.
 
 ## Progresso do MVP
 
@@ -18,7 +19,7 @@ E7-1 a E7-4) — implementada na `main`, em revisão pelo `reviewer`.
 | 4 | Catálogo | **Aprovada** em 2026-09-29 |
 | 5 | Estoque e ficha técnica | **Aprovada** em 2026-09-30 |
 | 6 | Salão, mesas e pedidos | **Aprovada** em 2026-09-30 |
-| 7 | KDS | Entregue — em revisão |
+| 7 | KDS | Entregue — aguardando `APROVADO` |
 | 8 | PDV e caixa | Não iniciada |
 | 9 | Financeiro básico, dashboard e relatórios | Não iniciada |
 | 10 | Estabilização e piloto (MVP Gate) | Não iniciada |
@@ -46,13 +47,13 @@ E7-1 a E7-4) — implementada na `main`, em revisão pelo `reviewer`.
 - ADRs: 14 aceitos (0001–0014) — ADR-0006 aceito em 2026-09-29 (Q-01 = A).
 
 ## Em andamento
-- Etapa 7: revisão do `reviewer` e CI.
+- Revisão da Etapa 7 pelo usuário.
 
 ## Bloqueado
 - Nada bloqueado.
 
 ## Testes
-- Vitest: 1602 testes (525 unitários + 1077 de integração com MySQL 8.4 real).
+- Vitest: 1604 testes (525 unitários + 1079 de integração com MySQL 8.4 real).
 - Playwright: 129 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
 
 ## Bugs
@@ -83,7 +84,8 @@ gravaria 1 g no lugar de 1000 g — ver `docs/weeks/etapa-05.md`.
 - Envio de rodada: dois envios simultâneos em contas novas ainda geram deadlock no índice
   `uq_order_round_number` (trava de intervalo ao listar as rodadas com trava); a repetição
   automática resolve. Se aparecer no piloto, travar a conta como primeira leitura também no envio
-  (como no lançamento — Etapa 7).
+  (como no lançamento — Etapa 7). O mesmo vale para juntar mesas (`join` conta e lista os itens com
+  trava): rara, e a repetição resolve.
 - Teste de navegador do cronômetro com o relógio do tablet adiantado/atrasado (S-5 da revisão da
   Etapa 7; a regra dos alertas já tem teste unitário).
 - Tela cheia no tablet da cozinha (Fullscreen API ou "adicionar à tela inicial") — avaliar no piloto.

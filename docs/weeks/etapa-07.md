@@ -89,6 +89,18 @@ exceção já registrada do esbuild em desenvolvimento). Correções:
 | S-7 | Decisão "pronto em conta fechada" sem registro no código/SDD | Comentário em kitchen-port.ts e RN-KDS-12 |
 | S-5 | Cronômetro sem teste da correção de relógio na tela | Débito técnico (a regra de alerta tem teste unitário) |
 
+2ª revisão (reverificação, commit 4cf8278): **aprovada** — achados resolvidos; a mudança em
+"lançar item" mantém a correção de concorrência da Etapa 6 (nenhuma leitura comum antes da trava da
+conta). Novos:
+
+| # | Achado | Correção |
+|---|---|---|
+| I-1 | O limite de 300 itens não tinha teste, e a contagem agora depende de a trava da conta ser a primeira leitura | Teste com 299 itens e dois garçons lançando ao mesmo tempo: entra só um. **Conferido: falha** se a leitura da loja voltar para antes da trava (a conta ficaria com 301) |
+| I-2 | Com 5 tentativas, um lock wait timeout (50 s cada) deixaria o botão girando ~4 min | Deadlock: 5 tentativas; lock wait timeout: só 1 repetição (teste novo); ADR-0008 |
+| S-1 | Juntar mesas ainda conta/lista itens com trava (mesmo padrão) | Débito no PROJECT_STATUS (raro; a repetição resolve) |
+| S-2 | A conferência da loja da tela só vale se a tela mandar `?loja=` | Registrado no ADR-0005 |
+| S-3 | Números divergentes neste relatório | Corrigidos |
+
 ## Como experimentar (banco de desenvolvimento)
 1. `npm run db:migrate` (aplica a 0010) e `npm run dev`.
 2. No tablet (ou numa janela do navegador), entre como `cozinha` / `Cozinha@2026` **sem** marcar
@@ -106,16 +118,16 @@ exceção já registrada do esbuild em desenvolvimento). Correções:
 | Tipo | Resultado |
 |---|---|
 | Unitários (transições da cozinha, alertas, cronômetro, situação do ticket com fast-check, tempos de alerta) | ✅ 525 |
-| Integração com MySQL 8.4 real (BDD + dois tablets + cozinha × cancelamento + isolamento + janelas de tempo + CHECK) | ✅ 1077 |
-| E2E no navegador (celular, tablet, desktop + BDD) | ✅ 129 (4 pulados de propósito), duas execuções completas seguidas |
+| Integração com MySQL 8.4 real (BDD + dois tablets + cozinha × cancelamento + isolamento + janelas de tempo + CHECK) | ✅ 1079 |
+| E2E no navegador (celular, tablet, desktop + BDD) | ✅ 129 (4 pulados de propósito), três execuções completas seguidas |
 
 ## Definition of Done
 - [x] SDD e cenários BDD
 - [x] Migration revisada (índices antes das FKs; aplicada no banco de desenvolvimento)
 - [x] Testes unitários, integração (MySQL real), BDD, concorrência, isolamento entre lojas, E2E
 - [x] Lint, typecheck, build
-- [x] CI no GitHub (verde no commit da implementação)
-- [ ] Revisão do `reviewer` (1ª aprovada com ressalvas; achados corrigidos; aguardando reverificação)
+- [x] CI no GitHub (verde na implementação e nas correções)
+- [x] Revisão do `reviewer` (1ª aprovada com ressalvas; reverificação **aprovada**; achados novos corrigidos)
 - [x] Docs e maps
 - [x] `PROJECT_STATUS.md`
 - [ ] `APROVADO` do usuário
