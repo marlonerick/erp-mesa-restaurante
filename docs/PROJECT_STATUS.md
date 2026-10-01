@@ -6,7 +6,7 @@
 **Etapa 7 — KDS (tela da cozinha)** — plano aprovado em 2026-09-30 (Q-02 = opção A: tela +
 botão "Imprimir"; Q-14: por item com "tudo pronto", alertas de 10/20 min configuráveis; decisões
 E7-1 a E7-4) — implementada na `main` (revisão: 1ª aprovada com ressalvas, achados corrigidos,
-reverificação **aprovada**), **aguardando aprovação do usuário**.
+reverificação **aprovada**) — **aprovada pelo usuário em 2026-10-01**.
 
 ## Progresso do MVP
 
@@ -19,7 +19,7 @@ reverificação **aprovada**), **aguardando aprovação do usuário**.
 | 4 | Catálogo | **Aprovada** em 2026-09-29 |
 | 5 | Estoque e ficha técnica | **Aprovada** em 2026-09-30 |
 | 6 | Salão, mesas e pedidos | **Aprovada** em 2026-09-30 |
-| 7 | KDS | Entregue — aguardando `APROVADO` |
+| 7 | KDS | **Aprovada** em 2026-10-01 |
 | 8 | PDV e caixa | Não iniciada |
 | 9 | Financeiro básico, dashboard e relatórios | Não iniciada |
 | 10 | Estabilização e piloto (MVP Gate) | Não iniciada |
@@ -47,7 +47,7 @@ reverificação **aprovada**), **aguardando aprovação do usuário**.
 - ADRs: 14 aceitos (0001–0014) — ADR-0006 aceito em 2026-09-29 (Q-01 = A).
 
 ## Em andamento
-- Revisão da Etapa 7 pelo usuário.
+- Planejamento da Etapa 8 (aguardando Q-16, Q-17 e aprovação do plano).
 
 ## Bloqueado
 - Nada bloqueado.
