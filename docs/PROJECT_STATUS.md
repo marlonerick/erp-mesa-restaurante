@@ -1,6 +1,6 @@
 # Status do projeto
 
-Última atualização: 2026-09-30
+Última atualização: 2026-10-02
 
 ## Etapa atual
 **Etapa 8 — PDV e caixa** — plano aprovado em 2026-10-01 (Q-06, Q-07, Q-16, Q-17 respondidas;
@@ -55,7 +55,7 @@ decisões E8-1 a E8-5) — implementada na `main`, em revisão pelo `reviewer`.
 - Nada bloqueado.
 
 ## Testes
-- Vitest: 1874 testes (548 unitários + 1326 de integração com MySQL 8.4 real).
+- Vitest: 1884 testes (549 unitários + 1335 de integração com MySQL 8.4 real).
 - Playwright: 141 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
 
 ## Bugs
@@ -89,6 +89,10 @@ gravaria 1 g no lugar de 1000 g — ver `docs/weeks/etapa-05.md`.
   (como no lançamento — Etapa 7). O mesmo vale para juntar mesas (`join` conta e lista os itens com
   trava): rara, e a repetição resolve.
 - Reabrir conta fechada (E8-4) — depois do piloto.
+- Estorno de pagamento em dinheiro não confere se há dinheiro na gaveta (pode deixar o esperado
+  negativo se houve sangria antes) — avaliar no piloto.
+- Índices de `payment` e `cash_movement` sem `store_id` na frente; `payment_allocation` e
+  `cash_session_count` sem `store_id` (as consultas filtram pela loja) — S-5 da revisão da Etapa 8.
 - Telas do PDV e do caixa sem leitura automática: se outro caixa receber a mesma conta, a tela
   atualiza na próxima ação (as travas impedem cobrar duas vezes).
 - Divisão por itens: a parte de cada item é proporcional ao desconto da conta; o último pagamento

@@ -247,6 +247,15 @@ export const ordersRepository: OrdersRepository = {
     return withModifiers(tx, rows, options);
   },
 
+  async listOrderItems(tx, { storeId, orderId }) {
+    const rows = await tx
+      .select(itemColumns)
+      .from(orderItem)
+      .where(and(eq(orderItem.orderId, orderId), eq(orderItem.storeId, storeId)))
+      .orderBy(asc(orderItem.id));
+    return withModifiers(tx, rows);
+  },
+
   async countItems(tx, orderId, options = {}) {
     const query = tx
       // COUNT é BIGINT: chega como texto (ADR-0003)

@@ -48,8 +48,31 @@ cegas e vê a diferença. Cada pagamento é registrado uma única vez, mesmo com
    grande); as opções do tipo de desconto tinham o mesmo nome do campo de valor ("Percentual (%)")
    e viraram "Em %" / "Em R$".
 
-## Revisão do `reviewer`
-(em andamento)
+## Revisão do `reviewer` (2026-10-02)
+
+1ª revisão: **reprovada** — 2 bloqueantes, 5 importantes, 9 sugestões (lint, typecheck, 548
+unitários, 1326 de integração e `drizzle-kit check` passaram; `npm audit` só com a exceção já
+registrada). O revisor confirmou que a idempotência, a trava da conta e a proteção contra cobrança em
+dobro estão corretas. Correções:
+
+| # | Achado | Correção |
+|---|---|---|
+| B-1 | Quem não tem `discounts.apply` (ex.: COZINHA) **retirava** o desconto da conta mandando valor zero: limite 0 e desconto 0 "não passavam do limite" | Sem `discounts.apply`, todo desconto — inclusive retirar — exige o gerente; teste com cozinha e garçom **falha sem a correção** |
+| B-2 | **Duas sangrias ao mesmo tempo** passavam e a gaveta ficava negativa (−R$ 60): a soma das movimentações era lida da "foto" anterior à trava | A soma é lida **com trava** depois de travar o caixa; teste com sangrias em paralelo **falha sem a correção**; teste de sangria × estorno |
+| I-1 | Pagar por itens depois de um pagamento por valor dava "erro inesperado" (parte negativa) | Itens marcados = todos os que faltam → cobra exatamente o que falta; senão, `ITEMS_EXCEED_BALANCE`; partes zeradas → `NOTHING_TO_PAY` (`fitShares`, com fast-check) |
+| I-2 | Conta com cortesia de 100% nunca fechava | "Fechar conta sem valor" (RN-POS-12a); teste |
+| I-3 | A recusa da sangria acima do esperado deixa descobrir o esperado (tentativa e erro) | **Aguarda decisão do usuário** |
+| I-4 | Consultas de pagamentos, divisão, itens, movimentações e contagem sem filtro de loja | Todas recebem a loja (contagem pela junção com o caixa) |
+| I-5 | Faltavam testes e o SDD apontava arquivo inexistente | `cashier-rules.test.ts` criado; testes de `NO_SERVICE_FEE`, `TENDERED_TOO_LOW`, `PAYMENT_ALREADY_CANCELLED`, `IDEMPOTENCY_KEY_REUSED`, isolamento de desconto/pré-conta/taxa/cancelar/fechar caixa |
+| S-1 | Ordem das travas na documentação | conta → caixa → mesas (pos.md, orders.md) |
+| S-2 | Descontos somados (item + conta) passam do limite do perfil | **Aguarda confirmação do usuário** (o limite vale por desconto) |
+| S-3 | Centavo de arredondamento na divisão por itens | Resolvido junto com I-1 |
+| S-4 | O preenchimento da taxa na migration também alcança contas fechadas/canceladas | Sem efeito: antes da 0011 não existiam contas fechadas e as canceladas não têm valor; a migration já aplicada não foi alterada |
+| S-5 | Índices sem `store_id` na frente; tabelas filhas sem `store_id` | Débito técnico (as consultas já filtram a loja) |
+| S-6 | Forma de pagamento escolhida só pela cor; foco do teclado invisível | ✓ na escolhida e contorno de foco no rótulo |
+| S-7 | Horário da conta no fuso do servidor | Usa o fuso da loja |
+| S-8 | Import duplicado no seed | Variável local renomeada |
+| S-9 | Data do PROJECT_STATUS | Atualizada |
 
 ## Como experimentar (banco de desenvolvimento)
 1. `npm run db:migrate` (aplica a 0011) e `npm run dev`.
@@ -67,8 +90,8 @@ cegas e vê a diferença. Cada pagamento é registrado uma única vez, mesmo com
 
 | Tipo | Resultado |
 |---|---|
-| Unitários (conta e taxa com fast-check, desconto e limite, troco, divisão por pessoas e por itens, esperado e fechamento cego) | ✅ 548 |
-| Integração com MySQL 8.4 real (BDD + dois caixas na mesma conta + pagar × fechar caixa + duas aberturas + reenvio simultâneo + isolamento + CHECKs) | ✅ 1326 |
+| Unitários (conta e taxa com fast-check, desconto e limite, troco, divisão por pessoas e por itens, esperado e fechamento cego) | ✅ 549 |
+| Integração com MySQL 8.4 real (BDD + dois caixas na mesma conta + pagar × fechar caixa + duas aberturas + duas sangrias + reenvio simultâneo + isolamento + CHECKs) | ✅ 1335 |
 | E2E no navegador (celular, tablet, desktop + BDD) | ✅ 141 (4 pulados de propósito), duas execuções completas seguidas |
 
 ## Definition of Done
@@ -76,8 +99,8 @@ cegas e vê a diferença. Cada pagamento é registrado uma única vez, mesmo com
 - [x] Migration revisada (índices antes das FKs; aplicada no banco de desenvolvimento)
 - [x] Testes unitários, integração (MySQL real), BDD, concorrência, isolamento entre lojas, E2E
 - [x] Lint, typecheck, build
-- [ ] CI no GitHub
-- [ ] Revisão do `reviewer`
+- [x] CI no GitHub (verde no commit da implementação)
+- [ ] Revisão do `reviewer` (1ª reprovada; achados corrigidos — I-3 e S-2 aguardam decisão; reverificação pendente)
 - [x] Docs e maps
 - [x] `PROJECT_STATUS.md`
 - [ ] `APROVADO` do usuário

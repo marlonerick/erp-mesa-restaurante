@@ -36,7 +36,8 @@ CAIXA, GERENTE, ADMIN (`cashier.*`). O garçom não usa o caixa.
 - **RN-CASH-07** — O caixa pode ser fechado com contas ainda abertas (E8-5): elas continuam abertas
   e são recebidas em outro caixa ou no dia seguinte. Caixa fechado não recebe mais nada.
 - **RN-CASH-08** — Concorrência: abrir, movimentar, receber e fechar travam a linha da sessão; quem
-  espera relê com trava. Receber enquanto outro fecha: um dos dois vence; o pagamento num caixa já
+  espera relê com trava — inclusive a SOMA das movimentações que dá o esperado (achado B-2 da
+  revisão: duas sangrias simultâneas deixavam a gaveta negativa). Receber enquanto outro fecha: um dos dois vence; o pagamento num caixa já
   fechado é recusado (`CASH_SESSION_CLOSED`). Fechar usa a versão lida (`CONCURRENT_MODIFICATION`).
 - **RN-CASH-09** — Auditoria: `CASH_OPENED`, `CASH_MOVEMENT` (sangria/suprimento), `CASH_CLOSED`
   (com esperado, informado e diferença).
@@ -96,8 +97,8 @@ stateDiagram-v2
 - **CA-CASH-01** — Abre no terminal de caixa; aparelho sem terminal é recusado → `tests/features/cashier/caixa.feature`
 - **CA-CASH-02** — Sangria e suprimento com motivo; sangria acima do dinheiro é recusada → `caixa.feature`
 - **CA-CASH-03** — Fechamento cego grava esperado, informado e diferença → `caixa.feature`
-- **CA-CASH-04** — Garçom não abre caixa; outra loja não vê o caixa → `caixa.feature`, `cashier-rules.test.ts`
-- **CA-CASH-05** — Receber e fechar ao mesmo tempo; dois abrindo no mesmo terminal → `cashier-rules.test.ts`
+- **CA-CASH-04** — Garçom não abre caixa; outra loja não vê nem fecha o caixa → `caixa.feature`, `tests/integration/modules/cashier/cashier-rules.test.ts`
+- **CA-CASH-05** — Duas sangrias ao mesmo tempo; sangria × estorno → `cashier-rules.test.ts`; receber × fechar e dois abrindo no mesmo terminal → `tests/integration/modules/pos/pos-rules.test.ts`
 
 ## 11. Dependências
 Organizations (terminal do aparelho, limite de caixas, fuso e virada), Users (nomes), Audit.

@@ -61,10 +61,24 @@ async function lockOpenSessionOfTerminal(
   return session;
 }
 
-async function expectedOf(deps: CashierDependencies, tx: Transaction, session: CashSessionRecord) {
+/**
+ * Esperado por forma. Com `locked`, a soma é lida COM TRAVA: depois da trava do caixa, uma leitura
+ * comum devolveria a "foto" do início da transação e não veria a sangria ou o estorno que outro
+ * acabou de gravar (achado B-2 da revisão da Etapa 8 — duas sangrias deixavam a gaveta negativa).
+ */
+async function expectedOf(
+  deps: CashierDependencies,
+  tx: Transaction,
+  session: CashSessionRecord,
+  locked = false,
+) {
   return expectedByMethod(
     session.openingAmountCents,
-    await deps.repo.movementTotals(tx, session.id),
+    await deps.repo.movementTotals(
+      tx,
+      { storeId: session.storeId, sessionId: session.id },
+      { forUpdate: locked },
+    ),
   );
 }
 
@@ -99,7 +113,10 @@ export async function current(
       terminalId: terminal.id,
     });
     if (!session) return { terminal, session: null };
-    const movements = await deps.repo.listManualMovements(tx, session.id);
+    const movements = await deps.repo.listManualMovements(tx, {
+      storeId: ctx.storeId,
+      sessionId: session.id,
+    });
     const names = await deps.userNames(tx, [
       session.openedBy,
       ...movements.map((movement) => movement.userId),
@@ -137,7 +154,7 @@ export async function summary(
     if (!session) throw cashErrors.sessionNotFound();
     const counts =
       session.status === 'FECHADA'
-        ? (await deps.repo.listCounts(tx, session.id)).sort(
+        ? (await deps.repo.listCounts(tx, { storeId: ctx.storeId, sessionId: session.id })).sort(
             (a, b) => PAYMENT_METHODS.indexOf(a.method) - PAYMENT_METHODS.indexOf(b.method),
           )
         : null;
@@ -246,7 +263,7 @@ export async function movement(
         await activeStore(deps, tx, ctx);
         const session = await lockOpenSessionOfTerminal(deps, tx, ctx);
         if (input.type === 'SANGRIA') {
-          const expected = await expectedOf(deps, tx, session);
+          const expected = await expectedOf(deps, tx, session, true);
           if (expected.DINHEIRO - amount < 0) throw cashErrors.insufficient();
         }
         const signed = input.type === 'SANGRIA' ? -amount : amount;
@@ -303,7 +320,7 @@ export async function close(
         await activeStore(deps, tx, ctx);
         if (session.status === 'FECHADA') throw cashErrors.closed();
         if (session.version !== input.version) throw cashErrors.concurrent();
-        const counts = blindCount(await expectedOf(deps, tx, session), input.declared);
+        const counts = blindCount(await expectedOf(deps, tx, session, true), input.declared);
         const closed = await deps.repo.closeSession(
           tx,
           { storeId: ctx.storeId, sessionId: session.id, version: session.version },

@@ -225,3 +225,109 @@ describe('garantias do banco', () => {
     expect(cents('1,00')).toBe(100);
   });
 });
+
+describe('achados da revisão da Etapa 8', () => {
+  it('B-1: quem não tem permissão de desconto não retira o desconto da conta', async () => {
+    await w.discountOrder('carla', mesa('1'), 'VALOR', 2000, 'cortesia');
+    await w.person('téo', 'COZINHA');
+    for (const who of ['téo', 'joão']) {
+      await w.attempt(() => w.discountOrder(who, mesa('1'), 'VALOR', 0, ''));
+      w.expectFailure('FORBIDDEN');
+    }
+    expect((await w.bill(mesa('1'))).totals.orderDiscountCents).toBe(2000);
+  });
+
+  it('I-1: pagar por valor e depois por TODOS os itens cobra exatamente o que falta', async () => {
+    await w.sells('Batata', '35,20', { noPrep: true });
+    await w.sendTo('joão', '2', [
+      { quantity: 1, product: 'Batata' },
+      { quantity: 1, product: 'Batata' },
+    ]);
+    await w.openCash('bia', '0,00');
+    // Total 70,40 + 10% = 77,44; paga 60,00 e depois "os dois itens"
+    await w.pay('bia', mesa('2'), 'PIX', '60,00');
+    const items = (await w.bill(mesa('2'))).items.map((item) => item.id);
+    await w.pay('bia', mesa('2'), 'PIX', null, { itemIds: items });
+    expect(w.lastPay).toMatchObject({ amountCents: 1744, closed: true });
+  });
+
+  it('I-1: itens que passam do que falta são recusados com mensagem clara', async () => {
+    await w.sells('Batata', '35,20', { noPrep: true });
+    await w.sendTo('joão', '2', [
+      { quantity: 1, product: 'Batata' },
+      { quantity: 1, product: 'Batata' },
+    ]);
+    await w.openCash('bia', '0,00');
+    await w.pay('bia', mesa('2'), 'PIX', '60,00');
+    const [first] = (await w.bill(mesa('2'))).items;
+    await w.attempt(() =>
+      w.pay('bia', mesa('2'), 'PIX', null, { itemIds: [first?.id ?? newId()] }),
+    );
+    w.expectFailure('ITEMS_EXCEED_BALANCE');
+  });
+
+  it('I-2: conta com cortesia de 100% fecha sem valor e a mesa vai para limpeza', async () => {
+    await w.attempt(() => w.services.pos.closeFree(w.ctx('bia'), { orderId: newId() }));
+    w.expectFailure('ORDER_NOT_FOUND');
+    const orderId = await w.orderId(mesa('1'));
+    await w.attempt(() => w.services.pos.closeFree(w.ctx('bia'), { orderId }));
+    w.expectFailure('BILL_NOT_FREE');
+    await w.discountOrder('carla', mesa('1'), 'PERCENTUAL', 10_000, 'cortesia da casa');
+    await w.services.pos.closeFree(w.ctx('bia'), { orderId });
+    expect((await w.bill(mesa('1'))).order).toMatchObject({ status: 'FECHADO', paidCents: 0 });
+    expect(await w.tableStatus('1')).toBe('LIMPEZA');
+  });
+
+  it('erros de pagamento: balcão sem taxa, dinheiro insuficiente, cancelado de novo, chave reusada', async () => {
+    await w.openCash('bia', '0,00');
+    await w.sendToCounter('joão', 'Ana', 1, 'X-Burger');
+    await w.attempt(() =>
+      w.services.pos.serviceFee(w.ctx('carla'), {
+        orderId: w.counter('Ana'),
+        waived: true,
+        reason: 'teste',
+      }),
+    );
+    w.expectFailure('NO_SERVICE_FEE');
+
+    const [item] = (await w.bill(mesa('1'))).items;
+    await w.attempt(() =>
+      w.pay('bia', mesa('1'), 'DINHEIRO', '1,00', { itemIds: [item?.id ?? newId()] }),
+    );
+    w.expectFailure('TENDERED_TOO_LOW');
+
+    await w.pay('bia', mesa('1'), 'PIX', '10,00', { key: 'k-reuso' });
+    await w.attempt(() => w.pay('bia', mesa('1'), 'PIX', '11,00', { key: 'k-reuso' }));
+    w.expectFailure('IDEMPOTENCY_KEY_REUSED');
+
+    await w.cancelPayment('carla', '1', 0, 'valor errado');
+    await w.attempt(() => w.cancelPayment('carla', '1', 0, 'de novo'));
+    w.expectFailure('PAYMENT_ALREADY_CANCELLED');
+  });
+
+  it('isolamento: pela Praia não dá desconto, pré-conta, taxa nem cancela pagamento do Centro', async () => {
+    await w.openCash('bia', '0,00');
+    await w.pay('bia', mesa('1'), 'PIX', '10,00');
+    const detail = await w.bill(mesa('1'));
+    await w.personAt('lia', 'GERENTE', 'Praia');
+    const ctx = w.ctx('lia');
+    const orderId = detail.order.id;
+    const attempts = [
+      () => w.services.pos.preBill(ctx, { orderId }),
+      () => w.services.pos.discountOrder(ctx, { orderId, mode: 'VALOR', value: 0, reason: '' }),
+      () => w.services.pos.serviceFee(ctx, { orderId, waived: true, reason: 'teste' }),
+      () =>
+        w.services.pos.cancelPayment(ctx, {
+          orderId,
+          paymentId: detail.payments[0]?.id ?? newId(),
+          reason: 'teste',
+          idempotencyKey: newId(),
+        }),
+    ];
+    for (const run of attempts) {
+      await w.attempt(run);
+      w.expectFailure('ORDER_NOT_FOUND');
+    }
+    expect((await w.bill(mesa('1'))).order.paidCents).toBe(1000);
+  });
+});

@@ -23,8 +23,9 @@ export function billingPort(deps: OrdersDependencies) {
       return order;
     },
 
-    /** Itens da conta (leitura comum — a conta já está travada). */
-    listItems: (tx: Transaction, orderId: Id): Promise<ItemRecord[]> => repo.listItems(tx, orderId),
+    /** Itens da conta da loja (leitura comum — a conta já está travada). */
+    listItems: (tx: Transaction, storeId: Id, orderId: Id): Promise<ItemRecord[]> =>
+      repo.listOrderItems(tx, { storeId, orderId }),
     listOpenOrders: (...args: Args<'listOpenOrders'>) => repo.listOpenOrders(...args),
     findOrder: (tx: Transaction, storeId: Id, orderId: Id) =>
       repo.findOrder(tx, { storeId, orderId }),

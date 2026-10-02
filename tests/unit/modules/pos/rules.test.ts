@@ -7,6 +7,7 @@ import {
   computeBill,
   discountFromInput,
   exceedsLimit,
+  fitShares,
   itemShares,
   parsePercent,
   splitEvenly,
@@ -167,6 +168,36 @@ describe('pagamento (RN-POS-09, RN-POS-13)', () => {
             0,
           );
           expect(Math.abs(sum - totals.totalCents)).toBeLessThanOrEqual(items.length * 2);
+        },
+      ),
+    );
+  });
+});
+
+describe('ajuste das partes por item (achado I-1, sugestão S-3)', () => {
+  it('soma exatamente o alvo, sem parte negativa, proporcional', () => {
+    const shares = [
+      { itemId: 'a', amountCents: 3872 },
+      { itemId: 'b', amountCents: 3872 },
+    ];
+    expect(fitShares(shares, 1744)).toEqual([
+      { itemId: 'a', amountCents: 872 },
+      { itemId: 'b', amountCents: 872 },
+    ]);
+    expect(fitShares([{ itemId: 'a', amountCents: 0 }], 500)).toEqual([
+      { itemId: 'a', amountCents: 500 },
+    ]);
+    fc.assert(
+      fc.property(
+        fc.array(fc.integer({ min: 0, max: 50_000 }), { minLength: 1, maxLength: 10 }),
+        fc.integer({ min: 0, max: 500_000 }),
+        (amounts, target) => {
+          const fitted = fitShares(
+            amounts.map((amountCents, index) => ({ itemId: String(index), amountCents })),
+            target,
+          );
+          expect(fitted.reduce((sum, share) => sum + share.amountCents, 0)).toBe(target);
+          expect(fitted.every((share) => share.amountCents >= 0)).toBe(true);
         },
       ),
     );

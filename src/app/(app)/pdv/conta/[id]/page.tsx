@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireSession } from '@/modules/auth/web';
 import { cashier } from '@/modules/cashier/web';
+import { loadStoreSettings } from '@/modules/organizations/web';
 import { pos, toBillView } from '@/modules/pos/web';
 import { hasPermission, isDomainError, isId } from '@/shared/kernel';
 import { NoPermission } from '../../../admin/no-permission';
@@ -38,6 +39,7 @@ export default async function BillPage({ params }: { params: Promise<{ id: strin
         storeName={storeName}
         cashOpen={Boolean(cash?.session)}
         discountLimitBp={await pos().myDiscountLimit(context)}
+        timeZone={(await loadStoreSettings(context))?.timezone ?? 'America/Sao_Paulo'}
         can={{
           receive: hasPermission(context, 'payments.create'),
           aboveLimit: hasPermission(context, 'discounts.apply_above_limit'),

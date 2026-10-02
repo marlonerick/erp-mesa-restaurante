@@ -49,6 +49,8 @@ export function posService(overrides: { db?: Database } = {}) {
     serviceFee: (ctx: RequestContext, input: Input<typeof useCases.serviceFee>) =>
       useCases.serviceFee(deps, ctx, input),
     pay: (ctx: RequestContext, input: Input<typeof useCases.pay>) => useCases.pay(deps, ctx, input),
+    closeFree: (ctx: RequestContext, input: Input<typeof useCases.closeFree>) =>
+      useCases.closeFree(deps, ctx, input),
     cancelPayment: (ctx: RequestContext, input: Input<typeof useCases.cancelPayment>) =>
       useCases.cancelPayment(deps, ctx, input),
   };

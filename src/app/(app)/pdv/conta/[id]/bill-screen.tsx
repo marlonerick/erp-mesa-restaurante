@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useActionState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { preBillAction } from '@/modules/pos/interface/actions';
+import { closeFreeAction, preBillAction } from '@/modules/pos/interface/actions';
 import type { BillView } from '@/modules/pos/web';
 import { cn } from '@/ui/cn';
 import { FormMessage } from '@/ui/form-message';
@@ -20,6 +20,8 @@ interface Props {
   /** Há caixa aberto neste terminal (RN-POS-08). */
   readonly cashOpen: boolean;
   readonly discountLimitBp: number;
+  /** Fuso da loja: a página é desenhada no servidor (UTC) e no navegador (sugestão S-7). */
+  readonly timeZone: string;
   readonly can: {
     readonly receive: boolean;
     readonly aboveLimit: boolean;
@@ -27,13 +29,24 @@ interface Props {
   };
 }
 
-const time = (iso: string) =>
-  new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+const timeIn = (timeZone: string) => (iso: string) =>
+  new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone }).format(
+    new Date(iso),
+  );
 const percent = (bp: number) => `${String(bp / 100).replace('.', ',')}%`;
 
 /** A conta no PDV (docs/modules/pos.md). */
-export function BillScreen({ bill, storeId, storeName, cashOpen, discountLimitBp, can }: Props) {
+export function BillScreen({
+  bill,
+  storeId,
+  storeName,
+  cashOpen,
+  discountLimitBp,
+  timeZone,
+  can,
+}: Props) {
   const { totals } = bill;
+  const time = timeIn(timeZone);
   const open = bill.status === 'ABERTO';
   const started = totals.paidCents > 0;
   // Desconto e taxa só antes do primeiro pagamento (RN-POS-07)
@@ -234,6 +247,13 @@ export function BillScreen({ bill, storeId, storeName, cashOpen, discountLimitBp
             {open && can.receive ? (
               <PreBillButton bill={bill} storeId={storeId} storeName={storeName} />
             ) : null}
+            {open &&
+            can.receive &&
+            totals.totalCents === 0 &&
+            totals.paidCents === 0 &&
+            bill.pendingCount === 0 ? (
+              <CloseFreeButton orderId={bill.orderId} storeId={storeId} />
+            ) : null}
           </section>
 
           {/* O painel continua no MESMO lugar quando a conta fecha: o resultado do último
@@ -287,6 +307,25 @@ function PreBillButton({
       {printed > 0
         ? createPortal(<PrebillPrint bill={bill} storeName={storeName} />, document.body)
         : null}
+    </form>
+  );
+}
+
+/** Conta com total zero (cortesia): fecha sem pagamento (RN-POS-12a). */
+function CloseFreeButton({
+  orderId,
+  storeId,
+}: {
+  readonly orderId: string;
+  readonly storeId: string;
+}) {
+  const [state, action] = useActionState(closeFreeAction, null);
+  return (
+    <form action={action} className="flex flex-col gap-2">
+      <input type="hidden" name="expectedStoreId" value={storeId} />
+      <input type="hidden" name="orderId" value={orderId} />
+      <SubmitButton pendingText="Fechando…">Fechar conta sem valor (cortesia)</SubmitButton>
+      <FormMessage state={state} />
     </form>
   );
 }

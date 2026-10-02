@@ -88,6 +88,15 @@ export function posWorld(db: Database) {
     },
     orderId,
 
+    /** Primeiro passo do cenário: organização nova e nada guardado do cenário anterior. */
+    async first(name: string, role: SystemRole, pin?: string) {
+      for (const map of [sessions, keys, grants, lastOrders]) map.clear();
+      lastPay = null;
+      lastCounts = [];
+      parts = [];
+      await base.first(name, role, pin);
+    },
+
     /** Pessoa com perfil na loja Centro, usando (ou não) um terminal de caixa deste aparelho. */
     async withTerminal(name: string, role: SystemRole, code: string | null, pin?: string) {
       await base.person(name, role, pin);

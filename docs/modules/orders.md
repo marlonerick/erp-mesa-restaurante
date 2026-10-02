@@ -113,7 +113,7 @@ autorização, pedir a conta, transferir, juntar e separar mesas.
   transação e não veria o que o outro garçom acabou de gravar (problema encontrado nos testes de
   concorrência desta etapa — o mesmo do achado B-1 da Etapa 5).
 - **RN-ORD-22** — Travas sempre na mesma ordem: conta(s) por id → mesas por id → saldo de estoque
-  por insumo (evita deadlock — ADR-0008). No PDV: conta → mesas → caixa (Etapa 8). Lançar item
+  por insumo (evita deadlock — ADR-0008). No PDV: conta → caixa → mesas (Etapa 8). Lançar item
   trava a conta como **primeira leitura** da transação e conta os itens sem trava (deadlock por
   trava de intervalo corrigido na Etapa 7 — ADR-0008).
 - **RN-ORD-23** — Toda ação que mexe na loja ativa confere a loja da tela (`STORE_CHANGED`).

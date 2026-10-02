@@ -185,6 +185,8 @@ export interface OrdersRepository {
   listOpenOrders(tx: Transaction, storeId: Id): Promise<OpenOrderSummary[]>;
 
   listItems(tx: Transaction, orderId: Id, options?: LockOption): Promise<ItemRecord[]>;
+  /** Itens da conta da loja (API do PDV — ADR-0009). */
+  listOrderItems(tx: Transaction, scope: { storeId: Id; orderId: Id }): Promise<ItemRecord[]>;
   countItems(tx: Transaction, orderId: Id, options?: LockOption): Promise<number>;
   findItem(
     tx: Transaction,

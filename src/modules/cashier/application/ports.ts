@@ -76,12 +76,19 @@ export interface CashierRepository {
     data: { by: Id; at: Date },
   ): Promise<boolean>;
   insertMovement(tx: Transaction, movement: NewCashMovement): Promise<void>;
-  /** Soma COM SINAL por forma de pagamento. */
-  movementTotals(tx: Transaction, sessionId: Id): Promise<MovementTotal[]>;
+  /** Soma COM SINAL por forma de pagamento; com trava = vê o último dado confirmado. */
+  movementTotals(
+    tx: Transaction,
+    scope: { storeId: Id; sessionId: Id },
+    options?: LockOption,
+  ): Promise<MovementTotal[]>;
   /** Sangrias e suprimentos (o que a tela mostra antes do fechamento — sem vendas). */
-  listManualMovements(tx: Transaction, sessionId: Id): Promise<CashMovementRecord[]>;
+  listManualMovements(
+    tx: Transaction,
+    scope: { storeId: Id; sessionId: Id },
+  ): Promise<CashMovementRecord[]>;
   insertCounts(tx: Transaction, sessionId: Id, lines: readonly CountLine[]): Promise<void>;
-  listCounts(tx: Transaction, sessionId: Id): Promise<CountLine[]>;
+  listCounts(tx: Transaction, scope: { storeId: Id; sessionId: Id }): Promise<CountLine[]>;
 }
 
 /** O que o caixa usa dos outros módulos (injetado — ADR-0014). */

@@ -24,12 +24,12 @@ export const posRepository: PosRepository = {
     await tx.insert(payment).values({ ...input, status: 'ATIVO' });
   },
 
-  listPayments(tx, orderId) {
+  listPayments(tx, { storeId, orderId }) {
     // UUIDv7: ordem de lançamento
     return tx
       .select(paymentColumns)
       .from(payment)
-      .where(eq(payment.orderId, orderId))
+      .where(and(eq(payment.orderId, orderId), eq(payment.storeId, storeId)))
       .orderBy(asc(payment.id));
   },
 
@@ -42,7 +42,7 @@ export const posRepository: PosRepository = {
     return row ?? null;
   },
 
-  async cancelPayment(tx, paymentId, data) {
+  async cancelPayment(tx, { storeId, paymentId }, data) {
     await tx
       .update(payment)
       .set({
@@ -53,7 +53,7 @@ export const posRepository: PosRepository = {
         cancelAuthorizedBy: data.authorizedBy,
         version: sql`${payment.version} + 1`,
       })
-      .where(eq(payment.id, paymentId));
+      .where(and(eq(payment.id, paymentId), eq(payment.storeId, storeId)));
   },
 
   async insertAllocations(tx, paymentId, lines) {
@@ -67,12 +67,18 @@ export const posRepository: PosRepository = {
     );
   },
 
-  async listAllocatedItemIds(tx, orderId) {
+  async listAllocatedItemIds(tx, { storeId, orderId }) {
     const rows = await tx
       .select({ itemId: paymentAllocation.orderItemId })
       .from(paymentAllocation)
       .innerJoin(payment, eq(payment.id, paymentAllocation.paymentId))
-      .where(and(eq(payment.orderId, orderId), eq(payment.status, 'ATIVO')));
+      .where(
+        and(
+          eq(payment.orderId, orderId),
+          eq(payment.storeId, storeId),
+          eq(payment.status, 'ATIVO'),
+        ),
+      );
     return new Set(rows.map((row) => row.itemId));
   },
 };

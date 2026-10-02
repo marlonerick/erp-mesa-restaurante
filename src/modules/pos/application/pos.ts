@@ -18,6 +18,7 @@ import {
   type DiscountMode,
   discountFromInput,
   exceedsLimit,
+  fitShares,
   itemShares,
   lineGross,
   paymentAmount,
@@ -127,9 +128,11 @@ async function billOf(
   tx: Transaction,
   order: OrderRecord,
 ): Promise<BillDetail> {
-  const items = await deps.orders.listItems(tx, order.id);
-  const payments = await deps.repo.listPayments(tx, order.id);
-  const allocated = await deps.repo.listAllocatedItemIds(tx, order.id);
+  // A conta já veio da loja ativa: as leituras seguintes filtram pela mesma loja (ADR-0009)
+  const scope = { storeId: order.storeId, orderId: order.id };
+  const items = await deps.orders.listItems(tx, scope.storeId, order.id);
+  const payments = await deps.repo.listPayments(tx, scope);
+  const allocated = await deps.repo.listAllocatedItemIds(tx, scope);
   const names = await deps.userNames(tx, [...new Set(payments.map((item) => item.createdBy))]);
   return {
     order,
@@ -176,7 +179,7 @@ export async function preBill(
   requirePermission(ctx, 'payments.create');
   return runInTransaction(deps.db, async (tx) => {
     const order = await lockOpenOrder(deps, tx, ctx, input.orderId);
-    requireNoPending(await deps.orders.listItems(tx, order.id));
+    requireNoPending(await deps.orders.listItems(tx, ctx.storeId, order.id));
     const at = ctx.clock.now();
     await deps.orders.updateBill(
       tx,
@@ -197,8 +200,9 @@ export async function preBill(
 // ---- Descontos e taxa (RN-POS-05 a RN-POS-07) ----
 
 /**
- * Libera o desconto: dentro do limite do perfil (quem não tem `discounts.apply` tem limite 0) ou
- * com `discounts.apply_above_limit` / PIN do gerente (RN-POS-05).
+ * Libera o desconto (RN-POS-05): com `discounts.apply`, dentro do limite do perfil; acima dele, ou
+ * para quem NÃO tem `discounts.apply` — inclusive para RETIRAR um desconto (valor zero) —, só com
+ * `discounts.apply_above_limit` ou PIN do gerente (achado B-1 da revisão da Etapa 8).
  */
 async function authorizeDiscount(
   deps: PosDependencies,
@@ -206,10 +210,9 @@ async function authorizeDiscount(
   ctx: RequestContext,
   discount: { cents: number; baseCents: number; grantToken: string | null },
 ) {
-  const limit = hasPermission(ctx, 'discounts.apply')
-    ? await deps.discountLimit(tx, ctx.userId, ctx.storeId)
-    : 0;
-  if (!exceedsLimit(discount.cents, discount.baseCents, limit)) {
+  const canDiscount = hasPermission(ctx, 'discounts.apply');
+  const limit = canDiscount ? await deps.discountLimit(tx, ctx.userId, ctx.storeId) : 0;
+  if (canDiscount && !exceedsLimit(discount.cents, discount.baseCents, limit)) {
     return { authorizerUserId: null, limitBp: limit };
   }
   const outcome = await deps.authorizeOrElevate(
@@ -238,7 +241,7 @@ export async function discountOrder(
   await runInTransaction(deps.db, async (tx) => {
     const order = await lockOpenOrder(deps, tx, ctx, input.orderId);
     if (order.paidCents > 0) throw posErrors.paymentsStarted();
-    const totals = totalsOf(order, await deps.orders.listItems(tx, order.id));
+    const totals = totalsOf(order, await deps.orders.listItems(tx, ctx.storeId, order.id));
     const cents = discountFromInput(input.mode, input.value, totals.subtotalCents);
     const reason = cents === 0 ? null : reasonText(input.reason, 'DISCOUNT_REASON_REQUIRED');
     const { authorizerUserId } = await authorizeDiscount(deps, tx, ctx, {
@@ -269,7 +272,7 @@ export async function discountItem(
   await runInTransaction(deps.db, async (tx) => {
     const order = await lockOpenOrder(deps, tx, ctx, input.orderId);
     if (order.paidCents > 0) throw posErrors.paymentsStarted();
-    const item = (await deps.orders.listItems(tx, order.id)).find(
+    const item = (await deps.orders.listItems(tx, ctx.storeId, order.id)).find(
       (candidate) => candidate.id === input.itemId,
     );
     if (!item) throw posErrors.itemNotFound();
@@ -380,7 +383,7 @@ export async function pay(
       },
       async () => {
         const order = await lockOpenOrder(deps, tx, ctx, input.orderId);
-        const items = await deps.orders.listItems(tx, order.id);
+        const items = await deps.orders.listItems(tx, ctx.storeId, order.id);
         requireNoPending(items);
         const session = await deps.cashier.lockOpenSession(tx, ctx);
         const totals = totalsOf(order, items);
@@ -390,7 +393,10 @@ export async function pay(
         let shares: { itemId: string; amountCents: number }[] = [];
         let due: number;
         if (itemIds.length > 0) {
-          const allocated = await deps.repo.listAllocatedItemIds(tx, order.id);
+          const allocated = await deps.repo.listAllocatedItemIds(tx, {
+            storeId: ctx.storeId,
+            orderId: order.id,
+          });
           const selected = itemIds.map((id) => items.find((item) => item.id === id));
           if (selected.some((item) => item === undefined || item.status === 'CANCELADO')) {
             throw posErrors.itemNotFound();
@@ -400,10 +406,23 @@ export async function pay(
             totals,
             selected.filter((item): item is ItemRecord => item !== undefined),
           );
-          due = Math.min(
-            shares.reduce((sum, share) => sum + share.amountCents, 0),
-            totals.balanceCents,
+          const sharesTotal = shares.reduce((sum, share) => sum + share.amountCents, 0);
+          // Marcou TODOS os itens que faltam: cobra exatamente o que falta (sem sobrar centavo,
+          // mesmo depois de um pagamento por valor — achado I-1 e S-3 da revisão)
+          const remaining = items.filter(
+            (item) => item.status !== 'CANCELADO' && !allocated.has(item.id),
           );
+          const coversAll = remaining.every((item) => itemIds.includes(item.id));
+          if (coversAll) {
+            due = totals.balanceCents;
+          } else if (sharesTotal > totals.balanceCents) {
+            throw posErrors.itemsExceedBalance();
+          } else {
+            due = sharesTotal;
+          }
+          // Itens que valem zero (desconto de 100%) não geram pagamento
+          if (due <= 0) throw posErrors.nothingToPay();
+          shares = fitShares(shares, due);
         } else {
           due = paymentAmount(input.amountCents);
         }
@@ -440,20 +459,8 @@ export async function pay(
           createdBy: ctx.userId,
           createdAt: now,
         });
-        // A parte de cada item; arredondamento/limite fica no último
-        if (shares.length > 0) {
-          const total = shares.reduce((sum, share) => sum + share.amountCents, 0);
-          const last = shares.length - 1;
-          await deps.repo.insertAllocations(
-            tx,
-            paymentId,
-            shares.map((share, index) =>
-              index === last
-                ? { ...share, amountCents: share.amountCents - (total - amountCents) }
-                : share,
-            ),
-          );
-        }
+        // A parte de cada item (já ajustada para somar o valor do pagamento)
+        await deps.repo.insertAllocations(tx, paymentId, shares);
         await deps.cashier.recordSale(tx, ctx, {
           sessionId: session.id,
           method: input.method,
@@ -492,6 +499,31 @@ export async function pay(
     ),
   );
   return outcome.result;
+}
+
+/**
+ * Conta que ficou com total zero (cortesia de 100% ou tudo cancelado): fecha sem pagamento e manda
+ * a mesa para limpeza (RN-POS-12a — achado I-2 da revisão: antes ela ficava aberta para sempre).
+ */
+export async function closeFree(
+  deps: PosDependencies,
+  ctx: RequestContext,
+  input: { orderId: Id },
+): Promise<void> {
+  requirePermission(ctx, 'payments.create');
+  await runInTransaction(deps.db, async (tx) => {
+    const order = await lockOpenOrder(deps, tx, ctx, input.orderId);
+    const items = await deps.orders.listItems(tx, ctx.storeId, order.id);
+    requireNoPending(items);
+    const totals = totalsOf(order, items);
+    if (totals.totalCents !== 0 || totals.paidCents !== 0) throw posErrors.notFree();
+    await deps.orders.closeAsPaid(tx, ctx, order, {
+      itemsCents: totals.itemsCents,
+      discountsCents: totals.itemDiscountsCents + totals.orderDiscountCents,
+      serviceFeeCents: 0,
+      totalCents: 0,
+    });
+  });
 }
 
 export async function cancelPayment(
@@ -540,12 +572,16 @@ export async function cancelPayment(
           reason,
           authorizedBy: authorizerUserId,
         });
-        await deps.repo.cancelPayment(tx, found.id, {
-          by: ctx.userId,
-          at: ctx.clock.now(),
-          reason,
-          authorizedBy: authorizerUserId,
-        });
+        await deps.repo.cancelPayment(
+          tx,
+          { storeId: ctx.storeId, paymentId: found.id },
+          {
+            by: ctx.userId,
+            at: ctx.clock.now(),
+            reason,
+            authorizedBy: authorizerUserId,
+          },
+        );
         await deps.orders.updateBill(
           tx,
           { storeId: ctx.storeId, orderId: order.id },

@@ -40,7 +40,8 @@ CAIXA, GERENTE, ADMIN (receber — E8-1). GERENTE autoriza com PIN o que passa d
   O desconto **substitui** o anterior; zero retira. Não passa do valor-base (linha do item ou
   subtotal). Limite por perfil (Q-07): o percentual do desconto sobre a sua base não pode passar do
   limite do usuário na loja (GARÇOM 0%, CAIXA 10%, GERENTE/ADMIN 100% — `role.max_discount_bp`);
-  quem não tem `discounts.apply` tem limite 0. Acima do limite: `discounts.apply_above_limit` ou
+  quem não tem `discounts.apply` precisa SEMPRE do gerente — inclusive para **retirar** um desconto
+  (achado B-1 da revisão). Acima do limite: `discounts.apply_above_limit` ou
   **PIN do gerente** no aparelho (autorização elevada). Auditoria `DISCOUNT_APPLIED` (quem pediu,
   quem autorizou, antes e depois).
 - **RN-POS-06** — **Retirar a taxa de serviço** (e devolver): `discounts.apply_above_limit` ou PIN
@@ -65,14 +66,19 @@ CAIXA, GERENTE, ADMIN (receber — E8-1). GERENTE autoriza com PIN o que passa d
 - **RN-POS-12** — **Conta paga** (falta pagar = 0): fecha sozinha — situação **FECHADO**, valores
   congelados (itens, descontos, taxa, total), quem e quando; as mesas vão para **LIMPEZA** (o garçom
   libera depois — RN-TAB-05). Auditoria `PAYMENT_CREATED` e `ORDER_CLOSED`.
+- **RN-POS-12a** — **Conta sem valor** (cortesia de 100% ou tudo cancelado): "Fechar conta sem
+  valor" fecha sem pagamento e manda a mesa para limpeza; com valor a pagar → `BILL_NOT_FREE`
+  (achado I-2).
 - **RN-POS-13** — **Divisão de conta** (README B.7.4):
   - **por valor**: o caixa digita quanto cada um paga (vários pagamentos);
   - **por pessoas**: a tela divide o que falta em N partes iguais — os centavos que sobram vão para
     as primeiras (`Money.allocate`) — e preenche o valor de cada pagamento;
   - **por itens**: o caixa marca os itens; o valor sugerido é a parte deles na conta (linha com
     desconto do item, proporcional ao desconto da conta, mais a taxa), e os itens ficam **marcados
-    como pagos** (`payment_allocation`) — não podem ser escolhidos de novo. O último pagamento cobre
-    a diferença de arredondamento.
+    como pagos** (`payment_allocation`) — não podem ser escolhidos de novo. Se os itens marcados são
+    **todos** os que faltam, cobra exatamente o que falta (sem sobrar centavo, mesmo depois de um
+    pagamento por valor); se não, a parte deles não pode passar do que falta
+    (`ITEMS_EXCEED_BALANCE` — achado I-1).
 - **RN-POS-14** — **Cancelar pagamento** (E8-3): `payments.cancel` ou PIN do gerente, com motivo;
   só com a conta ABERTA e o caixa daquele pagamento **ainda aberto** (`CASH_SESSION_CLOSED`). Gera
   `ESTORNO` no caixa, tira do pago e libera os itens marcados. Auditoria `PAYMENT_CANCELLED`.
@@ -83,7 +89,7 @@ CAIXA, GERENTE, ADMIN (receber — E8-1). GERENTE autoriza com PIN o que passa d
   outra (`PAYMENTS_STARTED`) — o total ficaria menor que o pago. Lançar mais itens continua
   permitido (o que falta pagar aumenta) e eles entram na próxima pré-conta.
 - **RN-POS-16** — Concorrência: receber, descontar, emitir pré-conta e cancelar pagamento **travam a
-  conta como primeira leitura** (ADR-0008) e depois as mesas e o caixa. Dois caixas recebendo a
+  conta como primeira leitura** (ADR-0008) e depois o caixa e as mesas. Dois caixas recebendo a
   mesma conta: o segundo vê o pago atualizado (pode receber `PAYMENT_EXCEEDS_BALANCE` ou
   `ORDER_NOT_OPEN` se a conta já fechou).
 
@@ -114,6 +120,10 @@ Mesa: `OCUPADA/AGUARDANDO_CONTA → EM_PAGAMENTO` (pré-conta ou 1º pagamento) 
 | Valor acima do que falta | `PAYMENT_EXCEEDS_BALANCE` | 422 | O valor passa do que falta pagar. |
 | Dinheiro recebido menor que zero / inválido | `INVALID_PAYMENT_AMOUNT` | 400 | Informe um valor válido (ex.: 50,00). |
 | Item já pago na divisão | `ITEM_ALREADY_PAID` | 422 | Um dos itens já foi pago em outra parte. |
+| Itens marcados passam do que falta | `ITEMS_EXCEED_BALANCE` | 422 | Os itens marcados passam do que falta pagar. Receba por valor. |
+| Dinheiro menor que a parte dos itens | `TENDERED_TOO_LOW` | 422 | O dinheiro recebido é menor que a parte destes itens. |
+| Nada a pagar | `NOTHING_TO_PAY` | 422 | Esta conta não tem valor a pagar. |
+| Fechar sem valor com valor a pagar | `BILL_NOT_FREE` | 422 | Esta conta tem valor a pagar. |
 | Desconto maior que a base | `DISCOUNT_TOO_HIGH` | 422 | O desconto passa do valor. |
 | Desconto acima do limite sem autorização | `FORBIDDEN` (com `elevationAllowed`) | 403 | Você não tem permissão para esta ação. |
 | Motivo obrigatório | `DISCOUNT_REASON_REQUIRED` / `CANCEL_REASON_REQUIRED` | 400 | Explique o motivo (3 a 200 caracteres). |
@@ -140,7 +150,8 @@ Mesa: `OCUPADA/AGUARDANDO_CONTA → EM_PAGAMENTO` (pré-conta ou 1º pagamento) 
 | `pos.discountItem` / `pos.discountOrder` | `{ itemId \| orderId, mode: VALOR \| PERCENTUAL, value, reason, grantToken? }` | ok | `DISCOUNT_APPLIED` |
 | `pos.serviceFee` | `{ orderId, waived, reason, grantToken? }` | ok | `SERVICE_FEE_REMOVED/RESTORED` |
 | `pos.pay` | `{ orderId, method, amount, reference?, itemIds?, idempotencyKey }` | `{ paymentId, amount, change, closed }` | `PAYMENT_CREATED` (+ `ORDER_CLOSED`) |
-| `pos.cancelPayment` | `{ paymentId, reason, grantToken?, idempotencyKey }` | ok | `PAYMENT_CANCELLED` |
+| `pos.cancelPayment` | `{ orderId, paymentId, reason, grantToken?, idempotencyKey }` | ok | `PAYMENT_CANCELLED` |
+| `pos.closeFree` | `{ orderId }` | ok | `ORDER_CLOSED` |
 
 ## 9. Modelo de dados (migration 0011)
 `customer_order` + colunas da conta (§4) com CHECKs; `order_item` + desconto (CK ≤ linha);
@@ -155,7 +166,8 @@ Mesa: `OCUPADA/AGUARDANDO_CONTA → EM_PAGAMENTO` (pré-conta ou 1º pagamento) 
 - **CA-POS-05** — Desconto acima do limite pede PIN do gerente → `conta.feature`
 - **CA-POS-06** — Divisão por pessoas e por itens → `divisao.feature`
 - **CA-POS-07** — Cancelar pagamento com PIN volta o valor e estorna o caixa → `pagamento.feature`
-- **CA-POS-08** — Dois caixas recebendo a mesma conta; isolamento entre lojas → `pos-rules.test.ts`
+- **CA-POS-08** — Dois caixas recebendo a mesma conta; isolamento entre lojas (conta, desconto, pré-conta, taxa, cancelar pagamento) → `tests/integration/modules/pos/pos-rules.test.ts`
+- **CA-POS-09** — Sem `discounts.apply` não retira desconto; pagar por valor e depois por itens; conta sem valor fecha → `pos-rules.test.ts`
 
 ## 11. Dependências
 Orders (API na transação: travar a conta, itens, gravar descontos/taxa/pago, fechar a conta e as

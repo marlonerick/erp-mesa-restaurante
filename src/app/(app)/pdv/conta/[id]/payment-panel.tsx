@@ -92,6 +92,8 @@ export function PaymentPanel({
               key={value}
               className={cn(
                 'flex min-h-14 cursor-pointer items-center gap-2 rounded-md border-2 px-4 text-lg font-semibold',
+                // Foco do teclado visível no rótulo (o rádio é escondido — sugestão S-6)
+                'has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-azulejo',
                 method === value
                   ? 'border-azulejo bg-azulejo-claro text-azulejo'
                   : 'border-borda bg-white',
@@ -107,6 +109,8 @@ export function PaymentPanel({
                 }}
                 className="sr-only"
               />
+              {/* A escolha não fica só na cor: marca ✓ (sugestão S-6) */}
+              {method === value ? <span aria-hidden="true">✓</span> : null}
               {label}
             </label>
           ))}

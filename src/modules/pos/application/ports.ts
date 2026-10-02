@@ -29,7 +29,7 @@ export interface PosRepository {
     tx: Transaction,
     payment: Omit<PaymentRecord, 'status' | 'cancelReason' | 'version'> & { storeId: Id },
   ): Promise<void>;
-  listPayments(tx: Transaction, orderId: Id): Promise<PaymentRecord[]>;
+  listPayments(tx: Transaction, scope: { storeId: Id; orderId: Id }): Promise<PaymentRecord[]>;
   findPayment(
     tx: Transaction,
     scope: { storeId: Id; paymentId: Id },
@@ -37,7 +37,7 @@ export interface PosRepository {
   ): Promise<PaymentRecord | null>;
   cancelPayment(
     tx: Transaction,
-    paymentId: Id,
+    scope: { storeId: Id; paymentId: Id },
     data: { by: Id; at: Date; reason: string; authorizedBy: Id | null },
   ): Promise<void>;
   insertAllocations(
@@ -46,7 +46,7 @@ export interface PosRepository {
     lines: readonly { itemId: string; amountCents: number }[],
   ): Promise<void>;
   /** Itens já pagos na divisão por itens (pagamentos ATIVOS). */
-  listAllocatedItemIds(tx: Transaction, orderId: Id): Promise<Set<Id>>;
+  listAllocatedItemIds(tx: Transaction, scope: { storeId: Id; orderId: Id }): Promise<Set<Id>>;
 }
 
 /** O que o PDV usa dos outros módulos (injetado — ADR-0014). */

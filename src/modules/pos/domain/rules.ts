@@ -17,6 +17,9 @@ export const posErrors = {
   paymentsStarted: () =>
     rule('PAYMENTS_STARTED', 'Esta conta já tem pagamento. Cancele os pagamentos antes.'),
   exceedsBalance: () => rule('PAYMENT_EXCEEDS_BALANCE', 'O valor passa do que falta pagar.'),
+  itemsExceedBalance: () =>
+    rule('ITEMS_EXCEED_BALANCE', 'Os itens marcados passam do que falta pagar. Receba por valor.'),
+  notFree: () => rule('BILL_NOT_FREE', 'Esta conta tem valor a pagar.'),
   tenderedTooLow: () =>
     rule('TENDERED_TOO_LOW', 'O dinheiro recebido é menor que a parte destes itens.'),
   nothingToPay: () => rule('NOTHING_TO_PAY', 'Esta conta não tem valor a pagar.'),
@@ -195,6 +198,33 @@ export function itemShares(
           );
     const base = net - discountShare;
     return { itemId: item.id, amountCents: base + applyBp(base, totals.serviceFeeBp) };
+  });
+}
+
+/**
+ * Ajusta as partes dos itens para somarem exatamente `target` (proporcional, sem parte negativa;
+ * os centavos que sobram vão para as primeiras). Usado quando os itens marcados são todos os que
+ * faltam: cobra o que falta, sem deixar centavo de arredondamento (achado I-1 e S-3 da revisão).
+ */
+export function fitShares<T extends { amountCents: number }>(
+  shares: readonly T[],
+  target: number,
+): T[] {
+  const total = shares.reduce((sum, share) => sum + share.amountCents, 0);
+  if (shares.length === 0 || total === target) return [...shares];
+  // Partes todas zeradas (itens com 100% de desconto): o valor vai para a primeira
+  if (total === 0) {
+    return shares.map((share, index) => ({ ...share, amountCents: index === 0 ? target : 0 }));
+  }
+  const scaled = shares.map((share) =>
+    Number((BigInt(share.amountCents) * BigInt(target)) / BigInt(total)),
+  );
+  // O arredondamento para baixo deixa menos centavos que partes: 1 para cada uma das primeiras
+  let rest = target - scaled.reduce((sum, value) => sum + value, 0);
+  return shares.map((share, index) => {
+    const extra = rest > 0 ? 1 : 0;
+    rest -= extra;
+    return { ...share, amountCents: (scaled[index] ?? 0) + extra };
   });
 }
 

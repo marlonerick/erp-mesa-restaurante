@@ -14,7 +14,7 @@ import {
   storePinHash,
 } from '@/modules/users';
 import { getDatabase } from '@/shared/db/client';
-import { store, store as storeTable } from '@/shared/db/schema';
+import { store } from '@/shared/db/schema';
 import { runInTransaction } from '@/shared/db/transaction';
 import { newId, type SystemRole } from '@/shared/kernel';
 import { argon2Hasher } from '@/shared/security/password-hasher';
@@ -111,13 +111,13 @@ try {
     );
 
     await runInTransaction(db, async (tx) => {
-      const store = await getStore(tx, centro);
-      if (!store) throw new Error('loja Centro não encontrada');
-      const { companyId } = store;
+      const centroInfo = await getStore(tx, centro);
+      if (!centroInfo) throw new Error('loja Centro não encontrada');
+      const { companyId } = centroInfo;
       const praia = await addStore(tx, { organizationId, companyId, name: 'Praia', code: 'PRAIA' });
       // Vários caixas abertos ao mesmo tempo (Q-05): o Centro de demonstração aceita 5 — os testes
       // de navegador abrem um caixa por aparelho simulado, em paralelo
-      await tx.update(storeTable).set({ maxOpenCashSessions: 5 }).where(eq(storeTable.id, centro));
+      await tx.update(store).set({ maxOpenCashSessions: 5 }).where(eq(store.id, centro));
       for (const member of hashed) {
         const id = newId();
         await insertUser(tx, {

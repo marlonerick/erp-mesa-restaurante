@@ -74,20 +74,21 @@ export const cashierRepository: CashierRepository = {
     await tx.insert(cashMovement).values({ id: newId(), ...movement });
   },
 
-  async movementTotals(tx, sessionId) {
-    const rows = await tx
+  async movementTotals(tx, { storeId, sessionId }, options = {}) {
+    const query = tx
       .select({
         method: cashMovement.paymentMethod,
         // SUM de INT chega como texto (DECIMAL): converte explicitamente
         amount: sql<string>`sum(${cashMovement.amountCents})`,
       })
       .from(cashMovement)
-      .where(eq(cashMovement.cashSessionId, sessionId))
+      .where(and(eq(cashMovement.cashSessionId, sessionId), eq(cashMovement.storeId, storeId)))
       .groupBy(cashMovement.paymentMethod);
+    const rows = options.forUpdate ? await query.for('share') : await query;
     return rows.map((row) => ({ method: row.method, amountCents: Number(row.amount) }));
   },
 
-  listManualMovements(tx, sessionId) {
+  listManualMovements(tx, { storeId, sessionId }) {
     return tx
       .select({
         id: cashMovement.id,
@@ -102,6 +103,7 @@ export const cashierRepository: CashierRepository = {
       .where(
         and(
           eq(cashMovement.cashSessionId, sessionId),
+          eq(cashMovement.storeId, storeId),
           inArray(cashMovement.type, ['SANGRIA', 'SUPRIMENTO', 'AJUSTE']),
         ),
       )
@@ -121,7 +123,7 @@ export const cashierRepository: CashierRepository = {
     );
   },
 
-  async listCounts(tx, sessionId) {
+  async listCounts(tx, { storeId, sessionId }) {
     const rows = await tx
       .select({
         method: cashSessionCount.paymentMethod,
@@ -130,7 +132,9 @@ export const cashierRepository: CashierRepository = {
         differenceCents: cashSessionCount.differenceCents,
       })
       .from(cashSessionCount)
-      .where(eq(cashSessionCount.cashSessionId, sessionId));
+      // A contagem não tem loja: a loja vem da sessão (ADR-0009)
+      .innerJoin(cashSession, eq(cashSession.id, cashSessionCount.cashSessionId))
+      .where(and(eq(cashSessionCount.cashSessionId, sessionId), eq(cashSession.storeId, storeId)));
     return rows;
   },
 };

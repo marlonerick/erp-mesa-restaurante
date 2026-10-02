@@ -181,3 +181,11 @@ export async function cancelPaymentAction(_previous: FormState | null, formData:
     return 'Pagamento cancelado e estornado no caixa.';
   });
 }
+
+export async function closeFreeAction(_previous: FormState | null, formData: FormData) {
+  return run(formData, async (ctx, data) => {
+    const input = z.object(orderScope).parse(data);
+    await pos().closeFree(ctx, { orderId: parseId(input.orderId) });
+    return 'Conta fechada sem valor (cortesia).';
+  });
+}
