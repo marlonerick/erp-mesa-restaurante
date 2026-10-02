@@ -80,7 +80,10 @@ autorização, pedir a conta, transferir, juntar e separar mesas.
 
 ### Conta e mesas
 - **RN-ORD-15** — **Subtotal** (E6-1) = soma de (preço unitário + adicionais) × quantidade dos
-  itens **não cancelados**, em centavos. Taxa de serviço e descontos entram no caixa (Etapa 8).
+  itens **não cancelados**, em centavos, menos o desconto de cada item (Etapa 8). A taxa de
+  serviço é **congelada na abertura**: mesa = taxa da loja naquele momento, balcão = 0 (RN-POS-03).
+  Desconto, taxa, pré-conta e pagamento ficam no PDV (docs/modules/pos.md); a conta guarda
+  `paid_cents` e, com pagamento, **não cancela item nem junta** (`PAYMENTS_STARTED` — RN-POS-15).
 - **RN-ORD-16** — **Pedir a conta** (`orders.update`): mesa(s) `OCUPADA` → `AGUARDANDO_CONTA`.
   Com itens ainda pendentes → `PENDING_ITEMS` (enviar ou remover antes).
 - **RN-ORD-17** — **Transferir** (`orders.update`, Q-18): a conta inteira vai para uma mesa ativa
@@ -110,7 +113,9 @@ autorização, pedir a conta, transferir, juntar e separar mesas.
   transação e não veria o que o outro garçom acabou de gravar (problema encontrado nos testes de
   concorrência desta etapa — o mesmo do achado B-1 da Etapa 5).
 - **RN-ORD-22** — Travas sempre na mesma ordem: conta(s) por id → mesas por id → saldo de estoque
-  por insumo (evita deadlock — ADR-0008).
+  por insumo (evita deadlock — ADR-0008). No PDV: conta → mesas → caixa (Etapa 8). Lançar item
+  trava a conta como **primeira leitura** da transação e conta os itens sem trava (deadlock por
+  trava de intervalo corrigido na Etapa 7 — ADR-0008).
 - **RN-ORD-23** — Toda ação que mexe na loja ativa confere a loja da tela (`STORE_CHANGED`).
 - **RN-ORD-24** — Cada item guarda quem lançou e quando; envio, preparo, pronto, entrega e
   cancelamento guardam a hora (UTC) e quem fez (README B.7.3).
@@ -223,7 +228,7 @@ stateDiagram-v2
   status, created_at) para a fila; IX (store_id, station_id, finished_at) para "prontos há pouco"
   (migration 0010).
 - Diferenças do modelo inicial: quantidade inteira (E6-3); `opened_date` + `store_sequence` para a
-  numeração; `merged_into_order_id`; totais (taxa, descontos, pago) ficam para a migration da Etapa 8,
+  numeração; `merged_into_order_id`; taxa, descontos, pago e valores do fechamento entraram na migration 0011 (Etapa 8),
   quando forem usados; o ticket pertence ao Orders; o KDS (Etapa 7) lê e atualiza pela API `kitchenOrders`
   (`application/kitchen-port.ts`), sempre na transação e com a conta travada antes.
 
@@ -242,5 +247,5 @@ Inventory (estorno e perda), Organizations (loja, estação padrão, dia operaci
 (autorização do gerente), Audit. Nenhum deles depende de Orders.
 
 ## 12. Fora do escopo
-Taxa de serviço, descontos, pré-conta, pagamento, fechamento e reabertura (Etapa 8); cancelar parte da quantidade de um item (cancela a linha inteira); comanda por cliente
+Reabrir conta fechada (E8-4, depois do piloto); cancelar parte da quantidade de um item (cancela a linha inteira); comanda por cliente
 (Q-04); mover itens entre contas sem juntar.

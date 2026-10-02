@@ -1,4 +1,5 @@
 import { authService } from '@/modules/auth';
+import { cashierService } from '@/modules/cashier';
 import { catalogService } from '@/modules/catalog';
 import { inventoryService } from '@/modules/inventory';
 import { kitchenService } from '@/modules/kitchen';
@@ -13,6 +14,7 @@ import {
   organizationAdministration,
 } from '@/modules/organizations';
 import { ordersService } from '@/modules/orders';
+import { posService } from '@/modules/pos';
 import { recipesService } from '@/modules/recipes';
 import { tablesService } from '@/modules/tables';
 import { insertUser, storePinHash, userAdministration } from '@/modules/users';
@@ -117,6 +119,8 @@ export function testServices(db: Database, clock = new FakeClock(TEST_START)) {
   const tables = tablesService({ db });
   const orders = ordersService({ db });
   const kitchen = kitchenService({ db });
+  const cashier = cashierService({ db });
+  const pos = posService({ db });
   return {
     auth,
     users,
@@ -127,6 +131,8 @@ export function testServices(db: Database, clock = new FakeClock(TEST_START)) {
     tables,
     orders,
     kitchen,
+    cashier,
+    pos,
     clock,
   };
 }

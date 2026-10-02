@@ -59,6 +59,17 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       label: 'Cozinha',
       icon: 'cozinha' as const,
     },
+    // PDV e caixa (Etapa 8): caixa, gerente e admin
+    (hasPermission(context, 'payments.create') || hasPermission(context, 'cashier.read')) && {
+      href: '/pdv',
+      label: 'PDV',
+      icon: 'pdv' as const,
+    },
+    hasPermission(context, 'cashier.read') && {
+      href: '/caixa',
+      label: 'Caixa',
+      icon: 'caixa' as const,
+    },
     hasPermission(context, 'products.availability') && {
       href: '/disponibilidade',
       label: 'Disponibilidade',

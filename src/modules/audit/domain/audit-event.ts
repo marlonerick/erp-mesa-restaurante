@@ -67,6 +67,9 @@ export const AUDIT_EVENTS = [
   'ORDERS_MERGED',
   // Etapa 7 — cozinha (docs/modules/kitchen.md §5)
   'KITCHEN_READY_UNDONE',
+  // Etapa 8 — PDV (docs/modules/pos.md §8)
+  'PRE_BILL_ISSUED',
+  'SERVICE_FEE_RESTORED',
 ] as const;
 
 export type AuditEvent = (typeof AUDIT_EVENTS)[number];

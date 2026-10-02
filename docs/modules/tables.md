@@ -25,7 +25,8 @@ GERENTE/ADMIN (cadastro), GARÇOM/CAIXA/GERENTE (mapa, liberar mesa limpa).
 - **RN-TAB-04** — Estados: `LIVRE → OCUPADA → AGUARDANDO_CONTA → EM_PAGAMENTO → LIMPEZA → LIVRE`.
   `AGUARDANDO_CONTA → OCUPADA` é permitido (cliente pediu mais algo), com auditoria. Abrir,
   pedir conta, transferir, juntar e cancelar a conta são ações da conta (docs/modules/orders.md);
-  `EM_PAGAMENTO` e a ida para `LIMPEZA` chegam com o PDV (Etapa 8).
+  `EM_PAGAMENTO` (pré-conta ou 1º pagamento) e `LIMPEZA` (conta paga) vêm do PDV (Etapa 8 —
+  docs/modules/pos.md, RN-POS-04, 11 e 12).
 - **RN-TAB-05** — **Liberar mesa limpa** (`tables.manage`): `LIMPEZA → LIVRE`. Em outro estado,
   `TABLE_NOT_IN_CLEANING`.
 - **RN-TAB-06** — Uma mesa tem **no máximo uma conta aberta** (coluna `current_order_id`). Mesas
@@ -48,7 +49,8 @@ stateDiagram-v2
   LIVRE --> OCUPADA: abrir conta / juntar
   OCUPADA --> AGUARDANDO_CONTA: pedir a conta
   AGUARDANDO_CONTA --> OCUPADA: lançar mais itens
-  AGUARDANDO_CONTA --> EM_PAGAMENTO: caixa inicia (Etapa 8)
+  OCUPADA --> EM_PAGAMENTO: pré-conta ou 1º pagamento (Etapa 8)
+  AGUARDANDO_CONTA --> EM_PAGAMENTO: pré-conta ou 1º pagamento (Etapa 8)
   EM_PAGAMENTO --> LIMPEZA: conta paga (Etapa 8)
   LIMPEZA --> LIVRE: liberar mesa limpa
   OCUPADA --> LIVRE: transferir (origem) / separar / conta cancelada

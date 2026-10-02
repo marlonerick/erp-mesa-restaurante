@@ -280,6 +280,10 @@ erDiagram
     enum status
     string label
     binary merged_into_order_id
+    int service_fee_bp
+    int discount_cents
+    int paid_cents
+    int total_cents
     int version
   }
   order_round {
@@ -300,6 +304,7 @@ erDiagram
     binary started_by FK
     binary ready_by FK
     bool stock_consumed
+    int discount_cents
   }
   kitchen_ticket {
     binary id PK
@@ -321,7 +326,8 @@ erDiagram
     binary id PK
     binary cash_session_id FK
     enum type
-    bigint amount_cents
+    enum payment_method
+    int amount_cents
     binary payment_id FK
   }
   payment {
@@ -329,9 +335,21 @@ erDiagram
     binary order_id FK
     binary cash_session_id FK
     enum method
-    bigint amount_cents
-    string idempotency_key
+    int amount_cents
+    int change_cents
     enum status
+  }
+  payment_allocation {
+    binary payment_id PK
+    binary order_item_id PK
+    int amount_cents
+  }
+  cash_session_count {
+    binary cash_session_id PK
+    enum payment_method PK
+    int expected_cents
+    int declared_cents
+    int difference_cents
   }
   finance_entry {
     binary id PK

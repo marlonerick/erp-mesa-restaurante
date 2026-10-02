@@ -25,6 +25,12 @@ const orderColumns = {
   openedBy: customerOrder.openedBy,
   openedAt: customerOrder.openedAt,
   version: customerOrder.version,
+  serviceFeeBp: customerOrder.serviceFeeBp,
+  serviceFeeWaived: customerOrder.serviceFeeWaived,
+  discountCents: customerOrder.discountCents,
+  discountReason: customerOrder.discountReason,
+  paidCents: customerOrder.paidCents,
+  prebillAt: customerOrder.prebillAt,
 };
 
 const itemColumns = {
@@ -48,6 +54,8 @@ const itemColumns = {
   deliveredAt: orderItem.deliveredAt,
   cancelledAt: orderItem.cancelledAt,
   cancelReason: orderItem.cancelReason,
+  discountCents: orderItem.discountCents,
+  discountReason: orderItem.discountReason,
 };
 
 const kitchenItemColumns = {
@@ -201,6 +209,7 @@ export const ordersRepository: OrdersRepository = {
         subtotal: sql<string>`coalesce(sum(case when ${orderItem.status} <> 'CANCELADO' then (${orderItem.unitPriceCents} + ${orderItem.modifiersCents}) * ${orderItem.quantity} else 0 end), 0)`,
         pending: sql<string>`coalesce(sum(${orderItem.status} = 'PENDENTE'), 0)`,
         ready: sql<string>`coalesce(sum(${orderItem.status} = 'PRONTO'), 0)`,
+        itemDiscounts: sql<string>`coalesce(sum(case when ${orderItem.status} <> 'CANCELADO' then ${orderItem.discountCents} else 0 end), 0)`,
       })
       .from(customerOrder)
       .leftJoin(orderItem, eq(orderItem.orderId, customerOrder.id))
@@ -218,6 +227,12 @@ export const ordersRepository: OrdersRepository = {
       subtotalCents: Number(row.subtotal),
       pendingCount: Number(row.pending),
       readyCount: Number(row.ready),
+      itemDiscountsCents: Number(row.itemDiscounts),
+      discountCents: row.discountCents,
+      serviceFeeBp: row.serviceFeeBp,
+      serviceFeeWaived: row.serviceFeeWaived,
+      paidCents: row.paidCents,
+      prebillAt: row.prebillAt,
     }));
   },
 
@@ -382,6 +397,38 @@ export const ordersRepository: OrdersRepository = {
         version: sql`${kitchenTicket.version} + 1`,
       })
       .where(and(eq(kitchenTicket.id, ticketId), eq(kitchenTicket.storeId, storeId)));
+  },
+
+  // ---- Conta no PDV ----
+
+  async setItemDiscount(tx, { storeId, itemId }, { cents, reason }) {
+    await tx
+      .update(orderItem)
+      .set({ discountCents: cents, discountReason: reason })
+      .where(and(eq(orderItem.id, itemId), eq(orderItem.storeId, storeId)));
+  },
+
+  async updateBill(tx, { storeId, orderId }, changes) {
+    await tx
+      .update(customerOrder)
+      .set({ ...changes, version: sql`${customerOrder.version} + 1` })
+      .where(and(eq(customerOrder.id, orderId), eq(customerOrder.storeId, storeId)));
+  },
+
+  async closeOrderAsPaid(tx, { storeId, orderId }, data) {
+    await tx
+      .update(customerOrder)
+      .set({
+        status: 'FECHADO',
+        closedBy: data.by,
+        closedAt: data.at,
+        itemsCents: data.itemsCents,
+        discountsCents: data.discountsCents,
+        serviceFeeCents: data.serviceFeeCents,
+        totalCents: data.totalCents,
+        version: sql`${customerOrder.version} + 1`,
+      })
+      .where(and(eq(customerOrder.id, orderId), eq(customerOrder.storeId, storeId)));
   },
 
   async moveTickets(tx, fromOrderId, toOrderId) {

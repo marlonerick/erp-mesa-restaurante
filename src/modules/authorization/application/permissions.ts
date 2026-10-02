@@ -18,6 +18,23 @@ export async function permissionsInStore(
   return resolveStorePermissions(await repo.listUserGrants(tx, userId), store);
 }
 
+/**
+ * Desconto máximo do usuário na loja (RN-AUTHZ-08, Q-07): o MAIOR limite entre os perfis que
+ * valem nela, em pontos-base (1000 = 10%). Sem perfil na loja: 0.
+ */
+export async function discountLimitInStore(
+  repo: AuthorizationRepository,
+  tx: Transaction,
+  userId: Id,
+  storeId: Id,
+): Promise<number> {
+  const store = await getStore(tx, storeId);
+  if (!store) return 0;
+  return (await repo.listUserGrants(tx, userId))
+    .filter((grant) => covers(grant, store))
+    .reduce((max, grant) => Math.max(max, grant.maxDiscountBp), 0);
+}
+
 /** Lojas em que o usuário tem algum perfil, em ordem alfabética (RN-AUTH-14). */
 export async function accessibleStores(
   repo: AuthorizationRepository,

@@ -37,6 +37,7 @@ export const authorizationRepository: AuthorizationRepository = {
       .select({
         assignmentId: userRoleAssignment.id,
         roleCode: role.code,
+        maxDiscountBp: role.maxDiscountBp,
         scopeType: userRoleAssignment.scopeType,
         scopeId: userRoleAssignment.scopeId,
         permissionCode: rolePermission.permissionCode,
@@ -48,6 +49,7 @@ export const authorizationRepository: AuthorizationRepository = {
     return [...groupPermissions(rows, (row) => row.assignmentId).values()].map(
       ({ first, permissions }) => ({
         roleCode: first.roleCode,
+        maxDiscountBp: first.maxDiscountBp,
         scopeType: first.scopeType,
         scopeId: first.scopeId,
         permissions,

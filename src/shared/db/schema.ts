@@ -5,6 +5,7 @@ export { idempotencyRecord } from '../idempotency/schema';
 export * from './tables/audit';
 export * from './tables/auth';
 export * from './tables/authorization';
+export * from './tables/cashier';
 export * from './tables/catalog';
 export * from './tables/inventory';
 export * from './tables/orders';

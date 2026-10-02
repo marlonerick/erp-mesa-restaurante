@@ -167,16 +167,19 @@ export interface PricedItem {
   readonly modifiersCents: number;
   readonly quantity: number;
   readonly status: OrderItemStatus;
+  /** Desconto na linha (Etapa 8); ausente = 0. */
+  readonly discountCents?: number;
 }
 
 /** Total da linha: (preço unitário + adicionais) × quantidade. */
 export const lineTotal = (item: Omit<PricedItem, 'status'>): number =>
   (item.unitPriceCents + item.modifiersCents) * item.quantity;
 
-/** Subtotal da conta (E6-1): itens não cancelados. */
+/** Subtotal da conta (E6-1): itens não cancelados, já com o desconto de cada item (Etapa 8). */
 export function subtotal(items: readonly PricedItem[]): number {
   return items.reduce(
-    (sum, item) => (item.status === 'CANCELADO' ? sum : sum + lineTotal(item)),
+    (sum, item) =>
+      item.status === 'CANCELADO' ? sum : sum + lineTotal(item) - (item.discountCents ?? 0),
     0,
   );
 }

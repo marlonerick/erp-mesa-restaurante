@@ -8,6 +8,7 @@ import { listActiveTables, lockTables, lockTablesOfOrder, setTablesState } from 
 import { findUsersByIds } from '@/modules/users';
 import { type Database, getDatabase } from '@/shared/db/client';
 import type { RequestContext } from '@/shared/kernel';
+import { billingPort } from './application/billing-port';
 import { kitchenPort } from './application/kitchen-port';
 import * as useCases from './application/orders';
 import type { OrdersDependencies } from './application/ports';
@@ -21,7 +22,14 @@ export type {
   RoundView,
   SendResult,
 } from './application/orders';
-export type { KitchenItemRecord, KitchenTicketRecord, OpenOrderSummary } from './application/ports';
+export type {
+  ItemRecord,
+  KitchenItemRecord,
+  KitchenTicketRecord,
+  OpenOrderSummary,
+  OrderRecord,
+} from './application/ports';
+export type { BillingPort } from './application/billing-port';
 export type { KitchenPort } from './application/kitchen-port';
 export {
   ITEM_NOTES_MAX_LENGTH,
@@ -39,9 +47,9 @@ export const kitchenOrders = kitchenPort(repo);
  * Casos de uso da comanda. Os módulos usados (mesas, cardápio, ficha técnica, estoque, lojas,
  * autorização) não dependem de Orders: sem ciclo (maps/modules/dependencias.md).
  */
-export function ordersService(overrides: { db?: Database } = {}) {
+function ordersDependencies(overrides: { db?: Database } = {}): OrdersDependencies {
   const { db } = overrides;
-  const deps: OrdersDependencies = {
+  return {
     get db() {
       return db ?? getDatabase().db;
     },
@@ -59,6 +67,13 @@ export function ordersService(overrides: { db?: Database } = {}) {
     userNames: async (tx, ids) =>
       new Map((await findUsersByIds(tx, ids)).map((user) => [user.id, user.name])),
   };
+}
+
+/** Conta, itens e mesas para o PDV, na transação de quem chama (Etapa 8). */
+export const billingOrders = billingPort(ordersDependencies());
+
+export function ordersService(overrides: { db?: Database } = {}) {
+  const deps = ordersDependencies(overrides);
   type Args<F> = F extends (d: OrdersDependencies, c: RequestContext, i: infer I) => unknown
     ? I
     : never;

@@ -10,7 +10,7 @@ permissões da loja ativa; o servidor bloqueia de novo em cada tela.
 | Celular (< 768 px) | Barra no topo com ☰; o menu abre como gaveta (`<dialog>`: foco preso, Esc fecha) |
 
 Estrutura: seletor de loja no topo (loja ativa + terminal do aparelho; troca em 1 clique —
-RN-ORG-12) · grupos **Operação** (Início, Salão, Cozinha, Disponibilidade; depois PDV), **Cardápio**
+RN-ORG-12) · grupos **Operação** (Início, Salão, Cozinha, PDV, Caixa, Disponibilidade), **Cardápio**
 (Produtos, Categorias, Adicionais — Etapa 4), **Estoque** (Estoque, Fichas técnicas — Etapa 5) e
 **Administração** (Usuários, Empresa, Lojas,
 Terminais) · rodapé com a conta (Meu PIN, Trocar senha, Trocar usuário, Sair).
@@ -28,8 +28,8 @@ flowchart TD
   H -- GERENTE/ADMIN --> DASH["/dashboard"]
 
   SAL --> COM["/comanda/:orderId — lançar itens, enviar rodada, pedir conta"]
-  PDV --> CXA["Caixa: abrir, sangria, suprimento, fechar"]
-  PDV --> CONTA["Conta: pré-conta, descontos, pagamentos, divisão"]
+  PDV --> CXA["/caixa — abrir, sangria, suprimento, fechar às cegas (/caixa/:id = resultado)"]
+  PDV --> CONTA["/pdv/conta/:orderId — pré-conta, descontos, taxa, pagamentos, divisão"]
 
   DASH --> CAT["/catalogo"]
   DASH --> EST["/estoque"]
@@ -44,7 +44,8 @@ flowchart TD
 | Mapa de mesas `/salao` e comanda `/salao/comanda/:id` (abrir, lançar, enviar, cancelar com PIN, pedir conta, transferir, juntar, separar, balcão) — Etapa 6 | Celular (Q-15) | tables.read, orders.read (lançar: orders.create; mexer na conta: orders.update; cancelar enviado: orders.cancel ou PIN do gerente) |
 | Cadastro de mesas `/mesas`, `/mesas/:id` — Etapa 6 | Desktop/tablet | tables.configure (E6-2) |
 | Cozinha (KDS) `/cozinha` — fila, cronômetro, iniciar/pronto/tudo pronto, desfazer, imprimir 80 mm (Etapa 7) | Tablet de 10" deitado (Q-15) | kds.read (marcar e imprimir: kds.manage) |
-| PDV | Desktop/tablet | cashier.read |
+| PDV `/pdv` (contas a receber) e `/pdv/conta/:id` — Etapa 8 | Computador ou tablet do caixa | payments.create ou cashier.read (receber: payments.create + caixa aberto no terminal) |
+| Caixa `/caixa`, `/caixa/:id` — Etapa 8 | Terminal de caixa (E8-2) | cashier.read (abrir/movimentar/fechar: cashier.open/movement/close) |
 | Dashboard | Desktop | dashboard.read |
 | Cardápio: `/catalogo/produtos`, `/catalogo/categorias`, `/catalogo/adicionais` (Etapa 4) | Desktop (funciona no celular) | products.update (cadastrar: products.create) |
 | Disponibilidade `/disponibilidade` — "acabou"/"voltou" (Etapa 4) | Celular/tablet da cozinha ou do caixa | products.availability |

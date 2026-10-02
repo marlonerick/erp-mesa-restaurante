@@ -3,10 +3,8 @@
 Última atualização: 2026-09-30
 
 ## Etapa atual
-**Etapa 7 — KDS (tela da cozinha)** — plano aprovado em 2026-09-30 (Q-02 = opção A: tela +
-botão "Imprimir"; Q-14: por item com "tudo pronto", alertas de 10/20 min configuráveis; decisões
-E7-1 a E7-4) — implementada na `main` (revisão: 1ª aprovada com ressalvas, achados corrigidos,
-reverificação **aprovada**) — **aprovada pelo usuário em 2026-10-01**.
+**Etapa 8 — PDV e caixa** — plano aprovado em 2026-10-01 (Q-06, Q-07, Q-16, Q-17 respondidas;
+decisões E8-1 a E8-5) — implementada na `main`, em revisão pelo `reviewer`.
 
 ## Progresso do MVP
 
@@ -20,7 +18,7 @@ reverificação **aprovada**) — **aprovada pelo usuário em 2026-10-01**.
 | 5 | Estoque e ficha técnica | **Aprovada** em 2026-09-30 |
 | 6 | Salão, mesas e pedidos | **Aprovada** em 2026-09-30 |
 | 7 | KDS | **Aprovada** em 2026-10-01 |
-| 8 | PDV e caixa | Não iniciada |
+| 8 | PDV e caixa | Entregue — em revisão |
 | 9 | Financeiro básico, dashboard e relatórios | Não iniciada |
 | 10 | Estabilização e piloto (MVP Gate) | Não iniciada |
 
@@ -44,17 +42,21 @@ reverificação **aprovada**) — **aprovada pelo usuário em 2026-10-01**.
   servidor, alertas de 10/20 min configuráveis por loja, iniciar/pronto por item, "tudo pronto",
   desfazer antes da entrega, item cancelado riscado, som, tela acesa, via de 80 mm pelo navegador)
   (`docs/weeks/etapa-07.md`).
+- Etapa 8: caixa por terminal (fundo de troco, sangria, suprimento, fechamento cego com diferença),
+  PDV (contas a receber, pré-conta de 80 mm, taxa congelada na abertura, desconto com limite por
+  perfil e PIN do gerente, pagamento misto e idempotente com troco, divisão por pessoas e por itens,
+  cancelar pagamento, conta paga fecha e manda a mesa para limpeza) (`docs/weeks/etapa-08.md`).
 - ADRs: 14 aceitos (0001–0014) — ADR-0006 aceito em 2026-09-29 (Q-01 = A).
 
 ## Em andamento
-- Planejamento da Etapa 8 (aguardando Q-16, Q-17 e aprovação do plano).
+- Etapa 8: revisão do `reviewer` e CI.
 
 ## Bloqueado
 - Nada bloqueado.
 
 ## Testes
-- Vitest: 1604 testes (525 unitários + 1079 de integração com MySQL 8.4 real).
-- Playwright: 129 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
+- Vitest: 1874 testes (548 unitários + 1326 de integração com MySQL 8.4 real).
+- Playwright: 141 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
 
 ## Bugs
 Nenhum aberto. Corrigidos na Etapa 7: deadlock ao lançar item em duas contas novas ao mesmo tempo
@@ -86,6 +88,11 @@ gravaria 1 g no lugar de 1000 g — ver `docs/weeks/etapa-05.md`.
   automática resolve. Se aparecer no piloto, travar a conta como primeira leitura também no envio
   (como no lançamento — Etapa 7). O mesmo vale para juntar mesas (`join` conta e lista os itens com
   trava): rara, e a repetição resolve.
+- Reabrir conta fechada (E8-4) — depois do piloto.
+- Telas do PDV e do caixa sem leitura automática: se outro caixa receber a mesma conta, a tela
+  atualiza na próxima ação (as travas impedem cobrar duas vezes).
+- Divisão por itens: a parte de cada item é proporcional ao desconto da conta; o último pagamento
+  cobre os centavos de arredondamento — conferir com o piloto.
 - Teste de navegador do cronômetro com o relógio do tablet adiantado/atrasado (S-5 da revisão da
   Etapa 7; a regra dos alertas já tem teste unitário).
 - Tela cheia no tablet da cozinha (Fullscreen API ou "adicionar à tela inicial") — avaliar no piloto.
@@ -113,4 +120,4 @@ R-01 (piloto sem fiscal), R-03 (pagamento duplicado), R-06 (isolamento entre loj
 R-10 (internet instável), R-11 (impressão na cozinha). Tabela completa: docs/requirements/riscos.md.
 
 ## Próxima etapa
-Etapa 8 — PDV e caixa. Antes dela: **Q-16** (fechamento cego) e **Q-17** (couvert, consumação).
+Etapa 9 — Financeiro básico, dashboard e relatórios.

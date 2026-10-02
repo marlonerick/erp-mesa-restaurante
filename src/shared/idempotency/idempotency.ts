@@ -19,17 +19,19 @@ export interface IdempotentRequest {
  * Forma de um valor depois de ida e volta por JSON: datas viram texto, tipos de valor usam o
  * toJSON (Money vira centavos) e "sem retorno" vira null.
  */
-export type Jsonified<T> = T extends Date
-  ? string
-  : T extends { toJSON(): infer R }
-    ? Jsonified<R>
-    : T extends undefined
-      ? null
-      : T extends readonly (infer U)[]
-        ? Jsonified<U>[]
-        : T extends object
-          ? { [K in keyof T]: Jsonified<T[K]> }
-          : T;
+export type Jsonified<T> = T extends string | number | boolean
+  ? T // inclui os ids "marcados" (string & { __brand })
+  : T extends Date
+    ? string
+    : T extends { toJSON(): infer R }
+      ? Jsonified<R>
+      : T extends undefined
+        ? null
+        : T extends readonly (infer U)[]
+          ? Jsonified<U>[]
+          : T extends object
+            ? { [K in keyof T]: Jsonified<T[K]> }
+            : T;
 
 export interface IdempotentOutcome<T> {
   /** Sempre a forma JSON — idêntica na primeira execução e nos reenvios. */

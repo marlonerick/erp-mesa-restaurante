@@ -11,6 +11,7 @@ import type { NewElevatedGrant } from './application/ports';
 import {
   accessibleStores,
   companyWideScope,
+  discountLimitInStore,
   permissionsInStore,
   storesWithPermission,
   usersInStore,
@@ -28,6 +29,10 @@ export type { NewElevatedGrant };
 
 export const getPermissionsInStore = (tx: Transaction, userId: Id, storeId: Id) =>
   permissionsInStore(repo, tx, userId, storeId);
+
+/** Desconto máximo do usuário na loja, em pontos-base (RN-AUTHZ-08). */
+export const getDiscountLimitInStore = (tx: Transaction, userId: Id, storeId: Id) =>
+  discountLimitInStore(repo, tx, userId, storeId);
 
 export const getAccessibleStores = (
   tx: Transaction,

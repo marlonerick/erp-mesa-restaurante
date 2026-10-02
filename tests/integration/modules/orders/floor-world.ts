@@ -117,6 +117,7 @@ export function floorWorld(db: Database) {
     storeId,
     ctx,
     userId: (name: string) => person(name).id,
+    username: (name: string) => person(name).username,
     table: (name: string) => get(tables, name, 'mesa'),
     product: (name: string) => get(products, name, 'produto'),
     orderOfTable,

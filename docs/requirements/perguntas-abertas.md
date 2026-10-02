@@ -10,8 +10,8 @@ padrão que será adotada se você responder "use a proposta".
 | Q-03 | Onde será hospedado? Há provedor preferido ou orçamento mensal? Como é a internet do restaurante (fibra, 4G de contingência)? | Container Node + MySQL gerenciado, região São Paulo | Etapa 10 (staging desde a Etapa 1 se possível) |
 | Q-04 | ~~Comanda por mesa ou por cliente? Balcão?~~ **Respondida (2026-09-30):** comanda **por mesa**; no balcão, um **nome livre** identifica o pedido | — | — |
 | Q-05 | ~~Horário e corte do dia?~~ **Respondida (2026-09-29):** o piloto funciona geralmente até as **15:00** (horário de funcionamento configurável fica para o futuro); virada do dia operacional às **05:00**, configurável por loja; **vários caixas abertos ao mesmo tempo**, com limite configurável por loja (padrão 1) | — | — |
-| Q-06 | Taxa de serviço: calculada sobre o subtotal **após** descontos? Incide sobre todos os produtos (inclusive bebidas)? Aplica-se ao balcão? | Após descontos; todos os produtos; não se aplica ao balcão | Etapa 8 |
-| Q-07 | Limites de desconto por perfil (ex.: GARCOM 0%, CAIXA 10%, GERENTE 100%)? | Os do exemplo | Etapa 8 |
+| Q-06 | ~~Base da taxa de serviço?~~ **Respondida (2026-10-01):** calculada sobre o subtotal **depois dos descontos**; incide sobre **todos os produtos** (inclusive bebidas); **não** se aplica ao balcão | — | — |
+| Q-07 | ~~Limites de desconto por perfil?~~ **Respondida (2026-10-01):** GARÇOM 0%, CAIXA 10%, GERENTE e ADMIN 100%; acima do limite, PIN do gerente | — | — |
 | Q-08 | ~~Itens sem preparo no KDS? Bar separado?~~ **Respondida (2026-09-30):** itens sem preparo **não aparecem** na cozinha (ficam prontos ao enviar); **uma estação só** | — | — |
 | Q-09 | ~~Adicionais consomem estoque? Preço por loja?~~ **Respondida (2026-09-29):** o preço do adicional é **único na empresa** (só o produto tem preço por loja); o adicional **consome estoque pela própria ficha técnica**, ligada na Etapa 5 | — | — |
 | Q-10 | ~~Venda por peso?~~ **Respondida (2026-09-29):** **não** no piloto — todo produto é vendido por unidade; a quantidade decimal do kernel permite incluir depois | — | — |
@@ -21,8 +21,8 @@ padrão que será adotada se você responder "use a proposta".
 | Q-13b | ~~Apagar dados técnicos de sessões expiradas e logs após 90 dias?~~ **Aprovada (2026-09-28):** sim, via `npm run maintenance:purge`; vendas e auditoria continuam para sempre | — | — |
 | Q-14 | ~~Iniciar/pronto por ticket ou por item? Tempos de alerta?~~ **Respondida (2026-09-30):** **por item**, com um atalho **"tudo pronto"** no pedido; **amarelo aos 10 minutos e vermelho aos 20**, configurável | — | — |
 | Q-15 | ~~Aparelhos do piloto?~~ **Respondida (2026-09-30):** garçons com **celulares da casa**; cozinha com **tablet de 10" ou mais** | — | — |
-| Q-16 | Fechamento cego: o operador informa só o **dinheiro** ou também os totais de cartão e PIX conferidos? | Dinheiro obrigatório; cartão/PIX opcional | Etapa 8 |
-| Q-17 | Couvert artístico, consumação mínima ou taxa de entrega existem no piloto? | Fora do MVP | Etapa 8 |
+| Q-16 | ~~Fechamento cego: o que o operador informa?~~ **Respondida (2026-10-01):** **dinheiro obrigatório**; cartão e PIX opcionais | — | — |
+| Q-17 | ~~Couvert, consumação mínima, taxa de entrega?~~ **Respondida (2026-10-01):** **fora do MVP** | — | — |
 | Q-18 | ~~Garçom transfere e junta mesas?~~ **Respondida (2026-09-30):** **sim**, o garçom pode, e tudo fica registrado na auditoria | — | — |
 | Q-19 | ~~Custo unitário de insumo em `DECIMAL(18,6)`?~~ **Aprovado (2026-09-28)** | — | — |
 | Q-20 | ~~Aprova os 6 subagentes?~~ **Aprovado (2026-09-28)** | — | — |
@@ -106,6 +106,16 @@ padrão que será adotada se você responder "use a proposta".
 | E7-2 | A cozinha pode **desfazer um "Pronto"** marcado por engano enquanto o garçom ainda não entregou o item |
 | E7-3 | Aviso sonoro quando chega pedido novo, ligado pelo botão **"Ativar som"** (o navegador só toca som depois de um toque na tela) |
 | E7-4 | A tela da cozinha mantém o tablet **aceso** enquanto está aberta, onde o navegador permitir |
+
+## Decisões tomadas na aprovação do plano da Etapa 8 (2026-10-01)
+
+| ID | Decisão |
+|---|---|
+| E8-1 | Recebem pagamento: CAIXA, GERENTE e ADMIN (`payments.create`); o garçom não |
+| E8-2 | O caixa só abre num aparelho vinculado a um **terminal do tipo CAIXA** da loja (vínculo da Etapa 3) |
+| E8-3 | Cancelar pagamento lançado errado: permitido enquanto a conta não fechou, com motivo e `payments.cancel` (ou PIN do gerente) |
+| E8-4 | Reabrir conta fechada fica para depois do piloto |
+| E8-5 | O caixa pode ser fechado com contas ainda abertas; elas são recebidas em outro caixa ou no dia seguinte |
 
 ## Pontos da especificação que interpretei (confirme ou corrija)
 

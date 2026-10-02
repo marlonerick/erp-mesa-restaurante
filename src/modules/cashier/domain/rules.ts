@@ -1,0 +1,151 @@
+import { DomainError } from '@/shared/kernel';
+
+// Regras puras do caixa (docs/modules/cashier.md §3). Valores em centavos inteiros (ADR-0003).
+
+export const PAYMENT_METHODS = [
+  'DINHEIRO',
+  'PIX',
+  'CARTAO_CREDITO',
+  'CARTAO_DEBITO',
+  'OUTRO',
+] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+export const PAYMENT_METHOD_LABEL: Readonly<Record<PaymentMethod, string>> = {
+  DINHEIRO: 'Dinheiro',
+  PIX: 'PIX',
+  CARTAO_CREDITO: 'Cartão de crédito',
+  CARTAO_DEBITO: 'Cartão de débito',
+  OUTRO: 'Outro',
+};
+
+export type CashMovementType = 'VENDA' | 'SANGRIA' | 'SUPRIMENTO' | 'AJUSTE' | 'ESTORNO';
+export type CashSessionStatus = 'ABERTA' | 'FECHADA';
+
+/** R$ 100.000,00 — fundo de troco, sangria e suprimento. */
+export const MAX_CASH_CENTS = 10_000_000;
+
+const rule = (code: string, message: string) => new DomainError(code, message, 'BUSINESS_RULE');
+
+export const cashErrors = {
+  storeNotFound: () => new DomainError('STORE_NOT_FOUND', 'Loja não encontrada.', 'NOT_FOUND'),
+  sessionNotFound: () =>
+    new DomainError('CASH_SESSION_NOT_FOUND', 'Caixa não encontrado.', 'NOT_FOUND'),
+  terminalRequired: () =>
+    rule(
+      'TERMINAL_REQUIRED',
+      'Este aparelho não é um terminal de caixa. Peça ao gerente para vinculá-lo em Administração → Terminais.',
+    ),
+  alreadyOpen: () =>
+    new DomainError('CASH_ALREADY_OPEN', 'Já existe um caixa aberto neste terminal.', 'CONFLICT'),
+  limitReached: () =>
+    rule('CASH_LIMIT_REACHED', 'A loja já tem o número máximo de caixas abertos.'),
+  notOpen: () => rule('CASH_NOT_OPEN', 'Abra o caixa deste terminal antes.'),
+  closed: () => new DomainError('CASH_SESSION_CLOSED', 'Este caixa foi fechado.', 'CONFLICT'),
+  insufficient: () => rule('CASH_INSUFFICIENT', 'Não há esse valor em dinheiro no caixa.'),
+  concurrent: () =>
+    new DomainError(
+      'CONCURRENT_MODIFICATION',
+      'Outra pessoa alterou este caixa. Recarregue a página.',
+      'CONFLICT',
+    ),
+};
+
+const invalidAmount = () =>
+  new DomainError('INVALID_CASH_AMOUNT', 'Informe um valor válido (ex.: 150,00).', 'VALIDATION');
+
+/** Fundo de troco: de R$ 0,00 a R$ 100.000,00. */
+export function openingAmount(cents: number | null): number {
+  if (cents === null || !Number.isSafeInteger(cents) || cents < 0 || cents > MAX_CASH_CENTS) {
+    throw invalidAmount();
+  }
+  return cents;
+}
+
+/** Sangria e suprimento: maior que zero, até R$ 100.000,00. */
+export function movementAmount(cents: number | null): number {
+  if (cents === null || !Number.isSafeInteger(cents) || cents <= 0 || cents > MAX_CASH_CENTS) {
+    throw invalidAmount();
+  }
+  return cents;
+}
+
+/** Motivo de sangria/suprimento: 3 a 200 caracteres. */
+export function cashReason(input: string | null | undefined): string {
+  const value = (input ?? '').trim().replace(/\s+/g, ' ');
+  if (value.length < 3 || value.length > 200) {
+    throw new DomainError(
+      'CASH_REASON_REQUIRED',
+      'Explique o motivo (3 a 200 caracteres).',
+      'VALIDATION',
+    );
+  }
+  return value;
+}
+
+export interface MovementTotal {
+  readonly method: PaymentMethod;
+  /** Soma COM SINAL das movimentações daquela forma (sangria e estorno são negativos). */
+  readonly amountCents: number;
+}
+
+/**
+ * Esperado por forma de pagamento (RN-CASH-05): dinheiro = fundo + movimentações em dinheiro
+ * (vendas e suprimentos somam; sangrias e estornos subtraem); demais formas = soma das vendas
+ * menos os estornos daquela forma.
+ */
+export function expectedByMethod(
+  openingCents: number,
+  totals: readonly MovementTotal[],
+): Record<PaymentMethod, number> {
+  const expected = Object.fromEntries(PAYMENT_METHODS.map((method) => [method, 0])) as Record<
+    PaymentMethod,
+    number
+  >;
+  expected.DINHEIRO = openingCents;
+  for (const total of totals) expected[total.method] += total.amountCents;
+  return expected;
+}
+
+export interface CountLine {
+  readonly method: PaymentMethod;
+  readonly expectedCents: number;
+  readonly declaredCents: number | null;
+  readonly differenceCents: number | null;
+}
+
+/**
+ * Fechamento cego (RN-CASH-06, Q-16): dinheiro informado é obrigatório; as outras formas são
+ * opcionais. Uma linha por forma que teve movimento ou foi informada (dinheiro sempre).
+ */
+export function blindCount(
+  expected: Record<PaymentMethod, number>,
+  declared: Partial<Record<PaymentMethod, number | null>>,
+): CountLine[] {
+  const cash = declared.DINHEIRO;
+  if (cash === undefined || cash === null) {
+    throw new DomainError(
+      'CASH_COUNT_REQUIRED',
+      'Informe quanto há em dinheiro na gaveta.',
+      'VALIDATION',
+    );
+  }
+  const lines: CountLine[] = [];
+  for (const method of PAYMENT_METHODS) {
+    const value = declared[method] ?? null;
+    if (
+      value !== null &&
+      (!Number.isSafeInteger(value) || value < 0 || value > MAX_CASH_CENTS * 10)
+    ) {
+      throw invalidAmount();
+    }
+    if (method !== 'DINHEIRO' && value === null && expected[method] === 0) continue;
+    lines.push({
+      method,
+      expectedCents: expected[method],
+      declaredCents: value,
+      differenceCents: value === null ? null : value - expected[method],
+    });
+  }
+  return lines;
+}

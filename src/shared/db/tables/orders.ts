@@ -90,6 +90,23 @@ export const customerOrder = mysqlTable(
     cancelReason: varchar('cancel_reason', { length: 200 }),
     /** Conta que recebeu os itens quando as mesas foram juntadas (RN-ORD-18). */
     mergedIntoOrderId: uuidBinary('merged_into_order_id'),
+    // ---- Conta no PDV (Etapa 8 — docs/modules/pos.md) ----
+    /** Taxa de serviço CONGELADA na abertura (RN-POS-03): mesa = taxa da loja; balcão = 0. */
+    serviceFeeBp: int('service_fee_bp', { unsigned: true }).notNull().default(0),
+    /** Taxa retirada com autorização (RN-POS-06). */
+    serviceFeeWaived: boolean('service_fee_waived').notNull().default(false),
+    /** Desconto na conta (RN-POS-05). */
+    discountCents: int('discount_cents', { unsigned: true }).notNull().default(0),
+    discountReason: varchar('discount_reason', { length: 200 }),
+    /** Soma dos pagamentos ativos — mantida pelo PDV na mesma transação (RN-POS-11). */
+    paidCents: int('paid_cents', { unsigned: true }).notNull().default(0),
+    /** Última pré-conta emitida (RN-POS-04). */
+    prebillAt: utcDatetime('prebill_at'),
+    /** Valores congelados no fechamento (RN-POS-12): base dos relatórios da Etapa 9. */
+    itemsCents: int('items_cents', { unsigned: true }),
+    discountsCents: int('discounts_cents', { unsigned: true }),
+    serviceFeeCents: int('service_fee_cents', { unsigned: true }),
+    totalCents: int('total_cents', { unsigned: true }),
     version: version(),
     ...timestamps,
   },
@@ -105,6 +122,16 @@ export const customerOrder = mysqlTable(
     check(
       'ck_customer_order_merged',
       sql`${table.mergedIntoOrderId} IS NULL OR ${table.status} = 'CANCELADO'`,
+    ),
+    check('ck_customer_order_service_fee', sql`${table.serviceFeeBp} <= 10000`),
+    check(
+      'ck_customer_order_discount',
+      sql`(${table.discountCents} = 0) = (${table.discountReason} IS NULL)`,
+    ),
+    // Conta fechada tem os valores congelados e foi paga por inteiro
+    check(
+      'ck_customer_order_closed_totals',
+      sql`${table.status} <> 'FECHADO' OR (${table.totalCents} IS NOT NULL AND ${table.paidCents} = ${table.totalCents})`,
     ),
   ],
 );
@@ -252,6 +279,9 @@ export const orderItem = mysqlTable(
     cancelReason: varchar('cancel_reason', { length: 200 }),
     /** A baixa de estoque foi feita no envio (ADR-0006). */
     stockConsumed: boolean('stock_consumed').notNull().default(false),
+    /** Desconto na linha (RN-POS-05). */
+    discountCents: int('discount_cents', { unsigned: true }).notNull().default(0),
+    discountReason: varchar('discount_reason', { length: 200 }),
     updatedAt: timestamps.updatedAt,
   },
   (table) => [
@@ -273,6 +303,10 @@ export const orderItem = mysqlTable(
     check(
       'ck_order_item_cancel',
       sql`(${table.status} = 'CANCELADO') = (${table.cancelReason} IS NOT NULL)`,
+    ),
+    check(
+      'ck_order_item_discount',
+      sql`${table.discountCents} <= (${table.unitPriceCents} + ${table.modifiersCents}) * ${table.quantity} AND (${table.discountCents} = 0) = (${table.discountReason} IS NULL)`,
     ),
   ],
 );

@@ -10,6 +10,8 @@ export interface RoleDefinition {
 
 export interface UserGrant {
   readonly roleCode: string;
+  /** Desconto máximo do perfil em pontos-base (RN-AUTHZ-08): 1000 = 10%. */
+  readonly maxDiscountBp: number;
   readonly scopeType: ScopeType;
   readonly scopeId: Id;
   readonly permissions: readonly Permission[];

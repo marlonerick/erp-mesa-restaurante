@@ -60,6 +60,11 @@ Na Etapa 6, Orders usa Tables (estado das mesas, com trava), Catalog (cardápio 
 operacional, estação padrão), Authorization (autorização do gerente) e Users (nome de quem enviou).
 Nenhum deles depende de Orders. O ticket da cozinha pertence ao Orders: o KDS da Etapa 7 lê e
 atualiza pela API pública dele (sem o evento `RoundSent` — a chamada é direta, na mesma transação).
+Na Etapa 8, **Cashier** usa Organizations (terminal do aparelho, limite de caixas, fuso e virada),
+Users e Audit; **POS** (PDV) usa Orders (`billingOrders`: travar a conta, itens, desconto, pago,
+fechar a conta e as mesas), Cashier (`cashierOps`: caixa aberto, venda, estorno), Authorization
+(limite de desconto, PIN do gerente), Users e Audit — tudo na mesma transação. Orders e Cashier
+não dependem de POS; a comanda só consulta o `paid_cents` da própria conta.
 Na Etapa 7, **Kitchen** usa Orders (`kitchenOrders`: fila, tickets e itens, com a conta travada antes),
 Organizations (loja, estação padrão, tempos de alerta), Users (nome de quem enviou) e Audit. Orders
 não depende de Kitchen: o cancelamento recalcula a situação do ticket com uma regra do próprio Orders
@@ -95,9 +100,9 @@ flowchart TD
   KIT[Kitchen/KDS] -->|API na transação — Etapa 7| ORD
 
   CASH[Cashier] --> ORG
-  PAY[POS/Payments] --> ORD
-  PAY --> CASH
-  PAY --> TAB
+  PAY[POS/Payments] -->|API na transação — Etapa 8| ORD
+  PAY -->|caixa aberto, venda, estorno| CASH
+  PAY --> AUTHZ
   PAY -.->|consumo ADR-0006 B| REC
 
   FIN[Finance] -->|assina CashSessionClosed| CASH

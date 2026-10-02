@@ -70,6 +70,8 @@ export const orderErrors = {
   needsTable: () => rule('ORDER_NEEDS_TABLE', 'A conta precisa ficar com pelo menos uma mesa.'),
   hasSentItems: () =>
     rule('ORDER_HAS_SENT_ITEMS', 'Cancele os itens enviados antes de cancelar a conta.'),
+  paymentsStarted: () =>
+    rule('PAYMENTS_STARTED', 'Esta conta já tem pagamento. Cancele os pagamentos antes.'),
   concurrent: () =>
     new DomainError(
       'CONCURRENT_MODIFICATION',
@@ -135,7 +137,7 @@ async function lockItem(
   return { order, item };
 }
 
-async function changeTables(
+export async function changeTables(
   deps: OrdersDependencies,
   tx: Transaction,
   ctx: RequestContext,
@@ -279,7 +281,11 @@ async function nextNumber(deps: OrdersDependencies, tx: Transaction, ctx: Reques
   });
   if (!settings) throw orderErrors.storeNotFound();
   const day = operationalDate(ctx.clock.now(), settings.timezone, settings.operationalDayCutoff);
-  return { day, number: await deps.repo.nextOrderNumber(tx, ctx.storeId, day) };
+  return {
+    day,
+    number: await deps.repo.nextOrderNumber(tx, ctx.storeId, day),
+    serviceFeeBp: settings.serviceFeeBp,
+  };
 }
 
 export async function openTable(
@@ -294,7 +300,7 @@ export async function openTable(
     const [table] = await deps.tables.lock(tx, ctx.storeId, [input.tableId]);
     if (!table) throw tableErrors.notFound();
     if (!table.active || table.status !== 'LIVRE') throw orderErrors.tableNotAvailable();
-    const { day, number } = await nextNumber(deps, tx, ctx);
+    const { day, number, serviceFeeBp } = await nextNumber(deps, tx, ctx);
     const orderId = newId();
     await deps.repo.insertOrder(tx, {
       id: orderId,
@@ -302,6 +308,8 @@ export async function openTable(
       number,
       openedDate: day,
       type: 'MESA',
+      // Taxa de serviço da loja CONGELADA na abertura (RN-POS-03)
+      serviceFeeBp,
       label: table.number,
       guests,
       openedBy: ctx.userId,
@@ -334,6 +342,8 @@ export async function openCounter(
       number,
       openedDate: day,
       type: 'BALCAO',
+      // Balcão não tem taxa de serviço (Q-06)
+      serviceFeeBp: 0,
       label,
       guests: null,
       openedBy: ctx.userId,
@@ -563,6 +573,8 @@ export async function cancelItem(
     const { order, item } = await lockItem(deps, tx, ctx, input.itemId);
     if (item.status === 'CANCELADO') throw orderErrors.alreadyCancelled();
     if (item.status === 'PENDENTE') throw orderErrors.notSent();
+    // Com pagamento, o total ficaria menor que o pago (RN-POS-15)
+    if (order.paidCents > 0) throw orderErrors.paymentsStarted();
     // Garçom e caixa: autorização do gerente no aparelho, consumida nesta transação (RN-AUTHZ-06)
     const { authorizerUserId } = await deps.authorizeOrElevate(
       tx,
@@ -700,6 +712,8 @@ export async function join(
     if (target.version !== input.version) throw orderErrors.concurrent();
     if (target.status !== 'ABERTO') throw orderErrors.orderNotOpen();
     if (target.type !== 'MESA') throw orderErrors.notTableOrder();
+    // Conta com pagamento não junta com outra (RN-POS-15)
+    if (orders.some((order) => order.paidCents > 0)) throw orderErrors.paymentsStarted();
 
     const targetTables = await deps.tables.lockOfOrder(tx, ctx.storeId, target.id);
     const [table] = await deps.tables.lock(tx, ctx.storeId, [input.tableId]);

@@ -20,7 +20,7 @@ Todos os perfis; GERENTE/ADMIN como autorizadores.
 - **RN-AUTHZ-07** — A autorização elevada é auditada (`ELEVATED_AUTH_GRANTED`) com quem pediu e quem autorizou. PINs errados contam para o travamento de PIN do autorizador (RN-AUTH-12).
 - **RN-AUTHZ-09** — *Quem age está acima do alvo* (revisão da Etapa 2): para renomear, trocar perfis, redefinir senha ou desativar alguém, quem age precisa ter — num escopo que inclui cada perfil do alvo (outra loja, empresa ou organização) — todas as permissões daquele perfil. Gerente de loja não mexe no ADMIN da organização nem em quem é gerente em outra loja (`USER_MANAGEMENT_NOT_ALLOWED`).
 - **RN-AUTHZ-10** — Na autorização do gerente, usuário inexistente, de outra organização e PIN errado recebem a MESMA resposta (`INVALID_AUTHORIZATION`) e a mesma demora; falhas vão para a auditoria. Autorizador com senha provisória não autoriza.
-- **RN-AUTHZ-08** — Limite de desconto por perfil (`max_discount_bp`): ADMIN/GERENTE 100%, CAIXA 10%, GARCOM 0%, COZINHA 0% (Q-07, usado na Etapa 8).
+- **RN-AUTHZ-08** — Limite de desconto por perfil (`max_discount_bp`): ADMIN/GERENTE 100%, CAIXA 10%, GARCOM 0%, COZINHA 0% (Q-07). Na loja vale o MAIOR limite entre os perfis que a cobrem (`getDiscountLimitInStore` — Etapa 8); acima dele, `discounts.apply_above_limit` ou PIN do gerente (RN-POS-05).
 
 ## 4. Entidades
 `role`, `permission`, `role_permission`, `user_role_assignment`, `elevated_grant`.

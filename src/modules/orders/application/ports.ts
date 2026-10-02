@@ -27,6 +27,13 @@ export interface OrderRecord {
   readonly openedBy: Id;
   readonly openedAt: Date;
   readonly version: number;
+  /** Conta no PDV (Etapa 8 — docs/modules/pos.md). */
+  readonly serviceFeeBp: number;
+  readonly serviceFeeWaived: boolean;
+  readonly discountCents: number;
+  readonly discountReason: string | null;
+  readonly paidCents: number;
+  readonly prebillAt: Date | null;
 }
 
 export interface ItemRecord {
@@ -50,6 +57,9 @@ export interface ItemRecord {
   readonly deliveredAt: Date | null;
   readonly cancelledAt: Date | null;
   readonly cancelReason: string | null;
+  /** Desconto na linha (Etapa 8). */
+  readonly discountCents: number;
+  readonly discountReason: string | null;
   readonly modifiers: readonly ChosenModifier[];
 }
 
@@ -72,6 +82,13 @@ export interface OpenOrderSummary {
   readonly subtotalCents: number;
   readonly pendingCount: number;
   readonly readyCount: number;
+  /** Para o PDV calcular o total (Etapa 8). */
+  readonly itemDiscountsCents: number;
+  readonly discountCents: number;
+  readonly serviceFeeBp: number;
+  readonly serviceFeeWaived: boolean;
+  readonly paidCents: number;
+  readonly prebillAt: Date | null;
 }
 
 export interface NewItem {
@@ -138,7 +155,19 @@ export interface LockOption {
 export interface OrdersRepository {
   /** Próximo número da conta na loja e no dia (linha travada — RN-ORD-04). */
   nextOrderNumber(tx: Transaction, storeId: Id, day: string): Promise<number>;
-  insertOrder(tx: Transaction, input: Omit<OrderRecord, 'status' | 'version'>): Promise<void>;
+  insertOrder(
+    tx: Transaction,
+    input: Omit<
+      OrderRecord,
+      | 'status'
+      | 'version'
+      | 'serviceFeeWaived'
+      | 'discountCents'
+      | 'discountReason'
+      | 'paidCents'
+      | 'prebillAt'
+    >,
+  ): Promise<void>;
   findOrder(
     tx: Transaction,
     scope: { storeId: Id; orderId: Id },
@@ -202,6 +231,38 @@ export interface OrdersRepository {
    */
   refreshTicket(tx: Transaction, scope: { storeId: Id; ticketId: Id }, at: Date): Promise<void>;
   moveTickets(tx: Transaction, fromOrderId: Id, toOrderId: Id): Promise<void>;
+
+  // ---- Conta no PDV (Etapa 8 — usados pelo módulo POS) ----
+
+  setItemDiscount(
+    tx: Transaction,
+    scope: { storeId: Id; itemId: Id },
+    discount: { cents: number; reason: string | null },
+  ): Promise<void>;
+  /** Altera a conta (já travada) e incrementa a versão. */
+  updateBill(
+    tx: Transaction,
+    scope: { storeId: Id; orderId: Id },
+    changes: {
+      discountCents?: number;
+      discountReason?: string | null;
+      serviceFeeWaived?: boolean;
+      paidCents?: number;
+      prebillAt?: Date;
+    },
+  ): Promise<void>;
+  closeOrderAsPaid(
+    tx: Transaction,
+    scope: { storeId: Id; orderId: Id },
+    data: {
+      by: Id;
+      at: Date;
+      itemsCents: number;
+      discountsCents: number;
+      serviceFeeCents: number;
+      totalCents: number;
+    },
+  ): Promise<void>;
 
   // ---- Cozinha (Etapa 7 — usados pelo módulo Kitchen) ----
 

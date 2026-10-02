@@ -170,6 +170,21 @@ export const ICONS = {
       <path d="M5 5h14" />
     </Icon>
   ),
+  // PDV (Etapa 8): recibo
+  pdv: (
+    <Icon>
+      <path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" />
+      <path d="M9 8h6M9 12h6M9 16h3" />
+    </Icon>
+  ),
+  // Caixa (Etapa 8): gaveta com cédula
+  caixa: (
+    <Icon>
+      <rect x="3" y="7" width="18" height="12" rx="2" />
+      <circle cx="12" cy="13" r="2.5" />
+      <path d="M3 11h2M19 11h2" />
+    </Icon>
+  ),
   // Cozinha (Etapa 7): chapéu de cozinheiro
   cozinha: (
     <Icon>

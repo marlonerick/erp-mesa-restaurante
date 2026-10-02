@@ -8,16 +8,16 @@ stateDiagram-v2
   LIVRE --> OCUPADA: abrir mesa (cria conta)
   OCUPADA --> AGUARDANDO_CONTA: solicitar conta
   AGUARDANDO_CONTA --> OCUPADA: cliente pediu mais (auditado)
-  AGUARDANDO_CONTA --> EM_PAGAMENTO: caixa inicia pagamento
-  EM_PAGAMENTO --> AGUARDANDO_CONTA: pagamento interrompido
-  EM_PAGAMENTO --> LIMPEZA: conta FECHADO
+  OCUPADA --> EM_PAGAMENTO: pré-conta ou 1º pagamento
+  AGUARDANDO_CONTA --> EM_PAGAMENTO: pré-conta ou 1º pagamento
+  EM_PAGAMENTO --> LIMPEZA: conta paga (FECHADO)
   OCUPADA --> LIVRE: conta CANCELADO (nada enviado) / transferir (origem) / separar
   AGUARDANDO_CONTA --> LIVRE: transferir (origem) / separar
   LIMPEZA --> LIVRE: liberar mesa
 ```
 
-Implementado na Etapa 6 (docs/modules/tables.md, orders.md); `EM_PAGAMENTO` e `LIMPEZA` chegam
-com o PDV (Etapa 8). Transferir: a conta vai para a mesa destino (`LIVRE`), que assume o estado da
+Implementado na Etapa 6 (docs/modules/tables.md, orders.md); `EM_PAGAMENTO` e `LIMPEZA` vêm do
+PDV (Etapa 8 — docs/modules/pos.md). Pagamento cancelado não volta a mesa de `EM_PAGAMENTO`. Transferir: a conta vai para a mesa destino (`LIVRE`), que assume o estado da
 origem; origem → `LIVRE`. Juntar: a mesa passa a apontar para a conta de destino; se tinha conta,
 itens, rodadas (renumeradas) e tickets são movidos e a conta dela fica `CANCELADO` (`MESCLADA`);
 todas as mesas da conta → `OCUPADA`. Separar: a mesa sai de uma conta com outras mesas → `LIVRE`.
@@ -27,13 +27,20 @@ todas as mesas da conta → `OCUPADA`. Separar: a mesa sai de uma conta com outr
 ```mermaid
 stateDiagram-v2
   [*] --> ABERTO
-  ABERTO --> FECHADO: pagamentos cobrem o total
-  ABERTO --> CANCELADO: sem itens válidos, com motivo (ou MESCLADA)
-  FECHADO --> ABERTO: reabrir (autorização elevada, auditado)
+  ABERTO --> FECHADO: pagamentos cobrem o total (valores congelados — RN-POS-12)
+  ABERTO --> CANCELADO: sem itens enviados, com motivo opcional (ou MESCLADA)
 ```
 
-Reabrir conta: previsto no README como ação sensível; exige cancelar pagamentos antes ou
-manter saldo — detalhar no SDD de Payments (Etapa 8).
+Reabrir conta fechada: ação sensível do README, adiada para depois do piloto (E8-4). Até lá,
+correção de pagamento é feita ANTES do fechamento, cancelando o pagamento (RN-POS-14).
+
+## Pagamento (`payment.status`)
+
+```mermaid
+stateDiagram-v2
+  [*] --> ATIVO: receber (idempotente; movimentação VENDA no caixa)
+  ATIVO --> CANCELADO: payments.cancel ou PIN + motivo, conta aberta e caixa aberto (ESTORNO)
+```
 
 ## Item (`order_item.status`)
 

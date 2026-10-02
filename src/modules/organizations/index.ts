@@ -4,7 +4,7 @@ import type { Transaction } from '@/shared/db/transaction';
 import type { Id, RequestContext } from '@/shared/kernel';
 import * as admin from './application/administration';
 import type { OrganizationsDependencies, StoreAccess } from './application/ports';
-import { DEFAULT_STORE_SETTINGS, type StoreSettings } from './domain/rules';
+import { DEFAULT_STORE_SETTINGS, type StoreSettings, type TerminalKind } from './domain/rules';
 import { organizationsRepository as repo } from './infrastructure/organizations-repository';
 import {
   findActiveStore,
@@ -77,9 +77,9 @@ export async function findTerminalOfDevice(
   tx: Transaction,
   storeId: Id,
   deviceId: Id,
-): Promise<{ id: Id; code: string; name: string } | null> {
+): Promise<{ id: Id; code: string; name: string; kind: TerminalKind } | null> {
   const found = await repo.findActiveTerminalOfDevice(tx, { storeId, deviceId });
-  return found ? { id: found.id, code: found.code, name: found.name } : null;
+  return found ? { id: found.id, code: found.code, name: found.name, kind: found.kind } : null;
 }
 
 /** Estação padrão da loja (RN-ORG-10) — a comanda manda os itens com preparo para ela. */
