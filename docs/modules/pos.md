@@ -67,8 +67,9 @@ CAIXA, GERENTE, ADMIN (receber — E8-1). GERENTE autoriza com PIN o que passa d
   congelados (itens, descontos, taxa, total), quem e quando; as mesas vão para **LIMPEZA** (o garçom
   libera depois — RN-TAB-05). Auditoria `PAYMENT_CREATED` e `ORDER_CLOSED`.
 - **RN-POS-12a** — **Conta sem valor** (cortesia de 100% ou tudo cancelado): "Fechar conta sem
-  valor" fecha sem pagamento e manda a mesa para limpeza; com valor a pagar → `BILL_NOT_FREE`
-  (achado I-2).
+  valor" fecha sem pagamento e manda a mesa para limpeza; com valor a pagar → `BILL_NOT_FREE`;
+  sem item com valor (conta vazia ou toda cancelada) → `BILL_EMPTY`, cancela-se na comanda
+  (achado I-2 e S-1 da reverificação).
 - **RN-POS-13** — **Divisão de conta** (README B.7.4):
   - **por valor**: o caixa digita quanto cada um paga (vários pagamentos);
   - **por pessoas**: a tela divide o que falta em N partes iguais — os centavos que sobram vão para

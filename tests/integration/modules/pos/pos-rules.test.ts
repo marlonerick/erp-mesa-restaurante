@@ -278,6 +278,13 @@ describe('achados da revisão da Etapa 8', () => {
     expect(await w.tableStatus('1')).toBe('LIMPEZA');
   });
 
+  it('S-1: conta vazia não fecha como venda de R$ 0,00', async () => {
+    await w.open('joão', '2');
+    const orderId = await w.orderId(mesa('2'));
+    await w.attempt(() => w.services.pos.closeFree(w.ctx('bia'), { orderId }));
+    w.expectFailure('BILL_EMPTY');
+  });
+
   it('erros de pagamento: balcão sem taxa, dinheiro insuficiente, cancelado de novo, chave reusada', async () => {
     await w.openCash('bia', '0,00');
     await w.sendToCounter('joão', 'Ana', 1, 'X-Burger');

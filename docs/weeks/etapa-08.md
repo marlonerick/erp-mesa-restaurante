@@ -74,6 +74,15 @@ dobro estão corretas. Correções:
 | S-8 | Import duplicado no seed | Variável local renomeada |
 | S-9 | Data do PROJECT_STATUS | Atualizada |
 
+2ª revisão (reverificação, commit b93c759): **aprovada com ressalvas** — B-1, B-2, I-1, I-2, I-4 e
+I-5 conferidos; 549 unitários e 1335 de integração passando. Novos:
+
+| # | Achado | Correção |
+|---|---|---|
+| I-1 | Faltaria teste de "não cancela item com pagamento" (RN-POS-15) | Já coberto pelo cenário BDD "Com pagamento na conta, a comanda não cancela item" (`pagamento.feature`), que chama o cancelamento real do Orders |
+| S-1 | "Fechar sem valor" fecharia conta vazia como venda de R$ 0,00 | Exige item com valor; senão `BILL_EMPTY` (cancela-se na comanda); teste |
+| S-2 | Estorno em dinheiro pode deixar o esperado negativo | Débito no PROJECT_STATUS (avaliar no piloto) |
+
 ## Como experimentar (banco de desenvolvimento)
 1. `npm run db:migrate` (aplica a 0011) e `npm run dev`.
 2. Como `gerente` / `Gerente@2026`: **Administração → Terminais** → cadastre um terminal do tipo
@@ -91,7 +100,7 @@ dobro estão corretas. Correções:
 | Tipo | Resultado |
 |---|---|
 | Unitários (conta e taxa com fast-check, desconto e limite, troco, divisão por pessoas e por itens, esperado e fechamento cego) | ✅ 549 |
-| Integração com MySQL 8.4 real (BDD + dois caixas na mesma conta + pagar × fechar caixa + duas aberturas + duas sangrias + reenvio simultâneo + isolamento + CHECKs) | ✅ 1335 |
+| Integração com MySQL 8.4 real (BDD + dois caixas na mesma conta + pagar × fechar caixa + duas aberturas + duas sangrias + reenvio simultâneo + isolamento + CHECKs) | ✅ 1336 |
 | E2E no navegador (celular, tablet, desktop + BDD) | ✅ 141 (4 pulados de propósito), duas execuções completas seguidas |
 
 ## Definition of Done
@@ -99,8 +108,8 @@ dobro estão corretas. Correções:
 - [x] Migration revisada (índices antes das FKs; aplicada no banco de desenvolvimento)
 - [x] Testes unitários, integração (MySQL real), BDD, concorrência, isolamento entre lojas, E2E
 - [x] Lint, typecheck, build
-- [x] CI no GitHub (verde no commit da implementação)
-- [ ] Revisão do `reviewer` (1ª reprovada; achados corrigidos — I-3 e S-2 aguardam decisão; reverificação pendente)
+- [x] CI no GitHub (verde na implementação e nas correções)
+- [x] Revisão do `reviewer` (1ª reprovada; achados corrigidos; reverificação **aprovada** — I-3 e S-2 aguardam decisão do usuário)
 - [x] Docs e maps
 - [x] `PROJECT_STATUS.md`
 - [ ] `APROVADO` do usuário

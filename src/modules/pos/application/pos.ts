@@ -517,6 +517,9 @@ export async function closeFree(
     requireNoPending(items);
     const totals = totalsOf(order, items);
     if (totals.totalCents !== 0 || totals.paidCents !== 0) throw posErrors.notFree();
+    // Só cortesia de verdade (itens com valor e desconto total): conta vazia ou toda cancelada se
+    // cancela (RN-ORD-20) — não vira "venda de R$ 0,00" nos relatórios (sugestão S-1 da reverificação)
+    if (totals.itemsCents === 0) throw posErrors.nothingToClose();
     await deps.orders.closeAsPaid(tx, ctx, order, {
       itemsCents: totals.itemsCents,
       discountsCents: totals.itemDiscountsCents + totals.orderDiscountCents,

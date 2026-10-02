@@ -4,7 +4,8 @@
 
 ## Etapa atual
 **Etapa 8 — PDV e caixa** — plano aprovado em 2026-10-01 (Q-06, Q-07, Q-16, Q-17 respondidas;
-decisões E8-1 a E8-5) — implementada na `main`, em revisão pelo `reviewer`.
+decisões E8-1 a E8-5) — implementada na `main` (revisão: 1ª reprovada, achados corrigidos,
+reverificação **aprovada**), **aguardando aprovação do usuário** e as decisões I-3 e S-2.
 
 ## Progresso do MVP
 
@@ -18,7 +19,7 @@ decisões E8-1 a E8-5) — implementada na `main`, em revisão pelo `reviewer`.
 | 5 | Estoque e ficha técnica | **Aprovada** em 2026-09-30 |
 | 6 | Salão, mesas e pedidos | **Aprovada** em 2026-09-30 |
 | 7 | KDS | **Aprovada** em 2026-10-01 |
-| 8 | PDV e caixa | Entregue — em revisão |
+| 8 | PDV e caixa | Entregue — aguardando `APROVADO` |
 | 9 | Financeiro básico, dashboard e relatórios | Não iniciada |
 | 10 | Estabilização e piloto (MVP Gate) | Não iniciada |
 
@@ -49,13 +50,13 @@ decisões E8-1 a E8-5) — implementada na `main`, em revisão pelo `reviewer`.
 - ADRs: 14 aceitos (0001–0014) — ADR-0006 aceito em 2026-09-29 (Q-01 = A).
 
 ## Em andamento
-- Etapa 8: revisão do `reviewer` e CI.
+- Revisão da Etapa 8 pelo usuário; decisões I-3 (sangria acima do esperado) e S-2 (limite de desconto por desconto ou na soma).
 
 ## Bloqueado
 - Nada bloqueado.
 
 ## Testes
-- Vitest: 1884 testes (549 unitários + 1335 de integração com MySQL 8.4 real).
+- Vitest: 1885 testes (549 unitários + 1336 de integração com MySQL 8.4 real).
 - Playwright: 141 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
 
 ## Bugs

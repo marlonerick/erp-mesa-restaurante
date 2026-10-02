@@ -20,6 +20,8 @@ export const posErrors = {
   itemsExceedBalance: () =>
     rule('ITEMS_EXCEED_BALANCE', 'Os itens marcados passam do que falta pagar. Receba por valor.'),
   notFree: () => rule('BILL_NOT_FREE', 'Esta conta tem valor a pagar.'),
+  nothingToClose: () =>
+    rule('BILL_EMPTY', 'Esta conta não tem itens com valor: cancele a conta na comanda.'),
   tenderedTooLow: () =>
     rule('TENDERED_TOO_LOW', 'O dinheiro recebido é menor que a parte destes itens.'),
   nothingToPay: () => rule('NOTHING_TO_PAY', 'Esta conta não tem valor a pagar.'),
