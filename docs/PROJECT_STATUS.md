@@ -1,11 +1,11 @@
 # Status do projeto
 
-Última atualização: 2026-10-02
+Última atualização: 2026-10-05
 
 ## Etapa atual
-**Etapa 8 — PDV e caixa** — plano aprovado em 2026-10-01 (Q-06, Q-07, Q-16, Q-17 respondidas;
-decisões E8-1 a E8-5) — implementada na `main` (revisão: 1ª reprovada, achados corrigidos,
-reverificação **aprovada**), **aguardando aprovação do usuário** e as decisões I-3 e S-2.
+**Etapa 8 — PDV e caixa** — **aprovada pelo usuário em 2026-10-05** (decisões da revisão E8-6:
+sangria acima do esperado aceita e apontada no fechamento; E8-7: limite de desconto na soma da conta).
+Próxima: Etapa 9 (aguardando o plano).
 
 ## Progresso do MVP
 
@@ -19,7 +19,7 @@ reverificação **aprovada**), **aguardando aprovação do usuário** e as decis
 | 5 | Estoque e ficha técnica | **Aprovada** em 2026-09-30 |
 | 6 | Salão, mesas e pedidos | **Aprovada** em 2026-09-30 |
 | 7 | KDS | **Aprovada** em 2026-10-01 |
-| 8 | PDV e caixa | Entregue — aguardando `APROVADO` |
+| 8 | PDV e caixa | **Aprovada** em 2026-10-05 |
 | 9 | Financeiro básico, dashboard e relatórios | Não iniciada |
 | 10 | Estabilização e piloto (MVP Gate) | Não iniciada |
 
@@ -50,13 +50,13 @@ reverificação **aprovada**), **aguardando aprovação do usuário** e as decis
 - ADRs: 14 aceitos (0001–0014) — ADR-0006 aceito em 2026-09-29 (Q-01 = A).
 
 ## Em andamento
-- Revisão da Etapa 8 pelo usuário; decisões I-3 (sangria acima do esperado) e S-2 (limite de desconto por desconto ou na soma).
+- Planejamento da Etapa 9 (aguardando aprovação do plano).
 
 ## Bloqueado
 - Nada bloqueado.
 
 ## Testes
-- Vitest: 1885 testes (549 unitários + 1336 de integração com MySQL 8.4 real).
+- Vitest: 1889 testes (550 unitários + 1339 de integração com MySQL 8.4 real).
 - Playwright: 141 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
 
 ## Bugs

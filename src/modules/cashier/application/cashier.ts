@@ -19,6 +19,7 @@ import {
   openingAmount,
   PAYMENT_METHODS,
   type PaymentMethod,
+  sangriasAboveExpected,
 } from '../domain/rules';
 import type { CashierDependencies, CashMovementRecord, CashSessionRecord } from './ports';
 
@@ -140,6 +141,8 @@ export interface ClosedSummary extends CashSessionRecord {
   readonly closedByName: string | null;
   /** Só depois de fechado (fechamento cego); null enquanto aberto. */
   readonly counts: CountLine[] | null;
+  /** Sangrias acima do dinheiro esperado (decisão I-3); null enquanto aberto. */
+  readonly alerts: (CashMovementRecord & { readonly userName: string | null })[] | null;
 }
 
 export async function summary(
@@ -158,15 +161,25 @@ export async function summary(
             (a, b) => PAYMENT_METHODS.indexOf(a.method) - PAYMENT_METHODS.indexOf(b.method),
           )
         : null;
-    const names = await deps.userNames(
-      tx,
-      [session.openedBy, session.closedBy].filter((id): id is Id => id !== null),
-    );
+    // Só depois de fechado (cego): sangrias que levaram a gaveta abaixo de zero (decisão I-3)
+    const alerts =
+      session.status === 'FECHADA'
+        ? sangriasAboveExpected(
+            session.openingAmountCents,
+            await deps.repo.listCashMovements(tx, { storeId: ctx.storeId, sessionId: session.id }),
+          )
+        : null;
+    const names = await deps.userNames(tx, [
+      ...[session.openedBy, session.closedBy].filter((id): id is Id => id !== null),
+      ...(alerts ?? []).map((alert) => alert.userId),
+    ]);
     return {
       ...session,
       openedByName: names.get(session.openedBy) ?? null,
       closedByName: session.closedBy ? (names.get(session.closedBy) ?? null) : null,
       counts,
+      alerts:
+        alerts?.map((alert) => ({ ...alert, userName: names.get(alert.userId) ?? null })) ?? null,
     };
   });
 }
@@ -262,10 +275,12 @@ export async function movement(
       async () => {
         await activeStore(deps, tx, ctx);
         const session = await lockOpenSessionOfTerminal(deps, tx, ctx);
-        if (input.type === 'SANGRIA') {
-          const expected = await expectedOf(deps, tx, session, true);
-          if (expected.DINHEIRO - amount < 0) throw cashErrors.insufficient();
-        }
+        // Sangria maior que o dinheiro esperado é ACEITA (decisão I-3 da revisão da Etapa 8):
+        // recusar deixaria o operador descobrir o esperado por tentativa e o fechamento não seria
+        // cego. Ela fica marcada na auditoria e aparece ao gerente na conferência do fechamento.
+        const aboveExpected =
+          input.type === 'SANGRIA' &&
+          (await expectedOf(deps, tx, session, true)).DINHEIRO - amount < 0;
         const signed = input.type === 'SANGRIA' ? -amount : amount;
         await deps.repo.insertMovement(tx, {
           storeId: ctx.storeId,
@@ -282,7 +297,7 @@ export async function movement(
         await recordAuditFromContext(tx, ctx, 'CASH_MOVEMENT', {
           entityType: 'cash_session',
           entityId: session.id,
-          after: { type: input.type, amountCents: amount, reason },
+          after: { type: input.type, amountCents: amount, reason, aboveExpected },
         });
       },
     ),

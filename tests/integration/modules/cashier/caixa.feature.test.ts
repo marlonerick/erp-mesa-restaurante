@@ -63,15 +63,26 @@ describeFeature(feature, ({ Background, Scenario }) => {
     });
   });
 
-  Scenario('Sangria maior que o dinheiro da gaveta é recusada', ({ Given, When, Then }) => {
-    Given('"bia" abriu o caixa com "100,00" de fundo de troco', () => w.openCash('bia', '100,00'));
-    When('"bia" tenta fazer uma sangria de "150,00" pelo motivo "depósito"', () =>
-      w.attempt(() => w.movement('bia', 'SANGRIA', '150,00', 'depósito')),
-    );
-    Then('a ação é recusada com o código "CASH_INSUFFICIENT"', () => {
-      w.expectFailure('CASH_INSUFFICIENT');
-    });
-  });
+  Scenario(
+    'Sangria maior que o dinheiro da gaveta é aceita e aparece ao gerente no fechamento',
+    ({ Given, When, And, Then }) => {
+      Given('"bia" abriu o caixa com "100,00" de fundo de troco', () =>
+        w.openCash('bia', '100,00'),
+      );
+      When('"bia" faz uma sangria de "150,00" pelo motivo "depósito"', () =>
+        w.movement('bia', 'SANGRIA', '150,00', 'depósito'),
+      );
+      And('"bia" fecha o caixa informando "0,00" em dinheiro e "0,00" no PIX', () =>
+        w.closeCash('bia', { DINHEIRO: '0,00', PIX: '0,00' }),
+      );
+      Then('a conferência aponta a sangria de "150,00" acima do esperado', async () => {
+        const summary = await w.services.cashier.summary(w.ctx('carla'), w.lastSessionId);
+        expect(summary.alerts).toEqual([
+          expect.objectContaining({ type: 'SANGRIA', amountCents: -15000, reason: 'depósito' }),
+        ]);
+      });
+    },
+  );
 
   Scenario('Fechamento cego mostra a diferença', ({ Given, And, When, Then }) => {
     Given('"bia" abriu o caixa com "100,00" de fundo de troco', () => w.openCash('bia', '100,00'));

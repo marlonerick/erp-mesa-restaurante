@@ -5,6 +5,7 @@ import {
   expectedByMethod,
   movementAmount,
   openingAmount,
+  sangriasAboveExpected,
 } from '@/modules/cashier/domain/rules';
 
 const code = (fn: () => unknown) => {
@@ -57,5 +58,18 @@ describe('esperado e fechamento cego (RN-CASH-05, RN-CASH-06, Q-16)', () => {
 
   it('dinheiro é obrigatório', () => {
     expect(code(() => blindCount(expected, { PIX: 3000 }))).toBe('CASH_COUNT_REQUIRED');
+  });
+});
+
+describe('sangria acima do esperado (decisão I-3)', () => {
+  it('aponta só a sangria que levou o dinheiro abaixo de zero', () => {
+    const flagged = sangriasAboveExpected(10_000, [
+      { id: 'a', type: 'SANGRIA', paymentMethod: 'DINHEIRO', amountCents: -8000 },
+      { id: 'b', type: 'VENDA', paymentMethod: 'PIX', amountCents: 5000 },
+      { id: 'c', type: 'SANGRIA', paymentMethod: 'DINHEIRO', amountCents: -8000 },
+      { id: 'd', type: 'SUPRIMENTO', paymentMethod: 'DINHEIRO', amountCents: 9000 },
+      { id: 'e', type: 'SANGRIA', paymentMethod: 'DINHEIRO', amountCents: -1000 },
+    ] as const);
+    expect(flagged.map((movement) => movement.id)).toEqual(['c']);
   });
 });

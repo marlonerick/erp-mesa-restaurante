@@ -22,7 +22,10 @@ CAIXA, GERENTE, ADMIN (`cashier.*`). O garçom não usa o caixa.
   operacional** (ADR-0013). Idempotente (chave do cliente).
 - **RN-CASH-03** — **Sangria** e **suprimento** (`cashier.movement`): valor > 0, motivo de 3 a 200
   caracteres, no caixa aberto **deste terminal**. Sangria maior que o dinheiro esperado na gaveta é
-  recusada (`CASH_INSUFFICIENT`).
+  **aceita** (decisão I-3 da revisão, 2026-10-05): recusar deixaria o operador descobrir o esperado
+  por tentativa e o fechamento deixaria de ser cego. Ela fica marcada na auditoria
+  (`aboveExpected`) e, **depois do fechamento**, a conferência aponta ao gerente as sangrias que
+  levaram o dinheiro da gaveta abaixo de zero.
 - **RN-CASH-04** — **Vendas**: cada pagamento do PDV gera uma movimentação `VENDA` (forma de pagamento,
   valor) no caixa aberto do terminal, na mesma transação (docs/modules/pos.md). Cancelar o pagamento
   gera `ESTORNO` (valor negativo) no **mesmo** caixa, que precisa estar aberto.
@@ -67,7 +70,6 @@ stateDiagram-v2
 | Caixa fechado no meio da operação | `CASH_SESSION_CLOSED` | 409 | Este caixa foi fechado. |
 | Valor inválido | `INVALID_CASH_AMOUNT` | 400 | Informe um valor válido (ex.: 150,00). |
 | Motivo obrigatório | `CASH_REASON_REQUIRED` | 400 | Explique o motivo (3 a 200 caracteres). |
-| Sangria maior que o dinheiro da gaveta | `CASH_INSUFFICIENT` | 422 | Não há esse valor em dinheiro no caixa. |
 | Dinheiro não informado no fechamento | `CASH_COUNT_REQUIRED` | 400 | Informe quanto há em dinheiro na gaveta. |
 | Outra pessoa alterou antes | `CONCURRENT_MODIFICATION` | 409 | Outra pessoa alterou este caixa. Recarregue a página. |
 

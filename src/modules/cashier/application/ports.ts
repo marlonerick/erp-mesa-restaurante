@@ -89,6 +89,11 @@ export interface CashierRepository {
   ): Promise<CashMovementRecord[]>;
   insertCounts(tx: Transaction, sessionId: Id, lines: readonly CountLine[]): Promise<void>;
   listCounts(tx: Transaction, scope: { storeId: Id; sessionId: Id }): Promise<CountLine[]>;
+  /** Todas as movimentações do caixa, em ordem (conferência do fechamento). */
+  listCashMovements(
+    tx: Transaction,
+    scope: { storeId: Id; sessionId: Id },
+  ): Promise<CashMovementRecord[]>;
 }
 
 /** O que o caixa usa dos outros módulos (injetado — ADR-0014). */

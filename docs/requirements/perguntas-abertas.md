@@ -116,6 +116,8 @@ padrão que será adotada se você responder "use a proposta".
 | E8-3 | Cancelar pagamento lançado errado: permitido enquanto a conta não fechou, com motivo e `payments.cancel` (ou PIN do gerente) |
 | E8-4 | Reabrir conta fechada fica para depois do piloto |
 | E8-5 | O caixa pode ser fechado com contas ainda abertas; elas são recebidas em outro caixa ou no dia seguinte |
+| E8-6 | (Revisão, 2026-10-05 — I-3) Sangria maior que o dinheiro esperado é **aceita** e apontada ao gerente na conferência do fechamento — o fechamento continua cego |
+| E8-7 | (Revisão, 2026-10-05 — S-2) O limite de desconto do perfil vale na **soma** dos descontos da conta (itens + conta) |
 
 ## Pontos da especificação que interpretei (confirme ou corrija)
 

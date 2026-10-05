@@ -338,3 +338,20 @@ describe('achados da revisão da Etapa 8', () => {
     expect((await w.bill(mesa('1'))).order.paidCents).toBe(1000);
   });
 });
+
+describe('limite de desconto na soma da conta (decisão S-2)', () => {
+  it('caixa: 10% no item e mais desconto na conta passa do limite e pede o PIN', async () => {
+    // Mesa 1: 1 X-Burger de 32,00. 10% no item = 3,20 → no limite
+    await w.discountItem('bia', '1', 0, '3,20', 'demorou');
+    await w.attempt(() => w.discountOrder('bia', mesa('1'), 'VALOR', 100, 'cortesia'));
+    w.expectFailure('FORBIDDEN');
+    expect(w.failure).toMatchObject({ details: { elevationAllowed: true } });
+    // Diminuir a soma continua livre
+    await w.discountItem('bia', '1', 0, '1,00', 'demorou');
+    await w.discountOrder('bia', mesa('1'), 'VALOR', 220, 'cortesia');
+    expect((await w.bill(mesa('1'))).totals).toMatchObject({
+      itemDiscountsCents: 100,
+      orderDiscountCents: 220,
+    });
+  });
+});

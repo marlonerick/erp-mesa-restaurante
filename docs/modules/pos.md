@@ -38,8 +38,10 @@ CAIXA, GERENTE, ADMIN (receber — E8-1). GERENTE autoriza com PIN o que passa d
 ### Descontos e taxa
 - **RN-POS-05** — **Desconto** no item ou na conta, em valor (R$) ou percentual, com motivo (3 a 200).
   O desconto **substitui** o anterior; zero retira. Não passa do valor-base (linha do item ou
-  subtotal). Limite por perfil (Q-07): o percentual do desconto sobre a sua base não pode passar do
-  limite do usuário na loja (GARÇOM 0%, CAIXA 10%, GERENTE/ADMIN 100% — `role.max_discount_bp`);
+  subtotal). Limite por perfil (Q-07): a **soma** dos descontos da conta (itens + conta) sobre o valor
+  dos itens não pode passar do limite do usuário na loja (decisão S-2 da revisão, 2026-10-05: o
+  caixa não chega a ~19% somando 10% no item e 10% na conta); diminuir a soma é sempre livre para
+  quem tem `discounts.apply`. Limites (GARÇOM 0%, CAIXA 10%, GERENTE/ADMIN 100% — `role.max_discount_bp`);
   quem não tem `discounts.apply` precisa SEMPRE do gerente — inclusive para **retirar** um desconto
   (achado B-1 da revisão). Acima do limite: `discounts.apply_above_limit` ou
   **PIN do gerente** no aparelho (autorização elevada). Auditoria `DISCOUNT_APPLIED` (quem pediu,

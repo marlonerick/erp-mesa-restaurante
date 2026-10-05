@@ -53,6 +53,8 @@ export function DiscountDialog({
   itemId,
   storeId,
   limitBp,
+  billDiscountsCents,
+  itemsCents,
   canAboveLimit,
 }: {
   readonly label: string;
@@ -63,6 +65,9 @@ export function DiscountDialog({
   readonly itemId?: string;
   readonly storeId: string;
   readonly limitBp: number;
+  /** Soma dos descontos da conta hoje e valor dos itens: o limite vale na soma (decisão S-2). */
+  readonly billDiscountsCents: number;
+  readonly itemsCents: number;
   readonly canAboveLimit: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -73,8 +78,10 @@ export function DiscountDialog({
     'discounts.apply_above_limit',
   );
   const cents = discountCents(mode, value, baseCents) ?? 0;
-  // Sem arredondar: desconto/base acima do limite do perfil (Q-07)
-  const needsManager = !canAboveLimit && cents > 0 && cents * 10_000 > limitBp * baseCents;
+  // Sem arredondar: a SOMA dos descontos da conta acima do limite do perfil (Q-07, decisão S-2)
+  const afterCents = billDiscountsCents - currentCents + cents;
+  const needsManager =
+    !canAboveLimit && afterCents > billDiscountsCents && afterCents * 10_000 > limitBp * itemsCents;
 
   return (
     <Dialog
@@ -91,7 +98,7 @@ export function DiscountDialog({
       </DialogTrigger>
       <DialogContent
         title={title}
-        description={`Sobre ${formatBRL(baseCents)}. Seu limite: ${String(limitBp / 100).replace('.', ',')}%. Zero retira o desconto.`}
+        description={`Sobre ${formatBRL(baseCents)}. Seu limite: ${String(limitBp / 100).replace('.', ',')}% do valor dos itens, somando todos os descontos da conta. Zero retira o desconto.`}
       >
         {form.state?.success ? (
           <Done

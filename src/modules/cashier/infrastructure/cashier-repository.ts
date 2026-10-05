@@ -110,6 +110,25 @@ export const cashierRepository: CashierRepository = {
       .orderBy(asc(cashMovement.occurredAt), asc(cashMovement.id));
   },
 
+  listCashMovements(tx, { storeId, sessionId }) {
+    return (
+      tx
+        .select({
+          id: cashMovement.id,
+          type: cashMovement.type,
+          paymentMethod: cashMovement.paymentMethod,
+          amountCents: cashMovement.amountCents,
+          reason: cashMovement.reason,
+          userId: cashMovement.userId,
+          occurredAt: cashMovement.occurredAt,
+        })
+        .from(cashMovement)
+        .where(and(eq(cashMovement.cashSessionId, sessionId), eq(cashMovement.storeId, storeId)))
+        // UUIDv7: ordem de gravação (a hora pode empatar)
+        .orderBy(asc(cashMovement.id))
+    );
+  },
+
   async insertCounts(tx, sessionId, lines) {
     if (lines.length === 0) return;
     await tx.insert(cashSessionCount).values(

@@ -86,6 +86,12 @@ export function posWorld(db: Database) {
     get parts() {
       return parts;
     },
+    /** Último caixa aberto no cenário. */
+    get lastSessionId(): Id {
+      const last = [...sessions.values()].at(-1);
+      if (!last) throw new Error('nenhum caixa aberto no cenário');
+      return last;
+    },
     orderId,
 
     /** Primeiro passo do cenário: organização nova e nada guardado do cenário anterior. */

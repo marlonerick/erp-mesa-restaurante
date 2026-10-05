@@ -43,6 +43,16 @@ export interface CashSummaryView {
   readonly closedByName: string | null;
   readonly openingAmountCents: number;
   readonly counts: CountView[] | null;
+  /** Sangrias acima do esperado (decisão I-3); só depois do fechamento. */
+  readonly alerts:
+    | {
+        readonly id: string;
+        readonly amountCents: number;
+        readonly reason: string | null;
+        readonly userName: string | null;
+        readonly occurredAt: string;
+      }[]
+    | null;
 }
 
 export function toCashierView(screen: CashierScreen): CashierView {
@@ -83,6 +93,14 @@ export function toCashSummaryView(summary: ClosedSummary): CashSummaryView {
       summary.counts?.map((line) => ({
         ...line,
         methodLabel: PAYMENT_METHOD_LABEL[line.method],
+      })) ?? null,
+    alerts:
+      summary.alerts?.map((alert) => ({
+        id: alert.id,
+        amountCents: Math.abs(alert.amountCents),
+        reason: alert.reason,
+        userName: alert.userName,
+        occurredAt: alert.occurredAt.toISOString(),
       })) ?? null,
   };
 }

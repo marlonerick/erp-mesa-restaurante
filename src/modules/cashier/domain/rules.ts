@@ -42,7 +42,6 @@ export const cashErrors = {
     rule('CASH_LIMIT_REACHED', 'A loja já tem o número máximo de caixas abertos.'),
   notOpen: () => rule('CASH_NOT_OPEN', 'Abra o caixa deste terminal antes.'),
   closed: () => new DomainError('CASH_SESSION_CLOSED', 'Este caixa foi fechado.', 'CONFLICT'),
-  insufficient: () => rule('CASH_INSUFFICIENT', 'Não há esse valor em dinheiro no caixa.'),
   concurrent: () =>
     new DomainError(
       'CONCURRENT_MODIFICATION',
@@ -105,6 +104,24 @@ export function expectedByMethod(
   expected.DINHEIRO = openingCents;
   for (const total of totals) expected[total.method] += total.amountCents;
   return expected;
+}
+
+/**
+ * Sangrias que levaram o dinheiro esperado da gaveta abaixo de zero (decisão I-3 da revisão da
+ * Etapa 8): a sangria é aceita na hora — recusar revelaria o esperado — e o gerente vê na
+ * conferência do fechamento. `movements` em ordem de acontecimento.
+ */
+export function sangriasAboveExpected<
+  M extends { type: CashMovementType; paymentMethod: PaymentMethod; amountCents: number },
+>(openingCents: number, movements: readonly M[]): M[] {
+  let cash = openingCents;
+  const flagged: M[] = [];
+  for (const movement of movements) {
+    if (movement.paymentMethod !== 'DINHEIRO') continue;
+    cash += movement.amountCents;
+    if (movement.type === 'SANGRIA' && cash < 0) flagged.push(movement);
+  }
+  return flagged;
 }
 
 export interface CountLine {

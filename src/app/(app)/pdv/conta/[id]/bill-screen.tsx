@@ -135,6 +135,8 @@ export function BillScreen({
                           itemId={item.id}
                           storeId={storeId}
                           limitBp={discountLimitBp}
+                          billDiscountsCents={totals.itemDiscountsCents + totals.orderDiscountCents}
+                          itemsCents={totals.itemsCents}
                           canAboveLimit={can.aboveLimit}
                         />
                       ) : null}
@@ -211,6 +213,8 @@ export function BillScreen({
                     orderId={bill.orderId}
                     storeId={storeId}
                     limitBp={discountLimitBp}
+                    billDiscountsCents={totals.itemDiscountsCents + totals.orderDiscountCents}
+                    itemsCents={totals.itemsCents}
                     canAboveLimit={can.aboveLimit}
                   />
                 ) : null}

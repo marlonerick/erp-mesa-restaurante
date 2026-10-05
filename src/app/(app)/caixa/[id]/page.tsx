@@ -106,6 +106,29 @@ export default async function CashSummaryPage({ params }: { params: Promise<{ id
           </tbody>
         </table>
       )}
+
+      {summary.alerts && summary.alerts.length > 0 ? (
+        <section
+          aria-labelledby="alertas"
+          className="flex flex-col gap-2 rounded-md border-l-4 border-alerta bg-alerta-claro px-4 py-3 text-alerta"
+        >
+          <h2 id="alertas" className="text-xl font-bold">
+            Atenção: sangria acima do dinheiro esperado
+          </h2>
+          <p>
+            Estas sangrias retiraram mais dinheiro do que deveria haver na gaveta. Confira com quem
+            fez.
+          </p>
+          <ul className="flex flex-col gap-1" aria-label="Sangrias acima do esperado">
+            {summary.alerts.map((alert) => (
+              <li key={alert.id} className="font-semibold">
+                {time(alert.occurredAt)} · {formatBRL(alert.amountCents)} · {alert.reason}
+                {alert.userName ? ` · ${alert.userName}` : ''}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }

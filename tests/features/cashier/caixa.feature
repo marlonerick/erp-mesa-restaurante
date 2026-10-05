@@ -29,10 +29,11 @@ Funcionalidade: Caixa
     E "bia" faz uma sangria de "120,00" pelo motivo "depósito no cofre"
     Então o dinheiro esperado na gaveta é "80,00"
 
-  Cenário: Sangria maior que o dinheiro da gaveta é recusada
+  Cenário: Sangria maior que o dinheiro da gaveta é aceita e aparece ao gerente no fechamento
     Dado "bia" abriu o caixa com "100,00" de fundo de troco
-    Quando "bia" tenta fazer uma sangria de "150,00" pelo motivo "depósito"
-    Então a ação é recusada com o código "CASH_INSUFFICIENT"
+    Quando "bia" faz uma sangria de "150,00" pelo motivo "depósito"
+    E "bia" fecha o caixa informando "0,00" em dinheiro e "0,00" no PIX
+    Então a conferência aponta a sangria de "150,00" acima do esperado
 
   Cenário: Fechamento cego mostra a diferença
     Dado "bia" abriu o caixa com "100,00" de fundo de troco

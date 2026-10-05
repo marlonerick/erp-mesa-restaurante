@@ -200,19 +200,31 @@ export async function preBill(
 // ---- Descontos e taxa (RN-POS-05 a RN-POS-07) ----
 
 /**
- * Libera o desconto (RN-POS-05): com `discounts.apply`, dentro do limite do perfil; acima dele, ou
- * para quem NÃO tem `discounts.apply` — inclusive para RETIRAR um desconto (valor zero) —, só com
- * `discounts.apply_above_limit` ou PIN do gerente (achado B-1 da revisão da Etapa 8).
+ * Libera o desconto (RN-POS-05). O limite do perfil vale na SOMA dos descontos da conta (itens +
+ * conta) sobre o valor dos itens (decisão S-2 da revisão da Etapa 8): com `discounts.apply`, passa
+ * se a soma fica dentro do limite ou se a mudança DIMINUI a soma. Acima disso — ou para quem NÃO tem
+ * `discounts.apply`, inclusive para retirar um desconto (achado B-1) — só com
+ * `discounts.apply_above_limit` ou PIN do gerente.
  */
 async function authorizeDiscount(
   deps: PosDependencies,
   tx: Transaction,
   ctx: RequestContext,
-  discount: { cents: number; baseCents: number; grantToken: string | null },
+  discount: {
+    /** Soma dos descontos da conta antes e depois da mudança. */
+    beforeCents: number;
+    afterCents: number;
+    /** Valor dos itens (base do limite). */
+    itemsCents: number;
+    grantToken: string | null;
+  },
 ) {
   const canDiscount = hasPermission(ctx, 'discounts.apply');
   const limit = canDiscount ? await deps.discountLimit(tx, ctx.userId, ctx.storeId) : 0;
-  if (canDiscount && !exceedsLimit(discount.cents, discount.baseCents, limit)) {
+  const withinLimit =
+    discount.afterCents <= discount.beforeCents ||
+    !exceedsLimit(discount.afterCents, discount.itemsCents, limit);
+  if (canDiscount && withinLimit) {
     return { authorizerUserId: null, limitBp: limit };
   }
   const outcome = await deps.authorizeOrElevate(
@@ -245,8 +257,9 @@ export async function discountOrder(
     const cents = discountFromInput(input.mode, input.value, totals.subtotalCents);
     const reason = cents === 0 ? null : reasonText(input.reason, 'DISCOUNT_REASON_REQUIRED');
     const { authorizerUserId } = await authorizeDiscount(deps, tx, ctx, {
-      cents,
-      baseCents: totals.subtotalCents,
+      beforeCents: totals.itemDiscountsCents + totals.orderDiscountCents,
+      afterCents: totals.itemDiscountsCents + cents,
+      itemsCents: totals.itemsCents,
       grantToken: input.grantToken ?? null,
     });
     await deps.orders.updateBill(
@@ -272,17 +285,19 @@ export async function discountItem(
   await runInTransaction(deps.db, async (tx) => {
     const order = await lockOpenOrder(deps, tx, ctx, input.orderId);
     if (order.paidCents > 0) throw posErrors.paymentsStarted();
-    const item = (await deps.orders.listItems(tx, ctx.storeId, order.id)).find(
-      (candidate) => candidate.id === input.itemId,
-    );
+    const items = await deps.orders.listItems(tx, ctx.storeId, order.id);
+    const totals = totalsOf(order, items);
+    const item = items.find((candidate) => candidate.id === input.itemId);
     if (!item) throw posErrors.itemNotFound();
     if (item.status === 'CANCELADO') throw posErrors.itemCancelled();
     const base = lineGross(item);
     const cents = discountFromInput(input.mode, input.value, base);
     const reason = cents === 0 ? null : reasonText(input.reason, 'DISCOUNT_REASON_REQUIRED');
+    const before = totals.itemDiscountsCents + totals.orderDiscountCents;
     const { authorizerUserId } = await authorizeDiscount(deps, tx, ctx, {
-      cents,
-      baseCents: base,
+      beforeCents: before,
+      afterCents: before - item.discountCents + cents,
+      itemsCents: totals.itemsCents,
       grantToken: input.grantToken ?? null,
     });
     await deps.orders.setItemDiscount(

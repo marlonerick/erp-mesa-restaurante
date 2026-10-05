@@ -24,15 +24,26 @@ beforeEach(async () => {
 });
 
 describe('concorrência no caixa (RN-CASH-08)', () => {
-  it('duas sangrias ao mesmo tempo não deixam a gaveta negativa (achado B-2)', async () => {
+  it('duas sangrias ao mesmo tempo: as duas entram e a segunda é apontada ao gerente', async () => {
     await w.openCash('bia', '100,00');
     const results = await Promise.all([
       settle(w.movement('bia', 'SANGRIA', '80,00', 'depósito no cofre')),
       settle(w.movement('bia', 'SANGRIA', '80,00', 'depósito no cofre')),
     ]);
-    expect(results.filter((result) => result.ok)).toHaveLength(1);
-    expect(results.find((result) => !result.ok)?.code).toBe('CASH_INSUFFICIENT');
-    expect(money(await w.expectedCash('bia'))).toBe('20,00');
+    // Decisão I-3: sangria acima do esperado é aceita (recusar revelaria o esperado)
+    expect(results.every((result) => result.ok)).toBe(true);
+    expect(money(await w.expectedCash('bia'))).toBe('-60,00');
+    await w.closeCash('bia', { DINHEIRO: '0,00' });
+    const summary = await w.services.cashier.summary(w.ctx('carla'), w.lastSessionId);
+    // Só a segunda deixou a gaveta negativa (B-2: a soma é lida com trava, nada se perde)
+    expect(summary.alerts).toHaveLength(1);
+  });
+
+  it('a conferência só existe depois de fechar (fechamento cego)', async () => {
+    await w.openCash('bia', '10,00');
+    await w.movement('bia', 'SANGRIA', '50,00', 'depósito');
+    const open = await w.services.cashier.summary(w.ctx('carla'), w.lastSessionId);
+    expect(open).toMatchObject({ counts: null, alerts: null });
   });
 
   it('sangria que espera um estorno em dinheiro enxerga o estorno', async () => {
@@ -55,11 +66,8 @@ describe('concorrência no caixa (RN-CASH-08)', () => {
     ]);
     const expected = await w.expectedCash('bia');
     if (refund.ok && withdrawal.ok) {
-      // A sangria passou antes do estorno: a gaveta ficou com o estorno a descoberto (permitido)
+      // Os dois entram (decisão I-3): a gaveta fica com 20,00 a descoberto e o gerente vê
       expect(expected).toBe(-2000);
-    } else if (refund.ok) {
-      expect(withdrawal.code).toBe('CASH_INSUFFICIENT');
-      expect(expected).toBe(0);
     } else {
       expect(withdrawal.ok).toBe(true);
       expect(expected).toBe(0);
