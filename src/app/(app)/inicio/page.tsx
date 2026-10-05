@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { requireSession } from '@/modules/auth/web';
 import { loadStoreSettings } from '@/modules/organizations/web';
 import { reports, toDashboardView } from '@/modules/reports/web';
-import { hasPermission, operationalDate } from '@/shared/kernel';
+import { hasPermission, operationalDate, type RequestContext } from '@/shared/kernel';
+import { getLogger } from '@/shared/logger/logger';
 import { DashboardPanel } from './dashboard-panel';
 
 export const metadata: Metadata = { title: 'Início' };
@@ -32,9 +33,7 @@ export default async function HomePage({
     ? operationalDate(context.clock.now(), settings.timezone, settings.operationalDayCutoff)
     : null;
   // Painel do dia: caixa, gerente e administrador (E9-4)
-  const dashboard = hasPermission(context, 'dashboard.read')
-    ? toDashboardView(await reports().dashboard(context))
-    : null;
+  const dashboard = hasPermission(context, 'dashboard.read') ? await loadDashboard(context) : null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -105,6 +104,16 @@ export default async function HomePage({
       </ul>
     </div>
   );
+}
+
+/** O painel não derruba a tela inicial: se falhar (ex.: loja sem configurações), some e registra. */
+async function loadDashboard(context: RequestContext) {
+  try {
+    return toDashboardView(await reports().dashboard(context));
+  } catch (error) {
+    getLogger().error({ err: error, requestId: context.requestId }, 'Painel indisponível');
+    return null;
+  }
 }
 
 function HomeLink({

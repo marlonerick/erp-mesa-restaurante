@@ -10,6 +10,7 @@ import {
   toCashFlowView,
   toCategoryView,
   toEntriesView,
+  UPCOMING_LIMIT,
 } from '@/modules/finance/web';
 import { loadStoreSettings } from '@/modules/organizations/web';
 import {
@@ -365,6 +366,12 @@ async function CashFlowTab({
         <h2 id="a-vencer" className="text-xl font-bold">
           A pagar e a receber até {formatDay(addDays(flow.today, 30))}
         </h2>
+        {flow.upcoming.length >= UPCOMING_LIMIT ? (
+          <p role="note" className="font-semibold text-atencao">
+            Mostrando os {UPCOMING_LIMIT} primeiros vencimentos. Veja todos em Lançamentos,
+            filtrando por “A pagar / a receber”.
+          </p>
+        ) : null}
         {overdue.length > 0 ? (
           <p role="status" className="font-semibold text-alerta">
             {overdue.length === 1

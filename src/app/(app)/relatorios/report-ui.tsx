@@ -167,7 +167,10 @@ export function Pager({
   return (
     <nav aria-label="Páginas" className="flex flex-wrap items-center gap-4 print:hidden">
       {page > 1 ? (
-        <Link href={href(page - 1)} className="font-semibold text-azulejo underline">
+        <Link
+          href={href(page - 1)}
+          className="flex min-h-12 items-center px-2 font-semibold text-azulejo underline"
+        >
           ← Anterior
         </Link>
       ) : null}
@@ -175,7 +178,10 @@ export function Pager({
         Página {page} de {pages} ({total} linhas)
       </span>
       {page < pages ? (
-        <Link href={href(page + 1)} className="font-semibold text-azulejo underline">
+        <Link
+          href={href(page + 1)}
+          className="flex min-h-12 items-center px-2 font-semibold text-azulejo underline"
+        >
           Próxima →
         </Link>
       ) : null}

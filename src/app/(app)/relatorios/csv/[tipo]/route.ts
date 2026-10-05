@@ -3,9 +3,10 @@ import { AUDIT_EVENT_LABEL } from '@/modules/audit';
 import { currentSession } from '@/modules/auth/web';
 import { PAYMENT_METHOD_LABEL } from '@/modules/cashier/web';
 import { loadStoreSettings } from '@/modules/organizations/web';
-import { csvMoney, reports, toCsv } from '@/modules/reports/web';
+import { CSV_MAX_ROWS, csvMoney, reports, toCsv } from '@/modules/reports/web';
 import { INTERNAL_ERROR_STATUS, toErrorResponse } from '@/shared/errors/error-response';
 import { parseId, type RequestContext } from '@/shared/kernel';
+import { requireScreenStore } from '@/shared/http/screen-store';
 import { getLogger } from '@/shared/logger/logger';
 import { formatQuantity, labelOf, reportSearchSchema, STOCK_TYPE_LABEL } from '../../report-params';
 
@@ -19,6 +20,15 @@ interface Filters {
   from?: string | null;
   to?: string | null;
 }
+
+/** Nome da loja no nome do arquivo: "Praia Grande" → "praia-grande". */
+const slug = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'loja';
 
 const methodLabel = (method: string) => labelOf(PAYMENT_METHOD_LABEL, method);
 const percent = (part: number, total: number) =>
@@ -59,6 +69,53 @@ const BUILDERS: Record<
         csvMoney(line.amountCents),
         percent(line.amountCents, total),
       ]),
+    };
+  },
+  async categorias(ctx, filters) {
+    const { categories } = await reports().sales(ctx, filters);
+    return {
+      headers: ['Categoria', 'Quantidade', 'Valor bruto', 'Descontos', 'Valor líquido'],
+      rows: categories.map((line) => [
+        line.name,
+        line.quantity,
+        csvMoney(line.grossCents),
+        csvMoney(line.discountsCents),
+        csvMoney(line.grossCents - line.discountsCents),
+      ]),
+    };
+  },
+  async operacao(ctx, filters) {
+    const report = await reports().operations(ctx, filters);
+    const guests = (report.guestsPerTableTenths / 10).toFixed(1).replace('.', ',');
+    const indicator = (name: string, value: string | number) => [name, value, null, null, null];
+    return {
+      headers: [
+        'Indicador',
+        'Valor',
+        'Motivo do cancelamento',
+        'Itens cancelados',
+        'Valor cancelado',
+      ],
+      rows: [
+        indicator('Contas abertas', report.openedOrders),
+        indicator('Contas de mesa', report.tableOrders),
+        indicator('Contas de balcão', report.counterOrders),
+        indicator('Contas fechadas', report.closedOrders),
+        indicator('Ainda abertas', report.stillOpen),
+        indicator('Canceladas', report.cancelledOrders),
+        indicator('Juntadas a outra mesa', report.mergedOrders),
+        indicator('Ticket médio', csvMoney(report.averageTicketCents)),
+        indicator('Pessoas por mesa', guests),
+        indicator('Descontos concedidos', csvMoney(report.discountsCents)),
+        indicator('Taxas de serviço retiradas', report.serviceFeeWaived),
+        ...report.cancelledItems.map((row) => [
+          null,
+          null,
+          row.reason,
+          row.items,
+          csvMoney(row.valueCents),
+        ]),
+      ],
     };
   },
   async produtos(ctx, filters) {
@@ -174,12 +231,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ tipo
     return NextResponse.json({ code: 'UNAUTHENTICATED' }, { status: 401 });
   }
   const { tipo } = await params;
-  const builder = BUILDERS[tipo];
+  // Só os tipos do objeto ("constructor", "toString"… não — achado S-3 da revisão)
+  const builder = Object.hasOwn(BUILDERS, tipo) ? BUILDERS[tipo] : undefined;
   if (!builder) return NextResponse.json({ code: 'NOT_FOUND' }, { status: 404 });
   const search = reportSearchSchema.parse(
     Object.fromEntries(new URL(request.url).searchParams.entries()),
   );
   try {
+    // A loja da TELA (achado I-2): trocou de loja em outra aba → 409, não baixa os dados da outra
+    requireScreenStore(request, session.context);
     const table = await builder(
       session.context,
       { from: search.de ?? null, to: search.ate ?? search.de ?? null },
@@ -189,10 +249,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ tipo
       },
     );
     const period = [search.de, search.ate].filter(Boolean).join('-a-') || 'hoje';
-    return new NextResponse(toCsv(table.headers, table.rows), {
+    const store = slug(session.storeName);
+    // Chegou no limite: avisa na última linha em vez de cortar calado (S-6)
+    const rows =
+      table.rows.length >= CSV_MAX_ROWS
+        ? [
+            ...table.rows,
+            [`Atenção: limite de ${String(CSV_MAX_ROWS)} linhas atingido. Diminua o período.`],
+          ]
+        : table.rows;
+    return new NextResponse(toCsv(table.headers, rows), {
       headers: {
         'content-type': 'text/csv; charset=utf-8',
-        'content-disposition': `attachment; filename="relatorio-${tipo}-${period}.csv"`,
+        'content-disposition': `attachment; filename="relatorio-${store}-${tipo}-${period}.csv"`,
         'cache-control': 'no-store',
       },
     });

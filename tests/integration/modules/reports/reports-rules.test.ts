@@ -46,10 +46,49 @@ describe('isolamento entre lojas (ADR-0009)', () => {
     expect((await w.services.reports.operations(praia, {})).openedOrders).toBe(0);
     const events = (await w.services.reports.audit(praia, {})).rows.map((row) => row.event);
     expect(events).not.toContain('CASH_OPENED');
-    expect(events).not.toContain('PAYMENT_RECEIVED');
+    expect(events).not.toContain('PAYMENT_CREATED');
 
     // E o Centro vê as próprias
     expect((await w.services.reports.dashboard(w.ctx('carla'))).salesCents).toBe(3520);
+  });
+
+  it('cada consulta do painel, do estoque e das formas de pagamento fica na própria loja (I-5)', async () => {
+    // Centro: insumo abaixo do mínimo, venda com baixa (CMV), item na cozinha, mesa ocupada,
+    // caixa aberto e pagamento no PIX
+    await w.recipe('PRODUCT', 'X-Burger', '150', 'Carne moída');
+    await w.stockOf('Carne moída', '1');
+    await w.setMinimum('Carne moída', '900');
+    await oneSale();
+    await w.createTable('11');
+    await w.sendTo('joão', '11', [{ quantity: 1, product: 'X-Burger' }]);
+    const centro = w.ctx('carla');
+    const mine = await w.services.reports.dashboard(centro);
+    expect(mine).toMatchObject({ occupiedTables: 1, kitchenItems: 2, openOrders: 1 });
+    expect(mine.openCash).toHaveLength(1);
+    expect(mine.lowStock.map((item) => item.name)).toEqual(['Carne moída']);
+    expect((await w.services.reports.sales(centro, {})).methods).toHaveLength(1);
+    expect((await w.services.reports.stock(centro, {})).cogsCents).toBeGreaterThan(0);
+
+    await w.personAt('paulo', 'GERENTE', 'Praia');
+    const praia = w.ctx('paulo');
+    const panel = await w.services.reports.dashboard(praia);
+    expect(panel).toMatchObject({
+      salesCents: 0,
+      closedOrders: 0,
+      openOrders: 0,
+      occupiedTables: 0,
+      kitchenItems: 0,
+      lateItems: 0,
+      openCash: [],
+      topProducts: [],
+      lowStock: [],
+    });
+    expect((await w.services.reports.sales(praia, {})).methods).toEqual([]);
+    expect((await w.services.reports.sales(praia, {})).categories).toEqual([]);
+    const stock = await w.services.reports.stock(praia, {});
+    expect(stock).toMatchObject({ cogsCents: 0, lossesCents: 0, movements: [] });
+    // O insumo é da empresa, mas o saldo da Praia não tem o do Centro
+    expect(stock.balances.every((row) => Number(row.quantity) === 0)).toBe(true);
   });
 });
 

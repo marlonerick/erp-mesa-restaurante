@@ -13,6 +13,7 @@ import {
   type SQL,
   type SQLWrapper,
 } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/mysql-core';
 import {
   appUser,
   auditLog,
@@ -52,6 +53,10 @@ function soldItems(storeId: Id, from: string, to: string) {
 }
 
 const lineGross = sql`(${orderItem.unitPriceCents} + ${orderItem.modifiersCents}) * ${orderItem.quantity}`;
+
+/** Cópias das tabelas para a subconsulta de custo (escopo próprio, sem colidir com a consulta de fora). */
+const soldItem = alias(orderItem, 'sold_item');
+const soldOrder = alias(customerOrder, 'sold_order');
 
 export const reportsRepository: ReportsRepository = {
   // ---- Vendas ----
@@ -144,17 +149,30 @@ export const reportsRepository: ReportsRepository = {
     to: string,
     page: { offset: number; limit: number } | null,
   ) {
+    // Só os itens vendidos no período (achado I-3 da revisão: antes somava todo o histórico da loja)
     const costs = tx
       .select({
         itemId: stockMovement.originId,
         cost: sql<string>`-sum(${stockMovement.valueCents})`.as('cost'),
       })
-      .from(stockMovement)
+      .from(soldItem)
+      .innerJoin(soldOrder, eq(soldOrder.id, soldItem.orderId))
+      .innerJoin(
+        stockMovement,
+        and(
+          eq(stockMovement.originId, soldItem.id),
+          eq(stockMovement.originType, 'ORDER_ITEM'),
+          eq(stockMovement.storeId, storeId),
+          inArray(stockMovement.type, ['CONSUMO_VENDA', 'ESTORNO_VENDA']),
+        ),
+      )
       .where(
         and(
-          eq(stockMovement.storeId, storeId),
-          eq(stockMovement.originType, 'ORDER_ITEM'),
-          inArray(stockMovement.type, ['CONSUMO_VENDA', 'ESTORNO_VENDA']),
+          eq(soldOrder.storeId, storeId),
+          eq(soldOrder.status, 'FECHADO'),
+          gte(soldOrder.closedDate, from),
+          lte(soldOrder.closedDate, to),
+          ne(soldItem.status, 'CANCELADO'),
         ),
       )
       .groupBy(stockMovement.originId)
@@ -193,6 +211,20 @@ export const reportsRepository: ReportsRepository = {
     };
   },
 
+  /** Mais vendidos por QUANTIDADE (painel — sem custo, leve a cada 30 s). */
+  async topProducts(tx: Transaction, storeId: Id, day: string, limit: number) {
+    const quantity = sumOf(orderItem.quantity);
+    const rows = await tx
+      .select({ name: sql<string>`max(${orderItem.productName})`, quantity })
+      .from(orderItem)
+      .innerJoin(customerOrder, eq(customerOrder.id, orderItem.orderId))
+      .where(soldItems(storeId, day, day))
+      .groupBy(orderItem.productId)
+      .orderBy(desc(quantity), asc(sql`max(${orderItem.productName})`))
+      .limit(limit);
+    return rows.map((row) => ({ name: row.name, quantity: n(row.quantity) }));
+  },
+
   // ---- Caixa ----
 
   async cashSessions(tx: Transaction, storeId: Id, from: string, to: string) {
@@ -221,7 +253,31 @@ export const reportsRepository: ReportsRepository = {
       .orderBy(asc(cashSession.operationalDate), asc(cashSession.openedAt));
   },
 
-  /** Movimentações dos caixas, em ordem (somas por tipo e sangrias acima do esperado). */
+  /** Soma das movimentações por caixa e tipo (valor absoluto). */
+  async cashMovementTotals(tx: Transaction, storeId: Id, sessionIds: readonly Id[]) {
+    if (sessionIds.length === 0) return [];
+    const rows = await tx
+      .select({
+        sessionId: cashMovement.cashSessionId,
+        type: cashMovement.type,
+        amount: sql<string>`coalesce(sum(abs(${cashMovement.amountCents})), 0)`,
+      })
+      .from(cashMovement)
+      .where(
+        and(
+          eq(cashMovement.storeId, storeId),
+          inArray(cashMovement.cashSessionId, [...sessionIds]),
+        ),
+      )
+      .groupBy(cashMovement.cashSessionId, cashMovement.type);
+    return rows.map((row) => ({
+      sessionId: row.sessionId,
+      type: row.type,
+      amountCents: n(row.amount),
+    }));
+  },
+
+  /** Movimentações EM DINHEIRO dos caixas, em ordem (sangrias acima do esperado). */
   cashMovements(tx: Transaction, storeId: Id, sessionIds: readonly Id[]) {
     if (sessionIds.length === 0) return Promise.resolve([]);
     return tx
@@ -239,6 +295,7 @@ export const reportsRepository: ReportsRepository = {
       .where(
         and(
           eq(cashMovement.storeId, storeId),
+          eq(cashMovement.paymentMethod, 'DINHEIRO'),
           inArray(cashMovement.cashSessionId, [...sessionIds]),
         ),
       )

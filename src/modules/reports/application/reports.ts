@@ -6,6 +6,7 @@ import { runInTransaction, type Transaction } from '@/shared/db/transaction';
 import {
   addDays,
   DomainError,
+  hasPermission,
   type Id,
   operationalDate,
   operationalDayStart,
@@ -69,9 +70,14 @@ interface PeriodInput {
 
 export interface Dashboard {
   readonly today: string;
-  readonly salesCents: number;
+  /**
+   * Valores de venda: só para quem vê relatórios (gerente, admin). O CAIXA recebe null — E9-4 ("sem
+   * valores financeiros detalhados"): com o total do dia ele estimaria o esperado da gaveta antes
+   * do fechamento cego (achado B-1 da revisão, RN-CASH-06).
+   */
+  readonly salesCents: number | null;
   readonly closedOrders: number;
-  readonly averageTicketCents: number;
+  readonly averageTicketCents: number | null;
   readonly openOrders: number;
   readonly occupiedTables: number;
   readonly kitchenItems: number;
@@ -110,11 +116,12 @@ export async function dashboard(
     );
     const salesCents = day?.totalCents ?? 0;
     const closedOrders = day?.orders ?? 0;
+    const values = hasPermission(ctx, 'reports.read');
     return {
       today,
-      salesCents,
+      salesCents: values ? salesCents : null,
       closedOrders,
-      averageTicketCents: averageTicket(salesCents, closedOrders),
+      averageTicketCents: values ? averageTicket(salesCents, closedOrders) : null,
       openOrders: await deps.repo.openOrders(tx, ctx.storeId),
       occupiedTables: await deps.repo.occupiedTables(tx, ctx.storeId),
       kitchenItems: kitchen.items,
@@ -126,8 +133,8 @@ export async function dashboard(
         openedByName: people.get(item.openedBy) ?? null,
         openedAt: item.openedAt,
       })),
-      // Mais vendidos por QUANTIDADE (a consulta de produtos ordena por valor)
-      topProducts: (await topByQuantity(deps, tx, ctx.storeId, today)).slice(0, TOP_PRODUCTS),
+      // Mais vendidos por QUANTIDADE, numa consulta leve (sem custo — achado I-3)
+      topProducts: await deps.repo.topProducts(tx, ctx.storeId, today, TOP_PRODUCTS),
       lowStock: (await deps.repo.lowStock(tx, ctx.storeId)).map((row) => ({
         name: row.name,
         unit: row.unit,
@@ -136,13 +143,6 @@ export async function dashboard(
       })),
     };
   });
-}
-
-async function topByQuantity(deps: ReportsDependencies, tx: Transaction, storeId: Id, day: string) {
-  const { rows } = await deps.repo.salesByProduct(tx, storeId, day, day, null);
-  return rows
-    .map((row) => ({ name: row.name, quantity: row.quantity }))
-    .sort((a, b) => b.quantity - a.quantity || a.name.localeCompare(b.name));
 }
 
 // ---- Vendas (RN-REP-02, RN-REP-04) ----
@@ -280,8 +280,13 @@ export async function cash(
     const period = periodOf(input, today);
     const sessions = await deps.repo.cashSessions(tx, ctx.storeId, period.from, period.to);
     const ids = sessions.map((session) => session.id);
-    const movements = await deps.repo.cashMovements(tx, ctx.storeId, ids);
-    const counts = await deps.repo.cashCounts(tx, ctx.storeId, ids);
+    const closedIds = sessions
+      .filter((session) => session.status === 'FECHADA')
+      .map((session) => session.id);
+    // Somas no banco; movimentações (em dinheiro) só dos caixas fechados, para os alertas (S-7)
+    const totals = await deps.repo.cashMovementTotals(tx, ctx.storeId, ids);
+    const movements = await deps.repo.cashMovements(tx, ctx.storeId, closedIds);
+    const counts = await deps.repo.cashCounts(tx, ctx.storeId, closedIds);
     const people = await names(
       tx,
       sessions.flatMap((session) => [session.openedBy, session.closedBy]),
@@ -291,9 +296,8 @@ export async function cash(
       sessions: sessions.map((session) => {
         const own = movements.filter((movement) => movement.sessionId === session.id);
         const total = (type: string) =>
-          own
-            .filter((movement) => movement.type === type)
-            .reduce((sum, movement) => sum + Math.abs(movement.amountCents), 0);
+          totals.find((line) => line.sessionId === session.id && line.type === type)?.amountCents ??
+          0;
         const closed = session.status === 'FECHADA';
         return {
           id: session.id,

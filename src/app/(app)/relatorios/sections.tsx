@@ -34,15 +34,19 @@ const units = (quantity: number) => `${String(quantity)} un.`;
 function CsvLink({
   type,
   search,
+  storeId,
   children,
 }: {
   type: string;
   search: ReportSearch;
+  /** Loja da TELA: a rota recusa se a sessão trocou de loja em outra aba (ADR-0009). */
+  storeId: string;
   children: string;
 }) {
   return (
     <a
       href={reportHref(`/relatorios/csv/${type}`, {
+        loja: storeId,
         ...(search.de ? { de: search.de } : {}),
         ...(search.ate ? { ate: search.ate } : {}),
         ...(search.evento ? { evento: search.evento } : {}),
@@ -95,7 +99,7 @@ export async function SalesSection({ ctx, search }: SectionProps) {
           },
         ]}
       />
-      <CsvLink type="vendas" search={search}>
+      <CsvLink storeId={ctx.storeId} type="vendas" search={search}>
         Baixar vendas por dia (CSV)
       </CsvLink>
 
@@ -117,9 +121,14 @@ export async function SalesSection({ ctx, search }: SectionProps) {
           }))}
         />
       </div>
-      <CsvLink type="pagamentos" search={search}>
-        Baixar formas de pagamento (CSV)
-      </CsvLink>
+      <div className="flex flex-wrap gap-6">
+        <CsvLink storeId={ctx.storeId} type="pagamentos" search={search}>
+          Baixar formas de pagamento (CSV)
+        </CsvLink>
+        <CsvLink storeId={ctx.storeId} type="categorias" search={search}>
+          Baixar vendas por categoria (CSV)
+        </CsvLink>
+      </div>
     </div>
   );
 }
@@ -155,7 +164,7 @@ export async function ProductsSection({ ctx, search }: SectionProps) {
         total={report.total}
         href={(page) => reportHref('/relatorios', search, { pagina: page })}
       />
-      <CsvLink type="produtos" search={search}>
+      <CsvLink storeId={ctx.storeId} type="produtos" search={search}>
         Baixar vendas por produto (CSV)
       </CsvLink>
     </div>
@@ -254,7 +263,7 @@ export async function CashSection({ ctx, search, timeZone }: SectionProps) {
           ))}
         </ul>
       )}
-      <CsvLink type="caixa" search={search}>
+      <CsvLink storeId={ctx.storeId} type="caixa" search={search}>
         Baixar caixas (CSV)
       </CsvLink>
     </div>
@@ -285,7 +294,7 @@ export async function StockSection({ ctx, search }: SectionProps) {
           { header: 'Valor', cell: (row) => formatBRL(row.valueCents), numeric: true },
         ]}
       />
-      <CsvLink type="movimentacoes" search={search}>
+      <CsvLink storeId={ctx.storeId} type="movimentacoes" search={search}>
         Baixar movimentações (CSV)
       </CsvLink>
       <Table
@@ -312,7 +321,7 @@ export async function StockSection({ ctx, search }: SectionProps) {
           },
         ]}
       />
-      <CsvLink type="estoque" search={search}>
+      <CsvLink storeId={ctx.storeId} type="estoque" search={search}>
         Baixar saldos (CSV)
       </CsvLink>
     </div>
@@ -355,6 +364,9 @@ export async function OperationsSection({ ctx, search }: SectionProps) {
           { header: 'Valor', cell: (row) => formatBRL(row.valueCents), numeric: true },
         ]}
       />
+      <CsvLink storeId={ctx.storeId} type="operacao" search={search}>
+        Baixar operação (CSV)
+      </CsvLink>
     </div>
   );
 }
@@ -448,7 +460,7 @@ export async function AuditSection({ ctx, search, timeZone }: SectionProps) {
         total={report.total}
         href={(page) => reportHref('/relatorios', search, { pagina: page })}
       />
-      <CsvLink type="auditoria" search={search}>
+      <CsvLink storeId={ctx.storeId} type="auditoria" search={search}>
         Baixar auditoria (CSV, até 10.000 linhas)
       </CsvLink>
     </div>

@@ -37,6 +37,8 @@ auditoria — com CSV para o Excel e impressão.
 | A impressão da Etapa 7 escondia tudo que não fosse a via da cozinha (o relatório sairia em branco) | A regra só vale quando a via está na página (`body:has(> .area-impressao)`); menu lateral com `print:hidden` | globals.css, sidebar.tsx |
 | Chave de idempotência por intenção duplicada nas telas | `useIntentKey` foi para `src/ui/intent-key.ts` (caixa e financeiro usam) | — |
 | Receita do caixa errada | Não se cancela pelo financeiro: estorna-se o pagamento no PDV antes de fechar o caixa | RN-FIN-03 |
+| Conta fechada sem pagamento (cortesia) antes da Etapa 9 | A migration usa o dia da **abertura**; o código novo usa o dia do fechamento. Diferença só nas cortesias antigas, aceita | migration 0012, `closed-date-backfill.test.ts` |
+| Painel do caixa | Sem vendas do dia nem ticket médio (E9-4 "sem valores financeiros detalhados"): o servidor manda `null` — achado B-1 | RN-REP-03 |
 
 ## Problemas encontrados e corrigidos
 1. **Relatório impresso em branco** (achado ao montar a tela): ver tabela acima.
@@ -45,6 +47,32 @@ auditoria — com CSV para o Excel e impressão.
    do garçom passou a usar a Ana; a regra (proteção contra adivinhação de senha) não mudou.
 3. Cenário do painel tinha o mesmo passo duas vezes no mesmo cenário (a biblioteca de BDD não
    aceita): o garçom virou um cenário próprio.
+
+## Revisão do `reviewer` (2026-10-05)
+
+1ª revisão (commit ac1b9c3): **aprovada com ressalvas** — 1 bloqueante, 5 importantes, 10 sugestões.
+O revisor conferiu o filtro de loja em todas as consultas, as permissões, o fechamento cego no
+relatório de caixa e no CSV, o preenchimento de `closed_date`, a receita única por caixa e forma, os
+cálculos e a regra de impressão. Correções:
+
+| # | Achado | Correção |
+|---|---|---|
+| B-1 | O CAIXA via **vendas do dia e ticket médio** no painel: com a maquininha, estimaria o dinheiro esperado na gaveta antes do fechamento cego — e a E9-4 aprovada diz "sem valores financeiros detalhados" | O servidor manda esses valores como `null` para quem não tem `reports.read`; a tela esconde os cartões; RN-REP-03, cenário BDD e E2E ajustados |
+| I-1 | CSV: texto como `-1+1` passava sem proteção e o Excel executaria como fórmula | Todo texto começando com `= + - @`, tab ou CR ganha apóstrofo, menos números como `-5,50`; teste |
+| I-2 | CSV não conferia a loja da tela (duas abas → arquivo de outra loja) | Link leva `loja=`; a rota chama `requireScreenStore` (409); nome do arquivo com a loja; E2E |
+| I-3 | Custo por produto somava todo o histórico de estoque da loja, também no painel a cada 30 s | Subconsulta só com os itens vendidos no período; "mais vendidos" do painel em consulta própria, sem custo |
+| I-4 | Sem CSV de Operação e de vendas por categoria | Criados |
+| I-5 | Faltavam testes do preenchimento de `closed_date` e de isolamento (estoque, partes do painel, formas de pagamento, outra empresa) | `closed-date-backfill.test.ts` (roda o UPDATE da migration); testes de isolamento por consulta e com outra empresa |
+| S-1 | Reenviar "pagar" dava "outra pessoa alterou"; pagamento no futuro era aceito | Já pago = nada muda; data de pagamento até hoje; testes |
+| S-2 | Soma das vendas do fechamento lida sem trava | `for('share')` |
+| S-3 | `/relatorios/csv/constructor` dava erro 500 | `Object.hasOwn` → 404; E2E |
+| S-4 | 9 gravações nas categorias em cada leitura do financeiro | Só grava se faltar categoria inicial |
+| S-5 | Teste de permissão aceitava qualquer erro | Exige `FORBIDDEN` |
+| S-6 | Cortes calados (a vencer em 200, CSV em 10.000) | Aviso na tela e na última linha do CSV |
+| S-7 | Relatório de caixa carregava todas as movimentações | Somas no banco; só as em dinheiro dos caixas fechados para os alertas |
+| S-8 | Cortesias antigas no dia da abertura | Documentado (tabela acima) |
+| S-9 | Painel com erro derrubava a tela Início; links de página pequenos; SDD citava Kitchen | Painel some e registra o erro; links com 48 px; SDD e mapa corrigidos |
+| S-10 | Reports importa outros módulos direto; Finance recebe por injeção | Débito técnico (padronizar) |
 
 ## Como experimentar (banco de desenvolvimento)
 1. `npm run db:migrate` (aplica a 0012) e `npm run dev`.
@@ -55,14 +83,15 @@ auditoria — com CSV para o Excel e impressão.
    **Fluxo de caixa → A pagar e a receber**. Depois toque em **Marcar como paga**.
 5. **Gestão → Relatórios**: troque o período e as abas; baixe um **CSV** (abre direto no Excel) e
    toque em **Imprimir** (também serve para salvar em PDF).
-6. Como `caixa` / `Caixa@2026`: o painel aparece no Início, mas Financeiro e Relatórios não.
+6. Como `caixa` / `Caixa@2026`: o painel aparece no Início **sem os valores de venda**; Financeiro e
+   Relatórios não aparecem.
 
 ## Testes (2026-10-05)
 
 | Tipo | Resultado |
 |---|---|
 | Unitários (períodos e dia operacional com fast-check, valores e datas do financeiro, fluxo com acumulado, ticket médio, margem, CSV com proteção contra fórmula) | ✅ 570 |
-| Integração com MySQL 8.4 real (BDD dos 3 arquivos + isolamento entre lojas + idempotência + estorno no fechamento + categoria do sistema + concorrência + permissões) | ✅ 1505 |
+| Integração com MySQL 8.4 real (BDD dos 3 arquivos + isolamento entre lojas + idempotência + estorno no fechamento + categoria do sistema + concorrência + permissões) | ✅ 1512 |
 | E2E no navegador (celular, tablet, desktop + BDD) | ✅ 153 (4 pulados de propósito), duas execuções completas seguidas |
 
 ## Definition of Done
@@ -70,8 +99,8 @@ auditoria — com CSV para o Excel e impressão.
 - [x] Migration revisada (tabelas → colunas → preenchimento → índices → FKs; `drizzle-kit check`)
 - [x] Testes unitários, integração (MySQL real), BDD, isolamento entre lojas, E2E
 - [x] Lint, typecheck, build
-- [ ] CI no GitHub
-- [ ] Revisão do `reviewer`
+- [x] CI no GitHub (verde na implementação)
+- [ ] Revisão do `reviewer` (1ª aprovada com ressalvas; achados corrigidos; falta a reverificação)
 - [x] Docs e maps
 - [x] `PROJECT_STATUS.md`
 - [ ] `APROVADO` do usuário

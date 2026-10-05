@@ -71,9 +71,14 @@ export function DashboardPanel({
       ) : null}
 
       <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Card label="Vendas" value={formatBRL(data.salesCents)} />
+        {/* Valores só para gerente e admin: o caixa não vê o total antes do fechamento cego (E9-4) */}
+        {data.salesCents !== null ? (
+          <Card label="Vendas" value={formatBRL(data.salesCents)} />
+        ) : null}
         <Card label="Contas fechadas" value={String(data.closedOrders)} />
-        <Card label="Ticket médio" value={formatBRL(data.averageTicketCents)} />
+        {data.averageTicketCents !== null ? (
+          <Card label="Ticket médio" value={formatBRL(data.averageTicketCents)} />
+        ) : null}
         <Card label="Contas abertas" value={String(data.openOrders)} />
         <Card label="Mesas ocupadas" value={String(data.occupiedTables)} />
         <Card label="Itens na cozinha" value={String(data.kitchenItems)} />

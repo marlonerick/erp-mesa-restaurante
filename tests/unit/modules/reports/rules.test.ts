@@ -55,5 +55,9 @@ describe('CSV para o Excel brasileiro (RN-REP-09)', () => {
       toCsv(['a'], [['=HYPERLINK("x")'], ['+1'], ['@SOMA'], ['-A1'], ['-5,50']]).slice(1),
     ).toBe('a\r\n"\'=HYPERLINK(""x"")"\r\n\'+1\r\n\'@SOMA\r\n\'-A1\r\n-5,50\r\n');
     expect(toCsv(['a'], [[-550], [null]]).slice(1)).toBe('a\r\n-550\r\n\r\n');
+    // "-" seguido de dígito também pode ser fórmula (achado I-1 da revisão)
+    expect(toCsv(['a'], [['-1+1'], ["-2+3+cmd|' /C calc'!A0"], ['-12'], ['\tx']]).slice(1)).toBe(
+      "a\r\n'-1+1\r\n'-2+3+cmd|' /C calc'!A0\r\n-12\r\n'\tx\r\n",
+    );
   });
 });

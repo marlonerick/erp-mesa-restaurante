@@ -27,14 +27,17 @@ export function csvMoney(cents: number): string {
 
 /** Marca no início do arquivo para o Excel abrir em UTF-8. */
 const BOM = String.fromCharCode(0xfeff);
+/** Número escrito por nós (csvMoney, contagens): "-5,50", "12", "0,05". */
+const PLAIN_NUMBER = /^-?\d+(,\d+)?$/;
 
 /** Célula CSV: texto com `;`, aspas ou quebra de linha vai entre aspas (aspas dobradas). */
 function cell(value: string | number | null): string {
   if (value === null) return '';
   const text = String(value);
-  // Evita que o Excel execute fórmulas vindas de texto digitado (injeção de CSV)
-  // (valor negativo como "-5,50" continua número)
-  const formula = /^[=+@\t\r]/.test(text) || /^-[^\d]/.test(text);
+  // Evita que o Excel execute fórmulas vindas de texto digitado (injeção de CSV): todo texto que
+  // começa com = + - @ tab ou CR ganha um apóstrofo — menos um número inteiro como "-5,50"
+  // ("-1+1" é fórmula: achado I-1 da revisão)
+  const formula = /^[=+\-@\t\r]/.test(text) && !PLAIN_NUMBER.test(text);
   const safe = formula && typeof value === 'string' ? `'${text}` : text;
   return /[;"\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }

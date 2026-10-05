@@ -78,6 +78,13 @@ test.describe('Financeiro, painel e relatórios (Etapa 9)', () => {
       'Dia;Contas;Itens;Descontos;Taxa de serviço;Total;Ticket médio',
     );
 
+    // Loja da tela diferente da sessão (trocou em outra aba) → 409; tipo estranho → 404
+    const otherStore = await page.request.get(
+      '/relatorios/csv/vendas?loja=01900000-0000-7000-8000-000000000000',
+    );
+    expect(otherStore.status()).toBe(409);
+    expect((await page.request.get('/relatorios/csv/constructor')).status()).toBe(404);
+
     await page.getByRole('button', { name: 'Imprimir' }).click();
     expect(await page.evaluate(() => (window as unknown as { printed: number }).printed)).toBe(1);
 
@@ -102,7 +109,9 @@ test.describe('Financeiro, painel e relatórios (Etapa 9)', () => {
     await login(page, TEAM.caixa.username, TEAM.caixa.password);
     await page.goto('/inicio');
     await expect(page.getByRole('heading', { name: 'Painel de hoje' })).toBeVisible();
-    await expect(page.getByText('Ticket médio')).toBeVisible();
+    await expect(page.getByText('Contas fechadas')).toBeVisible();
+    // E9-4: sem valores de venda para o caixa (o total revelaria o esperado da gaveta)
+    await expect(page.getByText('Ticket médio')).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Ver relatórios' })).toHaveCount(0);
     await noHorizontalScroll(page);
     await page.goto('/financeiro');

@@ -2,6 +2,7 @@ import { and, asc, desc, eq, gte, lte, sql, type SQL } from 'drizzle-orm';
 import { financeCategory, financeEntry } from '@/shared/db/schema';
 import { newId } from '@/shared/kernel';
 import type { FinanceRepository } from '../application/ports';
+import { UPCOMING_LIMIT } from '../domain/rules';
 
 const categoryColumns = {
   id: financeCategory.id,
@@ -189,6 +190,6 @@ export const financeRepository: FinanceRepository = {
         ),
       )
       .orderBy(asc(financeEntry.dueDate), asc(financeEntry.id))
-      .limit(200);
+      .limit(UPCOMING_LIMIT);
   },
 };

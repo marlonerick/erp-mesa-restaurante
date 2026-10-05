@@ -43,6 +43,8 @@ export const MAX_FINANCE_CENTS = 1_000_000_000;
 const MIN_DATE = '2000-01-01';
 /** Despesas e receitas previstas mostradas no fluxo (RN-FIN-07). */
 export const UPCOMING_DAYS = 30;
+/** Máximo de vencimentos listados no fluxo (a tela avisa quando chega nele). */
+export const UPCOMING_LIMIT = 200;
 export const ENTRIES_PAGE_SIZE = 50;
 
 const clean = (input: string | null | undefined) => (input ?? '').trim().replace(/\s+/g, ' ');

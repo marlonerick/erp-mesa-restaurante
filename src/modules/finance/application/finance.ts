@@ -44,6 +44,12 @@ export const financeErrors = {
   automatic: () =>
     rule('FINANCE_ENTRY_AUTOMATIC', 'Lançamento do fechamento do caixa não é alterado.'),
   cancelled: () => rule('FINANCE_ENTRY_CANCELLED', 'Este lançamento já foi cancelado.'),
+  futurePayment: () =>
+    new DomainError(
+      'INVALID_FINANCE_DATE',
+      'A data do pagamento não pode ser depois de hoje.',
+      'VALIDATION',
+    ),
   concurrent: () =>
     new DomainError(
       'CONCURRENT_MODIFICATION',
@@ -56,7 +62,21 @@ export const financeErrors = {
 async function scope(deps: FinanceDependencies, tx: Transaction, ctx: RequestContext) {
   const store = await deps.findStore(tx, ctx.storeId);
   if (store?.organizationId !== ctx.organizationId) throw financeErrors.storeNotFound();
-  await deps.repo.ensureCategories(tx, store.companyId, DEFAULT_CATEGORIES);
+  // Grava só se faltar alguma (achado S-4: antes 9 gravações em cada leitura travavam as categorias)
+  const existing = await deps.repo.listCategories(tx, store.companyId);
+  const missing = DEFAULT_CATEGORIES.filter(
+    (wanted) =>
+      !existing.some((category) =>
+        wanted.systemCode
+          ? category.systemCode === wanted.systemCode
+          : category.type === wanted.type &&
+            category.name.toLowerCase() === wanted.name.toLowerCase(),
+      ),
+  );
+  // Categoria não é apagada (só desativada): faltar alguma = primeira vez da empresa
+  if (missing.length > 0) {
+    await deps.repo.ensureCategories(tx, store.companyId, DEFAULT_CATEGORIES);
+  }
   return { companyId: store.companyId };
 }
 
@@ -209,7 +229,9 @@ export async function createEntry(
         const { companyId } = await scope(deps, tx, ctx);
         const day = await today(deps, tx, ctx);
         const competenceDate = financeDate(input.competenceDate, day);
-        const date = financeDate(input.date, day);
+        // Já pago: o pagamento não pode estar no futuro; previsto: vencimento até um ano à frente
+        const date =
+          input.status === 'PAGO' ? paidDateOf(input.date, day) : financeDate(input.date, day);
         const category = await deps.repo.findCategory(tx, {
           companyId,
           categoryId: input.categoryId,
@@ -260,6 +282,7 @@ async function lockManualEntry(
   tx: Transaction,
   ctx: RequestContext,
   input: { entryId: Id; version: number },
+  options: { alreadyPaidIsDone?: boolean } = {},
 ) {
   const entry = await deps.repo.findEntry(
     tx,
@@ -269,8 +292,17 @@ async function lockManualEntry(
   if (!entry) throw financeErrors.entryNotFound();
   if (entry.source === 'CAIXA') throw financeErrors.automatic();
   if (entry.status === 'CANCELADO') throw financeErrors.cancelled();
+  // Reenvio do "pagar" (internet caiu) em lançamento já pago: nada muda, sem erro (S-1)
+  if (options.alreadyPaidIsDone && entry.status === 'PAGO') return entry;
   if (entry.version !== input.version) throw financeErrors.concurrent();
   return entry;
+}
+
+/** Dia do pagamento: data válida e não depois de hoje (dia operacional) — S-1 da revisão. */
+function paidDateOf(text: string, today: string): string {
+  const date = financeDate(text, today);
+  if (date > today) throw financeErrors.futurePayment();
+  return date;
 }
 
 export async function payEntry(
@@ -281,8 +313,8 @@ export async function payEntry(
   requirePermission(ctx, 'finance.manage');
   await runInTransaction(deps.db, async (tx) => {
     await scope(deps, tx, ctx);
-    const paidDate = financeDate(input.paidDate, await today(deps, tx, ctx));
-    const entry = await lockManualEntry(deps, tx, ctx, input);
+    const paidDate = paidDateOf(input.paidDate, await today(deps, tx, ctx));
+    const entry = await lockManualEntry(deps, tx, ctx, input, { alreadyPaidIsDone: true });
     if (entry.status === 'PAGO') return;
     await deps.repo.markPaid(tx, { storeId: ctx.storeId, entryId: entry.id }, paidDate);
     await recordAuditFromContext(tx, ctx, 'FINANCE_ENTRY_PAID', {

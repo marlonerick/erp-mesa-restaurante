@@ -124,7 +124,9 @@ export const cashierRepository: CashierRepository = {
           inArray(cashMovement.type, ['VENDA', 'ESTORNO']),
         ),
       )
-      .groupBy(cashMovement.paymentMethod);
+      .groupBy(cashMovement.paymentMethod)
+      // Depois da trava do caixa, leitura também com trava (ADR-0008 — S-2 da revisão)
+      .for('share');
     return rows.map((row) => ({ method: row.method, amountCents: Number(row.amount) }));
   },
 

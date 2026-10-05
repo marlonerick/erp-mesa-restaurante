@@ -3,6 +3,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { financeEntry } from '@/shared/db/schema';
 import { newId } from '@/shared/kernel';
 import { useTestDatabase } from '../../../support/database';
+import {
+  createTestOrganization,
+  createTestUser,
+  loginAs,
+  uniqueUsername,
+} from '../../../support/identity';
 import { reportsWorld } from '../reports/reports-world';
 
 // Regras de borda do financeiro: isolamento (RN-FIN-08), idempotência, categoria do sistema,
@@ -71,7 +77,73 @@ describe('isolamento entre lojas (RN-FIN-08)', () => {
   });
 });
 
+describe('isolamento entre empresas (RN-FIN-01, RN-FIN-08)', () => {
+  it('o gerente de OUTRA empresa não vê categorias nem lançamentos desta', async () => {
+    await w.entry('carla', gas);
+    const other = await createTestOrganization(db);
+    const username = uniqueUsername('outro');
+    await createTestUser(db, {
+      organizationId: other.organizationId,
+      username,
+      password: 'Senha@2026',
+      storeRoles: [{ role: 'GERENTE', storeId: other.centro }],
+    });
+    const { ctx } = await loginAs(w.services, username, 'Senha@2026');
+
+    const mine = await w.services.finance.categories(w.ctx('carla'));
+    const theirs = await w.services.finance.categories(ctx);
+    // Cada empresa tem as próprias categorias iniciais (mesmos nomes, ids diferentes)
+    expect(theirs).toHaveLength(9);
+    expect(theirs.some((category) => mine.some((item) => item.id === category.id))).toBe(false);
+    expect((await w.services.finance.entries(ctx, w.MONTH)).total).toBe(0);
+    // Categoria da outra empresa não serve para lançar
+    expect(
+      await failure(
+        w.services.finance.createEntry(ctx, {
+          type: 'DESPESA',
+          categoryId: await w.categoryId('Aluguel', 'DESPESA'),
+          description: 'Aluguel de outra empresa',
+          amountCents: 1000,
+          competenceDate: '2026-03-14',
+          status: 'PREVISTO',
+          date: '2026-03-20',
+          idempotencyKey: newId(),
+        }),
+      ),
+    ).toBe('FINANCE_CATEGORY_INVALID');
+  });
+});
+
 describe('lançamentos', () => {
+  it('pagar de novo (reenvio) o que já está pago não dá erro nem muda nada (S-1)', async () => {
+    await w.entry('carla', gas);
+    const [entry] = (await w.services.finance.entries(w.ctx('carla'), w.MONTH)).rows;
+    if (!entry) throw new Error('lançamento não criado');
+    const input = { entryId: entry.id, version: entry.version, paidDate: '2026-03-14' };
+    await w.services.finance.payEntry(w.ctx('carla'), input);
+    await w.services.finance.payEntry(w.ctx('carla'), { ...input, paidDate: '2026-03-13' });
+    const [paid] = (await w.services.finance.entries(w.ctx('carla'), w.MONTH)).rows;
+    expect(paid).toMatchObject({ status: 'PAGO', paidDate: '2026-03-14' });
+  });
+
+  it('data de pagamento no futuro é recusada; vencimento no futuro pode (S-1)', async () => {
+    expect(await failure(w.entry('carla', { ...gas, status: 'PAGO', date: '2026-03-15' }))).toBe(
+      'INVALID_FINANCE_DATE',
+    );
+    await w.entry('carla', gas);
+    const [entry] = (await w.services.finance.entries(w.ctx('carla'), w.MONTH)).rows;
+    if (!entry) throw new Error('lançamento não criado');
+    expect(
+      await failure(
+        w.services.finance.payEntry(w.ctx('carla'), {
+          entryId: entry.id,
+          version: entry.version,
+          paidDate: '2026-03-15',
+        }),
+      ),
+    ).toBe('INVALID_FINANCE_DATE');
+  });
+
   it('reenviar o mesmo formulário (mesma chave) cria um lançamento só', async () => {
     const input = {
       type: 'DESPESA' as const,
@@ -222,7 +294,7 @@ describe('permissões (E9-3)', () => {
     await w.person('joão', 'GARCOM');
     for (const name of ['bia', 'joão']) {
       expect(await failure(w.services.finance.cashFlow(w.ctx(name), w.MONTH))).toBe('FORBIDDEN');
-      expect(await failure(w.entry(name, gas))).not.toBeNull();
+      expect(await failure(w.entry(name, gas))).toBe('FORBIDDEN');
     }
     await w.entry('sistema', gas);
     expect((await w.services.finance.entries(w.ctx('sistema'), w.MONTH)).total).toBe(1);

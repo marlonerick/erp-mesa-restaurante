@@ -58,7 +58,7 @@ E9-1 a E9-7) — **implementada; em revisão** (`docs/weeks/etapa-09.md`).
 - Nada bloqueado.
 
 ## Testes
-- Vitest: 2075 testes (570 unitários + 1505 de integração com MySQL 8.4 real).
+- Vitest: 2082 testes (570 unitários + 1512 de integração com MySQL 8.4 real).
 - Playwright: 153 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
 
 ## Bugs
@@ -120,6 +120,8 @@ gravaria 1 g no lugar de 1000 g — ver `docs/weeks/etapa-05.md`.
   sessão (`ctx.storeId`) — S-4 da revisão da Etapa 5, conferido na Etapa 9.
 - Relatórios leem direto das tabelas de vendas a cada abertura (sem tabela resumo): medir com o
   volume do piloto; se ficar lento, criar resumo diário.
+- Reports importa Inventory, Organizations, Cashier e Users direto na aplicação; Finance recebe as
+  dependências injetadas — padronizar (S-10 da revisão da Etapa 9).
 - Financeiro sem anexos (nota/boleto), sem recorrência e sem conciliação bancária — depois do piloto.
 - Seed de estoque usa fuso/virada fixos (S-6) e entrada simultânea a uma desativação do insumo
   pode passar (S-7, risco baixo) — revisão da Etapa 5.

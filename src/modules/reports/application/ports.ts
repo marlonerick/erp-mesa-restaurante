@@ -118,7 +118,18 @@ export interface ReportsRepository {
     to: string,
     page: Page,
   ): Promise<{ total: number; rows: ProductTotals[] }>;
+  topProducts(
+    tx: Transaction,
+    storeId: Id,
+    day: string,
+    limit: number,
+  ): Promise<{ name: string; quantity: number }[]>;
   cashSessions(tx: Transaction, storeId: Id, from: string, to: string): Promise<CashSessionRow[]>;
+  cashMovementTotals(
+    tx: Transaction,
+    storeId: Id,
+    sessionIds: readonly Id[],
+  ): Promise<{ sessionId: Id; type: CashMovementRow['type']; amountCents: number }[]>;
   cashMovements(
     tx: Transaction,
     storeId: Id,

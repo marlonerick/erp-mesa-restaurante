@@ -112,7 +112,6 @@ flowchart TD
   REP -.-> PAY
   REP -.-> CASH
   REP -.-> INV
-  REP -.-> KIT
   REP --> ORG
 ```
 
@@ -132,6 +131,6 @@ Todos os módulos de negócio dependem de **Authorization** (autorização no ca
 
 Reports lê por **query services** próprios (somente leitura), única exceção documentada à
 regra de não ler dados de outro módulo — sem escrita, sem regra de negócio. Na Etapa 9 ele lê as
-tabelas de contas, itens, pagamentos, caixas, estoque, cozinha e auditoria (`reports-repository.ts`,
-sempre filtrando a loja) e usa as APIs públicas de Inventory (CMV e perdas), Organizations (fuso e
+tabelas de contas, itens, pagamentos, caixas, estoque e auditoria (`reports-repository.ts`,
+sempre filtrando a loja; os itens na cozinha vêm de `order_item`) e usa as APIs públicas de Inventory (CMV e perdas), Organizations (fuso e
 virada), Users (nomes) e Cashier (sangrias acima do esperado).

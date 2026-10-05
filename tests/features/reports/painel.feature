@@ -29,9 +29,11 @@ Funcionalidade: Painel do dia
     Então o painel mostra 1 mesa ocupada, 1 item na cozinha e 1 item atrasado
     E o painel mostra 1 caixa aberto sem o valor esperado
 
-  Cenário: O caixa vê o painel, mas não os relatórios
+  Cenário: O caixa vê o painel sem os valores de venda, e não vê os relatórios
+    Dado "joão" enviou 1 "X-Burger" para o balcão "Ana"
+    E "bia" recebeu tudo em dinheiro do balcão "Ana"
     Quando "bia" abre o painel
-    Então o painel abre
+    Então o painel mostra 1 conta fechada, sem o valor das vendas nem o ticket médio
     Quando "bia" tenta abrir o relatório de vendas
     Então a ação é recusada com o código "FORBIDDEN"
 

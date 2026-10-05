@@ -9,4 +9,9 @@ export {
   toCategoryView,
   toEntriesView,
 } from './interface/views';
-export { FINANCE_TYPE_LABEL, FINANCE_TYPES, type FinanceType } from './domain/rules';
+export {
+  FINANCE_TYPE_LABEL,
+  FINANCE_TYPES,
+  type FinanceType,
+  UPCOMING_LIMIT,
+} from './domain/rules';

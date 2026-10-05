@@ -48,9 +48,9 @@ describeFeature(feature, ({ Background, Scenario }) => {
       panel = await w.dashboard('carla');
     });
     Then('o painel mostra vendas "110,10", 2 contas fechadas e ticket médio "55,05"', () => {
-      w.expectCents(panel.salesCents, '110,10');
+      w.expectCents(panel.salesCents ?? NaN, '110,10');
       expect(panel.closedOrders).toBe(2);
-      w.expectCents(panel.averageTicketCents, '55,05');
+      w.expectCents(panel.averageTicketCents ?? NaN, '55,05');
     });
     And('o mais vendido é "X-Burger" com 3 unidades', () => {
       expect(panel.topProducts[0]).toEqual({ name: 'X-Burger', quantity: 3 });
@@ -82,21 +82,32 @@ describeFeature(feature, ({ Background, Scenario }) => {
     });
   });
 
-  Scenario('O caixa vê o painel, mas não os relatórios', ({ When, Then }) => {
-    When('"bia" abre o painel', async () => {
-      await w.attempt(async () => {
+  Scenario(
+    'O caixa vê o painel sem os valores de venda, e não vê os relatórios',
+    ({ Given, And, When, Then }) => {
+      Given('"joão" enviou 1 "X-Burger" para o balcão "Ana"', () =>
+        w.sendToCounter('joão', 'Ana', 1, 'X-Burger'),
+      );
+      And('"bia" recebeu tudo em dinheiro do balcão "Ana"', () =>
+        w.payAll('bia', { counter: 'Ana' }, 'DINHEIRO'),
+      );
+      When('"bia" abre o painel', async () => {
         panel = await w.dashboard('bia');
       });
-    });
-    Then('o painel abre', () => {
-      expect(w.failure).toBeNull();
-      expect(panel.today).toBe('2026-03-14');
-    });
-    When('"bia" tenta abrir o relatório de vendas', () => w.attempt(() => w.sales('bia')));
-    Then('a ação é recusada com o código "FORBIDDEN"', () => {
-      w.expectFailure('FORBIDDEN');
-    });
-  });
+      Then('o painel mostra 1 conta fechada, sem o valor das vendas nem o ticket médio', () => {
+        // E9-4: o total do dia deixaria o caixa estimar o esperado da gaveta (fechamento cego)
+        expect(panel).toMatchObject({
+          closedOrders: 1,
+          salesCents: null,
+          averageTicketCents: null,
+        });
+      });
+      When('"bia" tenta abrir o relatório de vendas', () => w.attempt(() => w.sales('bia')));
+      Then('a ação é recusada com o código "FORBIDDEN"', () => {
+        w.expectFailure('FORBIDDEN');
+      });
+    },
+  );
 
   Scenario('O garçom não vê o painel', ({ When, Then }) => {
     When('"joão" tenta abrir o painel', () => w.attempt(() => w.dashboard('joão')));

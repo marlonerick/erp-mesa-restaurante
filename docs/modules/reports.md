@@ -23,7 +23,9 @@ auditoria: `audit.read`.
   vendas do dia, contas fechadas, ticket médio, contas abertas, mesas ocupadas, itens na cozinha
   (enviados + em preparo), itens atrasados (tickets da fila há mais que o vermelho da loja), caixas
   abertos (terminal e quem abriu — **sem esperado**, RN-CASH-06), 5 mais vendidos (quantidade) e
-  insumos com saldo ≤ mínimo (com mínimo > 0). O CAIXA vê tudo isso (E9-4).
+  insumos com saldo ≤ mínimo (com mínimo > 0). O CAIXA vê o painel **sem os valores de venda**
+  (vendas do dia e ticket médio vêm `null` do servidor — E9-4 "sem valores financeiros detalhados"):
+  com o total do dia ele estimaria o esperado da gaveta antes do fechamento cego (RN-CASH-06).
 - **RN-REP-04** — **Vendas**: por dia (contas, itens, descontos, taxa, total, ticket médio); por produto
   (quantidade, valor bruto, descontos nos itens e — E9-7 — custo e margem: custo = consumo da ficha no
   momento da venda, `stock_movement` de venda menos estorno do item); por categoria (categoria atual
@@ -40,8 +42,10 @@ auditoria: `audit.read`.
 - **RN-REP-08** — **Auditoria** (`audit.read`): eventos da loja ativa no período, filtro por evento e
   por pessoa, mais recentes primeiro, 50 por página.
 - **RN-REP-09** — Listas longas (produtos, movimentações, auditoria) com **paginação no servidor**;
-  **CSV** de cada relatório (E9-6) com o mesmo filtro, até 10.000 linhas, separador `;` e vírgula
-  decimal (abre direto no Excel brasileiro).
+  **CSV** de cada relatório (E9-6: vendas por dia, formas de pagamento, categorias, produtos, caixa,
+  estoque, movimentações, operação e auditoria) com o mesmo filtro e a loja da tela (409 se mudou),
+  até 10.000 linhas (a última linha avisa se chegou no limite), separador `;` e vírgula decimal
+  (abre direto no Excel brasileiro). Texto que começa com `= + - @` ganha apóstrofo (não vira fórmula).
 
 ## 4. Exceções
 | Situação | Código | HTTP | Mensagem |
@@ -74,7 +78,7 @@ operational_date, status) em `cash_session`.
 - **CA-REP-05** — CSV com separador `;` e vírgula decimal → `tests/unit/modules/reports/rules.test.ts` e `tests/e2e/gestao.spec.ts` (download)
 
 ## 8. Dependências
-Lê (somente leitura) tabelas de Orders, Cashier, POS, Catalog, Inventory, Tables, Kitchen, Audit,
+Lê (somente leitura) tabelas de Orders, Cashier, POS, Catalog, Inventory, Tables, Audit (os itens na cozinha vêm de `order_item`; nenhuma tabela da cozinha é lida),
 Users; usa Organizations (loja, fuso, virada) e o CMV/perdas públicos do Inventory.
 
 ## 9. Fora do escopo
