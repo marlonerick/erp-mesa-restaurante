@@ -119,6 +119,18 @@ padrão que será adotada se você responder "use a proposta".
 | E8-6 | (Revisão, 2026-10-05 — I-3) Sangria maior que o dinheiro esperado é **aceita** e apontada ao gerente na conferência do fechamento — o fechamento continua cego |
 | E8-7 | (Revisão, 2026-10-05 — S-2) O limite de desconto do perfil vale na **soma** dos descontos da conta (itens + conta) |
 
+## Decisões tomadas na aprovação do plano da Etapa 9 (2026-10-05)
+
+| ID | Decisão |
+|---|---|
+| E9-1 | Uma venda conta no **dia operacional em que a conta foi fechada (paga)** — o mesmo dia do caixa que recebeu |
+| E9-2 | Categorias iniciais de despesa: Insumos e fornecedores, Salários, Aluguel, Contas de consumo, Impostos e taxas, Manutenção, Outros (o gerente cria outras); receitas: Vendas (automática) e Outras receitas |
+| E9-3 | Financeiro só para GERENTE e ADMIN (`finance.read`/`finance.manage`) |
+| E9-4 | O CAIXA vê o painel operacional (`dashboard.read`), sem valores financeiros detalhados e sem o esperado dos caixas |
+| E9-5 | Gráficos sem biblioteca nova: barras simples feitas na própria tela |
+| E9-6 | Relatórios baixam em **CSV** (sem dependência nova) e imprimem pelo navegador |
+| E9-7 | Margem por produto (preço − custo da ficha no momento da venda) no relatório de vendas, só para GERENTE e ADMIN |
+
 ## Pontos da especificação que interpretei (confirme ou corrija)
 
 1. **Juntar mesas**: as mesas passam a compartilhar a mesma conta; a conta de origem é encerrada

@@ -185,6 +185,21 @@ export const ICONS = {
       <path d="M3 11h2M19 11h2" />
     </Icon>
   ),
+  // Financeiro (Etapa 9): moeda com cifrão
+  financeiro: (
+    <Icon>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M15 9.5a3 2.5 0 0 0-3-1.5c-1.7 0-3 .9-3 2s1.3 1.7 3 2 3 .9 3 2-1.3 2-3 2a3 2.5 0 0 1-3-1.5" />
+      <path d="M12 6v12" />
+    </Icon>
+  ),
+  // Relatórios (Etapa 9): gráfico de barras
+  relatorios: (
+    <Icon>
+      <path d="M4 20h16" />
+      <path d="M7 16v-5M12 16V6M17 16v-8" />
+    </Icon>
+  ),
   // Cozinha (Etapa 7): chapéu de cozinheiro
   cozinha: (
     <Icon>

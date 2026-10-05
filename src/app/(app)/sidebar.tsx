@@ -76,7 +76,7 @@ export function Sidebar(props: Props) {
   return (
     <>
       {/* Celular: barra do topo com o botão do menu */}
-      <div className="sticky top-0 z-10 flex items-center gap-2 border-b-4 border-azulejo bg-white px-2 py-1 md:hidden">
+      <div className="sticky top-0 z-10 flex items-center gap-2 border-b-4 border-azulejo bg-white px-2 py-1 md:hidden print:hidden">
         <button
           type="button"
           onClick={() => drawer.current?.showModal()}
@@ -122,7 +122,7 @@ export function Sidebar(props: Props) {
         data-mode={mode}
         aria-label="Menu lateral"
         className={cn(
-          'group sticky top-0 hidden h-dvh shrink-0 flex-col bg-azulejo-escuro text-white md:flex',
+          'group sticky top-0 hidden h-dvh shrink-0 flex-col bg-azulejo-escuro text-white md:flex print:hidden',
           mode === 'auto' && 'w-20 xl:w-72',
           mode === 'collapsed' && 'w-20',
           mode === 'expanded' && 'w-72',

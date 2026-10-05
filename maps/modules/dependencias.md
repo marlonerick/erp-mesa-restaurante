@@ -105,13 +105,15 @@ flowchart TD
   PAY --> AUTHZ
   PAY -.->|consumo ADR-0006 B| REC
 
-  FIN[Finance] -->|assina CashSessionClosed| CASH
+  FIN[Finance] --> ORG
+  CASH -->|receitas no fechamento — API na transação, Etapa 9| FIN
 
   REP[Reports<br/>somente leitura] -.-> ORD
   REP -.-> PAY
   REP -.-> CASH
   REP -.-> INV
-  REP -.-> FIN
+  REP -.-> KIT
+  REP --> ORG
 ```
 
 Todos os módulos de negócio dependem de **Authorization** (autorização no caso de uso) e
@@ -126,7 +128,10 @@ Todos os módulos de negócio dependem de **Authorization** (autorização no ca
 | `KitchenItemStatusChanged` | Kitchen | Orders (atualiza status do item) |
 | `PaymentRegistered` | Payments | Cashier (`VENDA`), Orders (saldo da conta) |
 | `OrderClosed` | Payments/Orders | Tables (`LIMPEZA`), Inventory (consumo, se ADR-0006 = B) |
-| `CashSessionClosed` | Cashier | Finance (receitas por método) |
+| `CashSessionClosed` | Cashier | Finance (receitas por método) — implementado como chamada direta `financeOps.recordCashSales` na transação do fechamento (Etapa 9); Finance não conhece o Cashier |
 
 Reports lê por **query services** próprios (somente leitura), única exceção documentada à
-regra de não ler dados de outro módulo — sem escrita, sem regra de negócio.
+regra de não ler dados de outro módulo — sem escrita, sem regra de negócio. Na Etapa 9 ele lê as
+tabelas de contas, itens, pagamentos, caixas, estoque, cozinha e auditoria (`reports-repository.ts`,
+sempre filtrando a loja) e usa as APIs públicas de Inventory (CMV e perdas), Organizations (fuso e
+virada), Users (nomes) e Cashier (sangrias acima do esperado).

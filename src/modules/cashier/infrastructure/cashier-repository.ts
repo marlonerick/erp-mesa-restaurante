@@ -110,6 +110,24 @@ export const cashierRepository: CashierRepository = {
       .orderBy(asc(cashMovement.occurredAt), asc(cashMovement.id));
   },
 
+  async salesTotals(tx, { storeId, sessionId }) {
+    const rows = await tx
+      .select({
+        method: cashMovement.paymentMethod,
+        amount: sql<string>`sum(${cashMovement.amountCents})`,
+      })
+      .from(cashMovement)
+      .where(
+        and(
+          eq(cashMovement.cashSessionId, sessionId),
+          eq(cashMovement.storeId, storeId),
+          inArray(cashMovement.type, ['VENDA', 'ESTORNO']),
+        ),
+      )
+      .groupBy(cashMovement.paymentMethod);
+    return rows.map((row) => ({ method: row.method, amountCents: Number(row.amount) }));
+  },
+
   listCashMovements(tx, { storeId, sessionId }) {
     return (
       tx

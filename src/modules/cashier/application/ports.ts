@@ -1,7 +1,7 @@
 import type { StoreInfo, StoreSettings, TerminalKind } from '@/modules/organizations';
 import type { Database } from '@/shared/db/client';
 import type { Transaction } from '@/shared/db/transaction';
-import type { Id } from '@/shared/kernel';
+import type { Id, RequestContext } from '@/shared/kernel';
 import type {
   CashMovementType,
   CashSessionStatus,
@@ -89,6 +89,8 @@ export interface CashierRepository {
   ): Promise<CashMovementRecord[]>;
   insertCounts(tx: Transaction, sessionId: Id, lines: readonly CountLine[]): Promise<void>;
   listCounts(tx: Transaction, scope: { storeId: Id; sessionId: Id }): Promise<CountLine[]>;
+  /** Vendas líquidas (VENDA + ESTORNO) por forma — receitas do financeiro (RN-FIN-03). */
+  salesTotals(tx: Transaction, scope: { storeId: Id; sessionId: Id }): Promise<MovementTotal[]>;
   /** Todas as movimentações do caixa, em ordem (conferência do fechamento). */
   listCashMovements(
     tx: Transaction,
@@ -114,4 +116,16 @@ export interface CashierDependencies {
     ): Promise<{ id: Id; code: string; name: string; kind: TerminalKind } | null>;
   };
   readonly userNames: (tx: Transaction, ids: readonly Id[]) => Promise<Map<Id, string>>;
+  /** Receitas de vendas no financeiro, na transação do fechamento (RN-FIN-03). */
+  readonly finance: {
+    recordCashSales(
+      tx: Transaction,
+      ctx: RequestContext,
+      input: {
+        sessionId: Id;
+        operationalDate: string;
+        totals: readonly MovementTotal[];
+      },
+    ): Promise<void>;
+  };
 }

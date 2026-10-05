@@ -57,3 +57,40 @@ export function operationalDate(instant: Date, timeZone: string, cutoff: string)
   const local = new Date(Date.UTC(year, month - 1, minutes < cutoffMinutes ? day - 1 : day));
   return `${String(local.getUTCFullYear())}-${pad(local.getUTCMonth() + 1)}-${pad(local.getUTCDate())}`;
 }
+
+/** Diferença (ms) entre o horário local no fuso e o UTC, num instante. */
+function offsetMs(instant: Date, timeZone: string): number {
+  const parts = Object.fromEntries(
+    formatterFor(timeZone)
+      .formatToParts(instant)
+      .map((part) => [part.type, part.value]),
+  );
+  const asUtc = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+  );
+  return asUtc - Math.floor(instant.getTime() / 60_000) * 60_000;
+}
+
+/**
+ * Instante (UTC) em que o dia operacional COMEÇA: a virada daquela data no fuso da loja (ADR-0013).
+ * Inverso de `operationalDate`: o dia D vai de `operationalDayStart(D)` até `operationalDayStart(D+1)`.
+ */
+export function operationalDayStart(date: string, timeZone: string, cutoff: string): Date {
+  const minutes = parseLocalTime(cutoff);
+  const [year, month, day] = date.split('-').map(Number);
+  const wall = Date.UTC(
+    year ?? 0,
+    (month ?? 1) - 1,
+    day ?? 1,
+    Math.floor(minutes / 60),
+    minutes % 60,
+  );
+  // Duas passadas acertam também os dias de mudança de horário de verão
+  let guess = wall - offsetMs(new Date(wall), timeZone);
+  guess = wall - offsetMs(new Date(guess), timeZone);
+  return new Date(guess);
+}

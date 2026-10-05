@@ -1,4 +1,5 @@
 // API pública do módulo Cashier (Etapa 8 — docs/modules/cashier.md).
+import { financeOps } from '@/modules/finance';
 import { findTerminalOfDevice, getStore, getStoreSettings } from '@/modules/organizations';
 import { findUsersByIds } from '@/modules/users';
 import { type Database, getDatabase } from '@/shared/db/client';
@@ -36,6 +37,7 @@ function cashierDependencies(overrides: { db?: Database } = {}): CashierDependen
     },
     userNames: async (tx, ids) =>
       new Map((await findUsersByIds(tx, ids)).map((user) => [user.id, user.name])),
+    finance: financeOps,
   };
 }
 
@@ -58,3 +60,6 @@ export function cashierService(overrides: { db?: Database } = {}) {
 }
 
 export type CashierService = ReturnType<typeof cashierService>;
+
+/** Sangrias que deixaram a gaveta abaixo de zero (relatório de caixa — E8-6). */
+export { sangriasAboveExpected } from './domain/rules';

@@ -343,6 +343,16 @@ export async function close(
         );
         if (!closed) throw cashErrors.concurrent();
         await deps.repo.insertCounts(tx, session.id, counts);
+        // Receitas de vendas no financeiro, na mesma transação (RN-FIN-03): o fechamento é
+        // idempotente, então a receita nunca entra duas vezes
+        await deps.finance.recordCashSales(tx, ctx, {
+          sessionId: session.id,
+          operationalDate: session.operationalDate,
+          totals: await deps.repo.salesTotals(tx, {
+            storeId: ctx.storeId,
+            sessionId: session.id,
+          }),
+        });
         await recordAuditFromContext(tx, ctx, 'CASH_CLOSED', {
           entityType: 'cash_session',
           entityId: session.id,

@@ -7,6 +7,7 @@ export * from './tables/auth';
 export * from './tables/authorization';
 export * from './tables/cashier';
 export * from './tables/catalog';
+export * from './tables/finance';
 export * from './tables/inventory';
 export * from './tables/orders';
 export * from './tables/organizations';

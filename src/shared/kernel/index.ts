@@ -5,7 +5,7 @@ export { DomainError, type DomainErrorKind, isDomainError } from './errors';
 export { type Id, isId, newId, parseId } from './id';
 export { Money } from './money';
 export { formatMoneyText, parseMoneyText } from './money-text';
-export { operationalDate, parseLocalTime } from './operational-day';
+export { operationalDate, operationalDayStart, parseLocalTime } from './operational-day';
 export { Percentage } from './percentage';
 export {
   isPermission,
@@ -26,3 +26,11 @@ export { divideRoundHalfUp } from './rounding';
 export { normalizeName } from './text';
 export { type CostLine, totalCost, UnitCost } from './unit-cost';
 export { type MeasureUnit, toBaseQuantity } from './units';
+export {
+  addDays,
+  daysBetween,
+  MAX_PERIOD_DAYS,
+  type Period,
+  parseLocalDate,
+  validatePeriod,
+} from './period';

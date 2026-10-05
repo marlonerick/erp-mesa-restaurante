@@ -502,12 +502,18 @@ export async function pay(
         });
         const closed = paidCents === totals.totalCents;
         if (closed) {
-          await deps.orders.closeAsPaid(tx, ctx, order, {
-            itemsCents: totals.itemsCents,
-            discountsCents: totals.itemDiscountsCents + totals.orderDiscountCents,
-            serviceFeeCents: totals.serviceFeeCents,
-            totalCents: totals.totalCents,
-          });
+          await deps.orders.closeAsPaid(
+            tx,
+            ctx,
+            order,
+            {
+              itemsCents: totals.itemsCents,
+              discountsCents: totals.itemDiscountsCents + totals.orderDiscountCents,
+              serviceFeeCents: totals.serviceFeeCents,
+              totalCents: totals.totalCents,
+            },
+            session.operationalDate,
+          );
         }
         return { paymentId, amountCents, changeCents: changeCents ?? 0, closed };
       },

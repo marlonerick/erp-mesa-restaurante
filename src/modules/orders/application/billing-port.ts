@@ -1,6 +1,6 @@
 import { recordAuditFromContext } from '@/modules/audit';
 import type { Transaction } from '@/shared/db/transaction';
-import type { Id, RequestContext } from '@/shared/kernel';
+import { type Id, operationalDate, type RequestContext } from '@/shared/kernel';
 import { changeTables, orderErrors } from './orders';
 import type { ItemRecord, OrderRecord, OrdersDependencies } from './ports';
 
@@ -57,11 +57,22 @@ export function billingPort(deps: OrdersDependencies) {
         serviceFeeCents: number;
         totalCents: number;
       },
+      /** Dia do caixa que recebeu (E9-1); sem pagamento (cortesia), o dia operacional atual. */
+      closedDate?: string,
     ) {
+      let day = closedDate;
+      if (day === undefined) {
+        const settings = await deps.stores.settings(tx, {
+          organizationId: ctx.organizationId,
+          storeId: ctx.storeId,
+        });
+        if (!settings) throw orderErrors.storeNotFound();
+        day = operationalDate(ctx.clock.now(), settings.timezone, settings.operationalDayCutoff);
+      }
       await repo.closeOrderAsPaid(
         tx,
         { storeId: ctx.storeId, orderId: order.id },
-        { by: ctx.userId, at: ctx.clock.now(), ...totals },
+        { by: ctx.userId, at: ctx.clock.now(), ...totals, closedDate: day },
       );
       if (order.type === 'MESA') {
         const tables = await deps.tables.lockOfOrder(tx, ctx.storeId, order.id);
@@ -71,7 +82,7 @@ export function billingPort(deps: OrdersDependencies) {
       await recordAuditFromContext(tx, ctx, 'ORDER_CLOSED', {
         entityType: 'customer_order',
         entityId: order.id,
-        after: { order: order.number, label: order.label, ...totals },
+        after: { order: order.number, label: order.label, ...totals, closedDate: day },
       });
     },
   };

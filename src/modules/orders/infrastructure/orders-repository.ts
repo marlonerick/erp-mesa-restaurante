@@ -435,6 +435,7 @@ export const ordersRepository: OrdersRepository = {
         discountsCents: data.discountsCents,
         serviceFeeCents: data.serviceFeeCents,
         totalCents: data.totalCents,
+        closedDate: data.closedDate,
         version: sql`${customerOrder.version} + 1`,
       })
       .where(and(eq(customerOrder.id, orderId), eq(customerOrder.storeId, storeId)));

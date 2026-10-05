@@ -79,7 +79,8 @@ body {
     background: #fff;
   }
 
-  body > :not(.area-impressao) {
+  /* Só quando a via da cozinha está montada: os relatórios (Etapa 9) imprimem a própria página */
+  body:has(> .area-impressao) > :not(.area-impressao) {
     display: none !important;
   }
 

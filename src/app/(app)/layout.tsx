@@ -100,8 +100,23 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     },
   ].filter((item) => item !== false);
 
+  // Financeiro e relatórios (Etapa 9): gerente e administrador (E9-3, E9-4)
+  const management = [
+    hasPermission(context, 'finance.read') && {
+      href: '/financeiro',
+      label: 'Financeiro',
+      icon: 'financeiro' as const,
+    },
+    hasPermission(context, 'reports.read') && {
+      href: '/relatorios',
+      label: 'Relatórios',
+      icon: 'relatorios' as const,
+    },
+  ].filter((item) => item !== false);
+
   const groups: NavGroup[] = [
     { label: 'Operação', items: operation },
+    ...(management.length > 0 ? [{ label: 'Gestão', items: management }] : []),
     ...(menu.length > 0 ? [{ label: 'Cardápio', items: menu }] : []),
     ...(stock.length > 0 ? [{ label: 'Estoque', items: stock }] : []),
     ...(admin.length > 0 ? [{ label: 'Administração', items: admin }] : []),

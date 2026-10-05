@@ -85,6 +85,13 @@
       "when": 1790944041929,
       "tag": "0011_pdv_e_caixa",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1791202447286,
+      "tag": "0012_financeiro_e_relatorios",
+      "breakpoints": true
     }
   ]
 }

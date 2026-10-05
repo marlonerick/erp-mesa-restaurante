@@ -3,9 +3,8 @@
 Última atualização: 2026-10-05
 
 ## Etapa atual
-**Etapa 8 — PDV e caixa** — **aprovada pelo usuário em 2026-10-05** (decisões da revisão E8-6:
-sangria acima do esperado aceita e apontada no fechamento; E8-7: limite de desconto na soma da conta).
-Próxima: Etapa 9 (aguardando o plano).
+**Etapa 9 — Financeiro básico, dashboard e relatórios** — plano aprovado em 2026-10-05 (decisões
+E9-1 a E9-7) — **implementada; em revisão** (`docs/weeks/etapa-09.md`).
 
 ## Progresso do MVP
 
@@ -20,7 +19,7 @@ Próxima: Etapa 9 (aguardando o plano).
 | 6 | Salão, mesas e pedidos | **Aprovada** em 2026-09-30 |
 | 7 | KDS | **Aprovada** em 2026-10-01 |
 | 8 | PDV e caixa | **Aprovada** em 2026-10-05 |
-| 9 | Financeiro básico, dashboard e relatórios | Não iniciada |
+| 9 | Financeiro básico, dashboard e relatórios | Implementada — em revisão |
 | 10 | Estabilização e piloto (MVP Gate) | Não iniciada |
 
 ## Concluído
@@ -47,17 +46,20 @@ Próxima: Etapa 9 (aguardando o plano).
   PDV (contas a receber, pré-conta de 80 mm, taxa congelada na abertura, desconto com limite por
   perfil e PIN do gerente, pagamento misto e idempotente com troco, divisão por pessoas e por itens,
   cancelar pagamento, conta paga fecha e manda a mesa para limpeza) (`docs/weeks/etapa-08.md`).
+- Etapa 9 (aguardando revisão e aprovação): financeiro (vendas entram no fechamento do caixa, despesas,
+  a pagar, fluxo de caixa, categorias), painel do dia na tela Início, relatórios (vendas, produtos com
+  margem, caixa, estoque, operação, auditoria) com CSV e impressão (`docs/weeks/etapa-09.md`).
 - ADRs: 14 aceitos (0001–0014) — ADR-0006 aceito em 2026-09-29 (Q-01 = A).
 
 ## Em andamento
-- Planejamento da Etapa 9 (aguardando aprovação do plano).
+- Etapa 9: revisão do `reviewer`, CI e aprovação.
 
 ## Bloqueado
 - Nada bloqueado.
 
 ## Testes
-- Vitest: 1889 testes (550 unitários + 1339 de integração com MySQL 8.4 real).
-- Playwright: 141 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
+- Vitest: 2075 testes (570 unitários + 1505 de integração com MySQL 8.4 real).
+- Playwright: 153 testes (celular, tablet, desktop + BDD) e 4 pulados de propósito.
 
 ## Bugs
 Nenhum aberto. Corrigidos na Etapa 7: deadlock ao lançar item em duas contas novas ao mesmo tempo
@@ -114,8 +116,11 @@ gravaria 1 g no lugar de 1000 g — ver `docs/weeks/etapa-05.md`.
 - `authenticate` consulta os perfis duas vezes por requisição (lojas acessíveis + permissões);
   unificar se aparecer no monitoramento de desempenho.
 - Foto do produto (E4-3), depois do piloto.
-- Etapa 9: `costOfGoodsSold`/`lossesValue`/`consumptionForItems` recebem loja/empresa do chamador —
-  validar o escopo (ctx) quando os relatórios usarem (S-4 da revisão da Etapa 5).
+- `costOfGoodsSold`/`lossesValue` recebem a loja do chamador: os relatórios passam sempre a loja da
+  sessão (`ctx.storeId`) — S-4 da revisão da Etapa 5, conferido na Etapa 9.
+- Relatórios leem direto das tabelas de vendas a cada abertura (sem tabela resumo): medir com o
+  volume do piloto; se ficar lento, criar resumo diário.
+- Financeiro sem anexos (nota/boleto), sem recorrência e sem conciliação bancária — depois do piloto.
 - Seed de estoque usa fuso/virada fixos (S-6) e entrada simultânea a uma desativação do insumo
   pode passar (S-7, risco baixo) — revisão da Etapa 5.
 - Trava do estorno: medir com dados reais qual índice o MySQL usa; se escolher o de loja/insumo,

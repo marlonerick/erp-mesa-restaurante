@@ -25,9 +25,23 @@ flowchart LR
   AB[Abertura<br/>valor inicial] --> MOV[Movimentos<br/>VENDA · SANGRIA · SUPRIMENTO · AJUSTE · ESTORNO]
   MOV --> FC[Fechamento cego<br/>operador informa valores]
   FC --> DIV[Esperado × informado × diferença<br/>por método]
-  FC --> FIN[finance_entry RECEITA<br/>uma por método da sessão]
-  DESP[Despesas manuais<br/>finance.manage] --> FLX[Fluxo de caixa simplificado]
+  FC --> FIN[finance_entry RECEITA · PAGO · origem CAIXA<br/>uma por forma com total líquido > 0<br/>no dia operacional do caixa]
+  DESP[Despesas e outras receitas<br/>finance.manage] --> FLX[Fluxo de caixa<br/>pelo dia do pagamento + a vencer em 30 dias]
   FIN --> FLX
 ```
+
+## Lançamento manual (Etapa 9)
+
+```mermaid
+stateDiagram-v2
+  [*] --> PREVISTO: lançar a pagar/a receber (vencimento)
+  [*] --> PAGO: lançar já pago (data do pagamento)
+  PREVISTO --> PAGO: pagar (data)
+  PREVISTO --> CANCELADO: cancelar com motivo
+  PAGO --> CANCELADO: cancelar com motivo
+```
+
+A receita do caixa (origem CAIXA, categoria Vendas do sistema) não é paga nem cancelada pela tela:
+corrige-se estornando o pagamento no PDV antes de fechar o caixa (RN-FIN-03).
 
 Esperado em dinheiro = abertura + VENDA(dinheiro, líquido de troco) + SUPRIMENTO − SANGRIA ± AJUSTE − ESTORNO(dinheiro).

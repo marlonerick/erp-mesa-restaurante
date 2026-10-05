@@ -1,18 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useState } from 'react';
-import { v7 as uuidv7 } from 'uuid';
+import { useActionState } from 'react';
 import {
   cashMovementAction,
   closeCashAction,
   openCashAction,
 } from '@/modules/cashier/interface/actions';
 import type { CashierView } from '@/modules/cashier/web';
-import type { FormState } from '@/shared/errors/form-state';
 import { ActionForm } from '@/ui/action-form';
 import { TextAreaField, TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
+import { useIntentKey } from '@/ui/intent-key';
 import { formatBRL } from '@/ui/money';
 import { SubmitButton } from '@/ui/submit-button';
 
@@ -23,17 +22,6 @@ const time = (iso: string) =>
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(iso));
-
-/**
- * Chave de idempotência por INTENÇÃO (docs/api/convencoes.md §3): a mesma enquanto a pessoa reenvia
- * (internet caiu), outra depois que deu certo.
- */
-function useIntentKey(state: FormState | null) {
-  const submittedAt = state?.submittedAt ?? 0;
-  const [key, setKey] = useState(() => ({ value: uuidv7(), at: submittedAt }));
-  if (key.at !== submittedAt) setKey({ value: uuidv7(), at: submittedAt });
-  return key.value;
-}
 
 interface Props {
   readonly view: CashierView;

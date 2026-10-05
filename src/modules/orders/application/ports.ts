@@ -263,6 +263,8 @@ export interface OrdersRepository {
       discountsCents: number;
       serviceFeeCents: number;
       totalCents: number;
+      /** Dia operacional do fechamento (E9-1). */
+      closedDate: string;
     },
   ): Promise<void>;
 

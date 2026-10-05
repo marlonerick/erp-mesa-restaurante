@@ -5,6 +5,7 @@ import type { AuditEvent } from './domain/audit-event';
 import { type AuditEntry, insertAuditEntry } from './infrastructure/audit-repository';
 
 export { AUDIT_EVENTS, type AuditEvent } from './domain/audit-event';
+export { AUDIT_EVENT_LABEL } from './domain/audit-event-label';
 export type { AuditEntry } from './infrastructure/audit-repository';
 
 export function recordAudit(tx: Transaction, entry: AuditEntry): Promise<void> {

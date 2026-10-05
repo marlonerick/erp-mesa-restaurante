@@ -107,12 +107,18 @@ export const customerOrder = mysqlTable(
     discountsCents: int('discounts_cents', { unsigned: true }),
     serviceFeeCents: int('service_fee_cents', { unsigned: true }),
     totalCents: int('total_cents', { unsigned: true }),
+    /** Dia operacional do fechamento (E9-1): é nele que a venda conta nos relatórios. */
+    closedDate: date('closed_date', { mode: 'string' }),
     version: version(),
     ...timestamps,
   },
   (table) => [
     uniqueIndex('uq_customer_order_day_number').on(table.storeId, table.openedDate, table.number),
     index('ix_customer_order_store_status').on(table.storeId, table.status),
+    // Relatórios de vendas (Etapa 9): contas fechadas por dia
+    index('ix_customer_order_closed').on(table.storeId, table.status, table.closedDate),
+    // Relatório de operação: contas abertas por dia
+    index('ix_customer_order_opened').on(table.storeId, table.openedDate),
     index('ix_customer_order_opened_by').on(table.openedBy),
     index('ix_customer_order_closed_by').on(table.closedBy),
     check(

@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireSession } from '@/modules/auth/web';
 import { loadStoreSettings } from '@/modules/organizations/web';
-import { operationalDate } from '@/shared/kernel';
+import { reports, toDashboardView } from '@/modules/reports/web';
+import { hasPermission, operationalDate } from '@/shared/kernel';
+import { DashboardPanel } from './dashboard-panel';
 
 export const metadata: Metadata = { title: 'Início' };
 
@@ -29,9 +31,13 @@ export default async function HomePage({
   const workDay = settings
     ? operationalDate(context.clock.now(), settings.timezone, settings.operationalDayCutoff)
     : null;
+  // Painel do dia: caixa, gerente e administrador (E9-4)
+  const dashboard = hasPermission(context, 'dashboard.read')
+    ? toDashboardView(await reports().dashboard(context))
+    : null;
 
   return (
-    <div className="flex max-w-2xl flex-col gap-8">
+    <div className="flex flex-col gap-8">
       {aviso === 'loja-indisponivel' ? (
         <p
           role="alert"
@@ -40,7 +46,7 @@ export default async function HomePage({
           Não foi possível trocar de loja: ela foi desativada ou você não tem mais acesso a ela.
         </p>
       ) : null}
-      <div className="flex flex-col gap-2">
+      <div className="flex max-w-2xl flex-col gap-2">
         <h1 className="text-3xl font-bold">Olá, {firstName}.</h1>
         <p className="text-lg text-tinta-suave">
           Você está na loja {session.storeName}
@@ -54,10 +60,28 @@ export default async function HomePage({
         ) : null}
       </div>
 
-      <ul className="flex flex-col divide-y divide-borda border-y border-borda">
+      {dashboard ? (
+        <DashboardPanel
+          initial={dashboard}
+          storeId={context.storeId}
+          canSeeReports={hasPermission(context, 'reports.read')}
+        />
+      ) : null}
+
+      <ul className="flex max-w-2xl flex-col divide-y divide-borda border-y border-borda">
         {context.permissions.has('tables.read') && context.permissions.has('orders.read') ? (
           <HomeLink href="/salao" title="Salão">
             Mapa das mesas, comandas e pedidos de balcão.
+          </HomeLink>
+        ) : null}
+        {context.permissions.has('finance.read') ? (
+          <HomeLink href="/financeiro" title="Financeiro">
+            Despesas, contas a pagar e o fluxo de caixa. As vendas entram ao fechar o caixa.
+          </HomeLink>
+        ) : null}
+        {context.permissions.has('reports.read') ? (
+          <HomeLink href="/relatorios" title="Relatórios">
+            Vendas, produtos e margem, caixa, estoque, operação e auditoria — com CSV e impressão.
           </HomeLink>
         ) : null}
         {context.permissions.has('users.read') ? (
@@ -79,8 +103,6 @@ export default async function HomePage({
           Cadastre o PIN de 6 dígitos para trocar de usuário no tablet e autorizar ações.
         </HomeLink>
       </ul>
-
-      <p className="text-tinta-suave">As telas da cozinha e do caixa chegam nas próximas etapas.</p>
     </div>
   );
 }

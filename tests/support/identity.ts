@@ -1,6 +1,7 @@
 import { authService } from '@/modules/auth';
 import { cashierService } from '@/modules/cashier';
 import { catalogService } from '@/modules/catalog';
+import { financeService } from '@/modules/finance';
 import { inventoryService } from '@/modules/inventory';
 import { kitchenService } from '@/modules/kitchen';
 import {
@@ -16,6 +17,7 @@ import {
 import { ordersService } from '@/modules/orders';
 import { posService } from '@/modules/pos';
 import { recipesService } from '@/modules/recipes';
+import { reportsService } from '@/modules/reports';
 import { tablesService } from '@/modules/tables';
 import { insertUser, storePinHash, userAdministration } from '@/modules/users';
 import type { Database } from '@/shared/db/client';
@@ -121,6 +123,8 @@ export function testServices(db: Database, clock = new FakeClock(TEST_START)) {
   const kitchen = kitchenService({ db });
   const cashier = cashierService({ db });
   const pos = posService({ db });
+  const finance = financeService({ db });
+  const reports = reportsService({ db });
   return {
     auth,
     users,
@@ -133,6 +137,8 @@ export function testServices(db: Database, clock = new FakeClock(TEST_START)) {
     kitchen,
     cashier,
     pos,
+    finance,
+    reports,
     clock,
   };
 }

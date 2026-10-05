@@ -10,7 +10,8 @@ permissões da loja ativa; o servidor bloqueia de novo em cada tela.
 | Celular (< 768 px) | Barra no topo com ☰; o menu abre como gaveta (`<dialog>`: foco preso, Esc fecha) |
 
 Estrutura: seletor de loja no topo (loja ativa + terminal do aparelho; troca em 1 clique —
-RN-ORG-12) · grupos **Operação** (Início, Salão, Cozinha, PDV, Caixa, Disponibilidade), **Cardápio**
+RN-ORG-12) · grupos **Operação** (Início, Salão, Cozinha, PDV, Caixa, Disponibilidade), **Gestão**
+(Financeiro, Relatórios — Etapa 9), **Cardápio**
 (Produtos, Categorias, Adicionais — Etapa 4), **Estoque** (Estoque, Fichas técnicas — Etapa 5) e
 **Administração** (Usuários, Empresa, Lojas,
 Terminais) · rodapé com a conta (Meu PIN, Trocar senha, Trocar usuário, Sair).
@@ -25,7 +26,7 @@ flowchart TD
   H -- GARCOM --> SAL["/salao — mapa de mesas"]
   H -- COZINHA --> KDS["/cozinha"]
   H -- CAIXA --> PDV["/pdv"]
-  H -- GERENTE/ADMIN --> DASH["/dashboard"]
+  H -- GERENTE/ADMIN --> DASH["/inicio — painel do dia (Etapa 9)"]
 
   SAL --> COM["/comanda/:orderId — lançar itens, enviar rodada, pedir conta"]
   PDV --> CXA["/caixa — abrir, sangria, suprimento, fechar às cegas (/caixa/:id = resultado)"]
@@ -34,8 +35,9 @@ flowchart TD
   DASH --> CAT["/catalogo"]
   DASH --> EST["/estoque"]
   DASH --> FT["/fichas-tecnicas"]
-  DASH --> FIN["/financeiro"]
-  DASH --> REL["/relatorios — vendas, caixa, estoque, operação, auditoria"]
+  DASH --> FIN["/financeiro — lançamentos, fluxo de caixa, categorias"]
+  DASH --> REL["/relatorios — vendas, produtos, caixa, estoque, operação, auditoria"]
+  REL --> CSV["/relatorios/csv/:tipo — download"]
   DASH --> ADM["/admin — empresa, lojas, terminais, usuários, perfis, configurações"]
 ```
 
@@ -46,12 +48,13 @@ flowchart TD
 | Cozinha (KDS) `/cozinha` — fila, cronômetro, iniciar/pronto/tudo pronto, desfazer, imprimir 80 mm (Etapa 7) | Tablet de 10" deitado (Q-15) | kds.read (marcar e imprimir: kds.manage) |
 | PDV `/pdv` (contas a receber) e `/pdv/conta/:id` — Etapa 8 | Computador ou tablet do caixa | payments.create ou cashier.read (receber: payments.create + caixa aberto no terminal) |
 | Caixa `/caixa`, `/caixa/:id` — Etapa 8 | Terminal de caixa (E8-2) | cashier.read (abrir/movimentar/fechar: cashier.open/movement/close) |
-| Dashboard | Desktop | dashboard.read |
+| Painel do dia na tela **Início** (vendas, contas, ticket médio, mesas, cozinha, caixas abertos sem o esperado, mais vendidos, estoque baixo; atualiza a cada 30 s por `/api/painel`) — Etapa 9 | Desktop/tablet (funciona no celular) | dashboard.read (caixa, gerente, admin — E9-4) |
 | Cardápio: `/catalogo/produtos`, `/catalogo/categorias`, `/catalogo/adicionais` (Etapa 4) | Desktop (funciona no celular) | products.update (cadastrar: products.create) |
 | Disponibilidade `/disponibilidade` — "acabou"/"voltou" (Etapa 4) | Celular/tablet da cozinha ou do caixa | products.availability |
 | Estoque `/estoque`, `/estoque/:id` (lançar, extrato, mínimo, unidades) — Etapa 5 | Desktop; contagem no celular | inventory.read (lançar: inventory.manage) |
 | Fichas técnicas `/fichas-tecnicas`, `/fichas-tecnicas/produto/:id`, `/fichas-tecnicas/adicional/:id` — Etapa 5 | Desktop | recipes.read (salvar: recipes.manage) |
-| Financeiro, relatórios | Desktop | finance.read / reports.read |
+| Financeiro `/financeiro` (lançamentos, pagar, cancelar com motivo, fluxo de caixa com a vencer, categorias) — Etapa 9 | Desktop | finance.read (lançar/pagar/cancelar/categorias: finance.manage) — gerente e admin (E9-3) |
+| Relatórios `/relatorios` (vendas, produtos com margem, caixa, estoque, operação, auditoria), CSV e impressão — Etapa 9 | Desktop | reports.read (aba Auditoria: audit.read) — gerente e admin (E9-4) |
 | Admin — usuários | Desktop | users.read |
 | Admin — empresa e lojas (Etapa 3) | Desktop | stores.manage |
 | Admin — terminais (Etapa 3) | No próprio aparelho | terminals.manage |

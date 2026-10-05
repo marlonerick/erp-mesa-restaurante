@@ -276,6 +276,7 @@ erDiagram
     binary store_id FK
     int number
     date opened_date
+    date closed_date
     enum type
     enum status
     string label
@@ -351,11 +352,27 @@ erDiagram
     int declared_cents
     int difference_cents
   }
+  finance_category {
+    binary id PK
+    binary company_id FK
+    enum type
+    string name
+    string system_code UK
+    bool active
+  }
   finance_entry {
     binary id PK
     binary store_id FK
+    binary category_id FK
     enum type
-    bigint amount_cents
+    int amount_cents
+    date competence_date
+    date due_date
+    date paid_date
+    enum status
+    enum source
     binary cash_session_id FK
+    enum payment_method
+    int version
   }
 ```

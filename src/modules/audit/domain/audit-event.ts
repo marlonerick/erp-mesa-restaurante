@@ -70,6 +70,12 @@ export const AUDIT_EVENTS = [
   // Etapa 8 — PDV (docs/modules/pos.md §8)
   'PRE_BILL_ISSUED',
   'SERVICE_FEE_RESTORED',
+  // Etapa 9 — financeiro (docs/modules/finance.md §8)
+  'FINANCE_CATEGORY_CREATED',
+  'FINANCE_CATEGORY_UPDATED',
+  'FINANCE_ENTRY_CREATED',
+  'FINANCE_ENTRY_PAID',
+  'FINANCE_ENTRY_CANCELLED',
 ] as const;
 
 export type AuditEvent = (typeof AUDIT_EVENTS)[number];
