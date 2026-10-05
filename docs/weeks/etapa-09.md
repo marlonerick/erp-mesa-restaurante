@@ -74,6 +74,14 @@ cálculos e a regra de impressão. Correções:
 | S-9 | Painel com erro derrubava a tela Início; links de página pequenos; SDD citava Kitchen | Painel some e registra o erro; links com 48 px; SDD e mapa corrigidos |
 | S-10 | Reports importa outros módulos direto; Finance recebe por injeção | Débito técnico (padronizar) |
 
+2ª revisão (reverificação, commit 165b1a6): **aprovada** — B-1, I-1 a I-5 e S-1 a S-9 conferidos;
+S-10 como débito. Novas sugestões, sem impedir a conclusão:
+
+| # | Achado | Decisão |
+|---|---|---|
+| S-11 | Aviso de limite também com exatamente 10.000 linhas (nada cortado) | Débito técnico (impacto desprezível) |
+| S-12 | O CSV só confere a loja quando o endereço traz `loja=` (favorito antigo baixa da loja ativa) | Débito técnico — mesmo comportamento das leituras automáticas; não vaza dados (a pessoa tem acesso às duas lojas) |
+
 ## Como experimentar (banco de desenvolvimento)
 1. `npm run db:migrate` (aplica a 0012) e `npm run dev`.
 2. Como `gerente` / `Gerente@2026`: a tela **Início** mostra o painel do dia.
@@ -99,8 +107,8 @@ cálculos e a regra de impressão. Correções:
 - [x] Migration revisada (tabelas → colunas → preenchimento → índices → FKs; `drizzle-kit check`)
 - [x] Testes unitários, integração (MySQL real), BDD, isolamento entre lojas, E2E
 - [x] Lint, typecheck, build
-- [x] CI no GitHub (verde na implementação)
-- [ ] Revisão do `reviewer` (1ª aprovada com ressalvas; achados corrigidos; falta a reverificação)
+- [x] CI no GitHub (verde na implementação e nas correções)
+- [x] Revisão do `reviewer` (1ª aprovada com ressalvas; achados corrigidos; reverificação **aprovada**)
 - [x] Docs e maps
 - [x] `PROJECT_STATUS.md`
 - [ ] `APROVADO` do usuário

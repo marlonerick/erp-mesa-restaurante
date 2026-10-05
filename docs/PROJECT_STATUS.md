@@ -4,7 +4,7 @@
 
 ## Etapa atual
 **Etapa 9 — Financeiro básico, dashboard e relatórios** — plano aprovado em 2026-10-05 (decisões
-E9-1 a E9-7) — **implementada; em revisão** (`docs/weeks/etapa-09.md`).
+E9-1 a E9-7) — **implementada e revisada (reverificação aprovada)** — aguardando o APROVADO do usuário (`docs/weeks/etapa-09.md`).
 
 ## Progresso do MVP
 
@@ -19,7 +19,7 @@ E9-1 a E9-7) — **implementada; em revisão** (`docs/weeks/etapa-09.md`).
 | 6 | Salão, mesas e pedidos | **Aprovada** em 2026-09-30 |
 | 7 | KDS | **Aprovada** em 2026-10-01 |
 | 8 | PDV e caixa | **Aprovada** em 2026-10-05 |
-| 9 | Financeiro básico, dashboard e relatórios | Implementada — em revisão |
+| 9 | Financeiro básico, dashboard e relatórios | Revisada — aguardando aprovação |
 | 10 | Estabilização e piloto (MVP Gate) | Não iniciada |
 
 ## Concluído
@@ -52,7 +52,7 @@ E9-1 a E9-7) — **implementada; em revisão** (`docs/weeks/etapa-09.md`).
 - ADRs: 14 aceitos (0001–0014) — ADR-0006 aceito em 2026-09-29 (Q-01 = A).
 
 ## Em andamento
-- Etapa 9: revisão do `reviewer`, CI e aprovação.
+- Etapa 9: aguardando o APROVADO do usuário.
 
 ## Bloqueado
 - Nada bloqueado.
@@ -122,6 +122,8 @@ gravaria 1 g no lugar de 1000 g — ver `docs/weeks/etapa-05.md`.
   volume do piloto; se ficar lento, criar resumo diário.
 - Reports importa Inventory, Organizations, Cashier e Users direto na aplicação; Finance recebe as
   dependências injetadas — padronizar (S-10 da revisão da Etapa 9).
+- CSV dos relatórios: aviso de limite também com exatamente 10.000 linhas (S-11) e conferência da loja
+  só quando o endereço traz `loja=` (S-12) — revisão da Etapa 9.
 - Financeiro sem anexos (nota/boleto), sem recorrência e sem conciliação bancária — depois do piloto.
 - Seed de estoque usa fuso/virada fixos (S-6) e entrada simultânea a uma desativação do insumo
   pode passar (S-7, risco baixo) — revisão da Etapa 5.
