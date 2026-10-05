@@ -5,3 +5,8 @@
 id = "GHSA-67mh-4wv8-2f99"
 ignoreUntil = 2027-03-31
 reason = "esbuild <=0.24.2 (dependência de desenvolvimento do drizzle-kit): a falha só afeta o servidor de desenvolvimento do esbuild (esbuild --serve), que não usamos; não vai para produção."
+
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+ignoreUntil = 2026-12-31
+reason = "braces <=3.0.3 (dependência de desenvolvimento do @next/eslint-plugin-next via fast-glob/micromatch): estouro de pilha só com padrões maliciosos; o lint usa apenas os padrões do próprio projeto e não vai para produção. Sem versão corrigida em 2026-10-05."

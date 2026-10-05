@@ -100,6 +100,7 @@ Registro em `osv-scanner.toml`, sempre com justificativa e data de revisão.
 | ID | Pacote | Motivo | Revisar até |
 |---|---|---|---|
 | GHSA-67mh-4wv8-2f99 | esbuild ≤ 0.24.2 (via drizzle-kit, só desenvolvimento) | A falha exige o servidor de desenvolvimento do esbuild (`--serve`), que não usamos; não vai para produção. A "correção" do npm rebaixaria o drizzle-kit | 2027-03-31 |
+| GHSA-vfj7-8cjw-p6xm | braces ≤ 3.0.3 (via @next/eslint-plugin-next → fast-glob → micromatch, só desenvolvimento) | Estouro de pilha com padrões `{}` maliciosamente aninhados. Só o lint usa, com os padrões do próprio projeto; não vai para produção. Sem versão corrigida em 2026-10-05 — atualizar assim que sair | 2026-12-31 |
 
 No CI: `npm audit --omit=dev --audit-level=high` (código de produção) e OSV-Scanner em todo o lockfile.
 

@@ -72,6 +72,7 @@ gravaria 1 g no lugar de 1000 g — ver `docs/weeks/etapa-05.md`.
 - Migrar para TypeScript 7 quando o `typescript-eslint` suportar (D-1).
 - Avaliar Drizzle 1.0 quando sair a versão estável (D-2).
 - Revisar até 2027-03-31 a exceção GHSA-67mh-4wv8-2f99 (esbuild via drizzle-kit, só desenvolvimento).
+- Revisar até 2026-12-31 a exceção GHSA-vfj7-8cjw-p6xm (braces via plugin do lint, só desenvolvimento; sem correção publicada em 2026-10-05).
 - Agendar `npm run maintenance:purge` diariamente no servidor (Etapa 10, junto com o deploy).
 - Teste de idempotência com deadlock REAL (3 envios simultâneos, o 1º desfeito) — achado S-6 da revisão da Etapa 1.
 - Venda por peso (preço por kg) — fora do piloto (Q-10); `Money.multiplyBy` já faz a conta.
