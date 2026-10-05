@@ -3,8 +3,8 @@
 Última atualização: 2026-10-05
 
 ## Etapa atual
-**Etapa 9 — Financeiro básico, dashboard e relatórios** — plano aprovado em 2026-10-05 (decisões
-E9-1 a E9-7) — **implementada e revisada (reverificação aprovada)** — aguardando o APROVADO do usuário (`docs/weeks/etapa-09.md`).
+**Etapa 10 — Estabilização e piloto (MVP Gate)** — plano em preparação. A Etapa 9 foi **aprovada**
+em 2026-10-05 (`docs/weeks/etapa-09.md`).
 
 ## Progresso do MVP
 
@@ -19,7 +19,7 @@ E9-1 a E9-7) — **implementada e revisada (reverificação aprovada)** — agua
 | 6 | Salão, mesas e pedidos | **Aprovada** em 2026-09-30 |
 | 7 | KDS | **Aprovada** em 2026-10-01 |
 | 8 | PDV e caixa | **Aprovada** em 2026-10-05 |
-| 9 | Financeiro básico, dashboard e relatórios | Revisada — aguardando aprovação |
+| 9 | Financeiro básico, dashboard e relatórios | **Aprovada** em 2026-10-05 |
 | 10 | Estabilização e piloto (MVP Gate) | Não iniciada |
 
 ## Concluído
@@ -46,13 +46,13 @@ E9-1 a E9-7) — **implementada e revisada (reverificação aprovada)** — agua
   PDV (contas a receber, pré-conta de 80 mm, taxa congelada na abertura, desconto com limite por
   perfil e PIN do gerente, pagamento misto e idempotente com troco, divisão por pessoas e por itens,
   cancelar pagamento, conta paga fecha e manda a mesa para limpeza) (`docs/weeks/etapa-08.md`).
-- Etapa 9 (aguardando revisão e aprovação): financeiro (vendas entram no fechamento do caixa, despesas,
+- Etapa 9: financeiro (vendas entram no fechamento do caixa, despesas,
   a pagar, fluxo de caixa, categorias), painel do dia na tela Início, relatórios (vendas, produtos com
   margem, caixa, estoque, operação, auditoria) com CSV e impressão (`docs/weeks/etapa-09.md`).
 - ADRs: 14 aceitos (0001–0014) — ADR-0006 aceito em 2026-09-29 (Q-01 = A).
 
 ## Em andamento
-- Etapa 9: aguardando o APROVADO do usuário.
+- Nada em andamento: aguardando a aprovação do plano da Etapa 10.
 
 ## Bloqueado
 - Nada bloqueado.
@@ -135,4 +135,4 @@ R-01 (piloto sem fiscal), R-03 (pagamento duplicado), R-06 (isolamento entre loj
 R-10 (internet instável), R-11 (impressão na cozinha). Tabela completa: docs/requirements/riscos.md.
 
 ## Próxima etapa
-Etapa 9 — Financeiro básico, dashboard e relatórios.
+Etapa 10 — Estabilização e piloto (MVP Gate).
