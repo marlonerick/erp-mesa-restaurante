@@ -1,0 +1,11 @@
+# HTTPS automático (Let's Encrypt) para o domínio do sistema — o certificado sai sozinho assim que
+# o domínio aponta para o servidor. Com DOMAIN=localhost, usa um certificado local (testes).
+{$DOMAIN} {
+	encode zstd gzip
+	# O Caddy SOBRESCREVE o X-Forwarded-For com o IP real (TRUST_PROXY=true na aplicação)
+	reverse_proxy app:3000
+	log {
+		output stdout
+		format json
+	}
+}

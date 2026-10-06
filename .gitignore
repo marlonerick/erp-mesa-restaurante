@@ -19,6 +19,10 @@ blob-report/
 .env
 .env.*
 !.env.example
+!deploy/.env.production.example
+
+# backups do banco (ficam no servidor e na cópia externa — nunca no Git)
+deploy/backups/
 
 # logs
 *.log

@@ -85,3 +85,19 @@ jobs:
 
       - name: Build de produção
         run: npm run build
+
+  imagem:
+    name: Imagem de produção
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Validar o compose de produção
+        working-directory: deploy
+        run: >
+          docker compose -f compose.prod.yml --env-file .env.production.example config --quiet
+
+      - name: Construir a imagem (deploy/Dockerfile)
+        run: docker build -f deploy/Dockerfile -t erp-restaurante:ci .

@@ -23,6 +23,10 @@ import { terminal } from '@/shared/db/schema';
 import { type Id, isDomainError, newId, type RequestContext } from '@/shared/kernel';
 
 const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3100';
+/** Mesmo nome que o servidor usa: com APP_ORIGIN em https, o cookie leva o prefixo __Host-. */
+const SESSION_COOKIE = (process.env.APP_ORIGIN ?? '').startsWith('https://')
+  ? '__Host-erp_session'
+  : 'erp_session';
 const SECONDS = Number(process.env.LOAD_SECONDS ?? 180);
 const TABLES = Number(process.env.LOAD_TABLES ?? 10);
 /** Metas do piloto: leituras das telas e operações rápidas o bastante para o salão. */
@@ -159,7 +163,10 @@ async function poll(name: string, person: Person, path: string, everyMs: number)
   while (running()) {
     await measure(name, async () => {
       const response = await fetch(`${BASE_URL}${path}?loja=${String(storeId)}`, {
-        headers: { cookie: `erp_session=${people[person].token}`, accept: 'application/json' },
+        headers: {
+          cookie: `${SESSION_COOKIE}=${people[person].token}`,
+          accept: 'application/json',
+        },
       });
       await response.arrayBuffer();
       if (!response.ok) throw new Error(`HTTP ${String(response.status)}`);
@@ -187,7 +194,7 @@ async function tableLoop(tableId: Id, waiter: RequestContext, waiterToken: strin
           const response = await fetch(
             `${BASE_URL}/api/comandas/${String(orderId)}?loja=${String(storeId)}`,
             {
-              headers: { cookie: `erp_session=${waiterToken}`, accept: 'application/json' },
+              headers: { cookie: `${SESSION_COOKIE}=${waiterToken}`, accept: 'application/json' },
             },
           );
           await response.arrayBuffer();

@@ -1,7 +1,8 @@
 # Ambientes, versões e backup
 
-Decisão proposta em [ADR-0011](../decisions/ADR-0011-deploy-e-versoes.md). Hospedagem depende
-da pergunta Q-03.
+Decisão em [ADR-0011](../decisions/ADR-0011-deploy-e-versoes.md): **Hostinger, VPS única com Docker
+Compose** (E10-1, 2026-10-06). Roteiro: [roteiro-tecnico.md](roteiro-tecnico.md); backup:
+[backup.md](backup.md).
 
 ## Versões
 
@@ -18,8 +19,8 @@ da pergunta Q-03.
 |---|---|---|---|
 | dev | Máquina do desenvolvedor | MySQL 8.4 em Docker Compose | Seed de desenvolvimento |
 | test (CI) | Runner do CI | Testcontainers / Compose | Fixtures por teste |
-| staging | Mesmo provedor da produção | MySQL gerenciado separado | Seed de homologação (nunca dados reais) |
-| production | Container Node persistente, região São Paulo | MySQL 8.4 gerenciado, região São Paulo | Dados reais do piloto |
+| homologação | `deploy/compose.prod.yml` no computador de desenvolvimento (HTTPS local) | MySQL 8.4 no mesmo compose | Seed de demonstração (nunca dados reais) |
+| production | VPS da Hostinger (`deploy/compose.prod.yml`) | MySQL 8.4 no mesmo compose, sem porta aberta | Dados reais do piloto |
 
 ## Configuração
 
@@ -38,15 +39,14 @@ da pergunta Q-03.
 
 ## Backup e restauração
 
-- Backup lógico diário (`mysqldump --single-transaction` ou snapshot do provedor) + binlog para
-  recuperação ponto-no-tempo.
-- Retenção proposta: diários por 30 dias, mensais por 12 meses (Q-13).
-- **Backup só é válido após restauração testada**: teste de restauração documentado na Etapa 10
-  e repetido mensalmente durante o piloto.
+- Backup lógico diário (`deploy/backup.sh`, `mysqldump --single-transaction`) + binlog de 7 dias.
+- Retenção: diários por 30 dias, mensais por 12 meses; cópia externa com rclone.
+- **Backup só é válido após restauração testada**: `deploy/restore-test.sh` (testado na Etapa 10,
+  com ensaio de desastre) e repetido mensalmente durante o piloto — ver [backup.md](backup.md).
 
 ## Deploy
 
-- Imagem Docker (`output: standalone`), migrations aplicadas por etapa explícita antes do start
-  (usuário de migration separado).
+- Imagem Docker (`deploy/Dockerfile`, `output: standalone`), migrations aplicadas por etapa explícita
+  antes do start (`docker compose run --rm migrate`, usuário de migration separado); `deploy/update.sh`.
 - `/health` (liveness) e `/ready` (conexão com banco) usados pelo orquestrador.
 - Deploy fora do horário de operação do restaurante durante o piloto.

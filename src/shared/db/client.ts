@@ -35,7 +35,9 @@ export function createDatabase({ url, poolSize }: DatabaseOptions) {
     db,
     /** Verifica se o banco responde (usado por /ready). */
     ping: async (): Promise<void> => {
-      await pool.query('SELECT 1');
+      // Lê uma tabela do sistema, não só "SELECT 1": com o banco apagado ou sem as migrations, o
+      // MySQL ainda responde e o /ready diria "pronto" (achado no ensaio de desastre da Etapa 10)
+      await pool.query('SELECT 1 FROM `store` LIMIT 1');
     },
     close: async (): Promise<void> => {
       await pool.end();

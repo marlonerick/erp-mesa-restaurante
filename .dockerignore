@@ -1,0 +1,16 @@
+# Só o necessário para o build da imagem (deploy/Dockerfile)
+node_modules
+.next
+.features-gen
+test-results
+playwright-report
+coverage
+.git
+.github
+.env
+.env.*
+!.env.example
+deploy/backups
+deploy/.env.production
+*.log
+tsconfig.tsbuildinfo

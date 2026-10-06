@@ -1,0 +1,118 @@
+# Produção do ERP numa VPS (Hostinger — E10-1): banco, aplicação e HTTPS no mesmo servidor.
+# Uso (na pasta deploy/, com o arquivo .env.production preenchido):
+#   docker compose -f compose.prod.yml --env-file .env.production up -d --build
+# Roteiro completo: docs/deployment/roteiro-tecnico.md
+name: erp-producao
+
+x-app-env: &app-env
+  NODE_ENV: production
+  DATABASE_URL: mysql://erp_app:${APP_DB_PASSWORD:?defina APP_DB_PASSWORD}@db:3306/erp
+  MIGRATOR_DATABASE_URL: mysql://erp_migrator:${MIGRATOR_DB_PASSWORD:?defina MIGRATOR_DB_PASSWORD}@db:3306/erp
+  APP_ORIGIN: '${APP_ORIGIN:?defina APP_ORIGIN com https e o domínio}'
+  # Atrás do Caddy, que SOBRESCREVE o X-Forwarded-For com o IP real do cliente
+  TRUST_PROXY: 'true'
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+
+services:
+  db:
+    # 8.4 LTS, mesmo digest do desenvolvimento e do CI
+    image: mysql:8.4@sha256:0744ee5ef89ce6ccfa13de3e579fe6b9e27f93dd70da9c06d2c908b1b193fb8d
+    restart: unless-stopped
+    # Sem porta publicada: só a aplicação (rede interna) fala com o banco
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?defina MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: erp
+      APP_DB_USER: erp_app
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD}
+      MIGRATOR_DB_USER: erp_migrator
+      MIGRATOR_DB_PASSWORD: ${MIGRATOR_DB_PASSWORD}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+00:00
+      - --sql-mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION,ONLY_FULL_GROUP_BY
+      - --transaction-isolation=REPEATABLE-READ
+      - --skip-name-resolve
+      # Triggers da auditoria imutável com o binlog ligado (docs/deployment/ambientes.md)
+      - --log-bin-trust-function-creators=1
+      # Binlog por 7 dias: recuperação até um momento exato entre dois backups diários
+      - --binlog-expire-logs-seconds=604800
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ../docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'mysql -h 127.0.0.1 -u"$$APP_DB_USER" -p"$$APP_DB_PASSWORD" -e "SELECT 1" erp >/dev/null 2>&1',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
+
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: erp-restaurante:${APP_VERSION:-latest}
+    restart: unless-stopped
+    environment: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/.next/cache
+
+  caddy:
+    image: caddy:2.10
+    restart: unless-stopped
+    ports:
+      - '${HTTP_PORT:-80}:80'
+      - '${HTTPS_PORT:-443}:443'
+    environment:
+      DOMAIN: '${DOMAIN:?defina DOMAIN, por exemplo sistema.seurestaurante.com.br}'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+
+  # ---- Ferramentas (rodam sob demanda: docker compose run --rm <nome>) ----
+
+  migrate:
+    image: erp-restaurante:${APP_VERSION:-latest}
+    profiles: ['ops']
+    environment: *app-env
+    working_dir: /ops
+    command: ['node', 'scripts/migrate.ts']
+    depends_on:
+      db:
+        condition: service_healthy
+
+  ops:
+    image: erp-restaurante:${APP_VERSION:-latest}
+    profiles: ['ops']
+    environment: *app-env
+    working_dir: /ops
+    # Ex.: docker compose run --rm ops scripts/admin-create.ts
+    entrypoint:
+      [
+        'node',
+        '--experimental-transform-types',
+        '--disable-warning=ExperimentalWarning',
+        '--import',
+        './scripts/register-alias.mjs',
+      ]
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql-data:
+  caddy-data:
+  caddy-config:
