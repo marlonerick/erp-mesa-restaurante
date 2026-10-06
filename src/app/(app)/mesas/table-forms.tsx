@@ -1,15 +1,15 @@
 'use client';
 
-import { useActionState } from 'react';
 import { createTableAction, updateTableAction } from '@/modules/tables/interface/actions';
 import { ActionForm } from '@/ui/action-form';
 import { CheckboxField, TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { SubmitButton } from '@/ui/submit-button';
+import { useServerAction } from '@/ui/use-server-action';
 
 /** Cadastro de mesa (RN-TAB-02): número, área e lugares. */
 export function NewTableForm({ storeId }: { readonly storeId: string }) {
-  const [state, action] = useActionState(createTableAction, null);
+  const [state, action] = useServerAction(createTableAction);
   return (
     <ActionForm action={action} state={state} resetOnSuccess>
       <input type="hidden" name="expectedStoreId" value={storeId} />
@@ -59,7 +59,7 @@ export function EditTableForm({
   };
   readonly storeId: string;
 }) {
-  const [state, action] = useActionState(updateTableAction, null);
+  const [state, action] = useServerAction(updateTableAction);
   return (
     <ActionForm action={action} state={state}>
       <input type="hidden" name="expectedStoreId" value={storeId} />

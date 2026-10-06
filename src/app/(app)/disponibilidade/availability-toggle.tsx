@@ -1,9 +1,9 @@
 'use client';
 
-import { useActionState } from 'react';
 import { setAvailabilityAction } from '@/modules/catalog/interface/actions';
 import { cn } from '@/ui/cn';
 import { SubmitButton } from '@/ui/submit-button';
+import { useServerAction } from '@/ui/use-server-action';
 
 /**
  * Um produto do cardápio da loja com o botão "Acabou" / "Voltou" (RN-CAT-09). Botão grande, para
@@ -21,7 +21,7 @@ export function AvailabilityToggle({
   };
   readonly storeId: string;
 }) {
-  const [state, action] = useActionState(setAvailabilityAction, null);
+  const [state, action] = useServerAction(setAvailabilityAction);
   return (
     <li
       className={cn(

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { closeFreeAction, preBillAction } from '@/modules/pos/interface/actions';
 import type { BillView } from '@/modules/pos/web';
@@ -12,6 +12,7 @@ import { SubmitButton } from '@/ui/submit-button';
 import { CancelPaymentDialog, DiscountDialog, ServiceFeeDialog } from './dialogs';
 import { PaymentPanel } from './payment-panel';
 import { PrebillPrint } from './prebill-print';
+import { useServerAction } from '@/ui/use-server-action';
 
 interface Props {
   readonly bill: BillView;
@@ -293,7 +294,7 @@ function PreBillButton({
   readonly storeId: string;
   readonly storeName: string;
 }) {
-  const [state, action] = useActionState(preBillAction, null);
+  const [state, action] = useServerAction(preBillAction);
   // Só existe depois de um envio NO NAVEGADOR: o portal nunca roda no servidor
   const printed = state?.submittedAt ?? 0;
   useEffect(() => {
@@ -323,7 +324,7 @@ function CloseFreeButton({
   readonly orderId: string;
   readonly storeId: string;
 }) {
-  const [state, action] = useActionState(closeFreeAction, null);
+  const [state, action] = useServerAction(closeFreeAction);
   return (
     <form action={action} className="flex flex-col gap-2">
       <input type="hidden" name="expectedStoreId" value={storeId} />

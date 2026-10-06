@@ -1,11 +1,12 @@
 'use client';
 
-import { useActionState, useId } from 'react';
+import { useId } from 'react';
 import { createStoreAction, updateStoreAction } from '@/modules/organizations/interface/actions';
 import { ActionForm } from '@/ui/action-form';
 import { SelectField, TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { SubmitButton } from '@/ui/submit-button';
+import { useServerAction } from '@/ui/use-server-action';
 
 export interface StoreFormValues {
   readonly name: string;
@@ -52,7 +53,7 @@ export function StoreForm({
   store,
   companies,
 }: Props) {
-  const [state, action] = useActionState(store ? updateStoreAction : createStoreAction, null);
+  const [state, action] = useServerAction(store ? updateStoreAction : createStoreAction);
   const errors = state?.fieldErrors;
   const policyId = useId();
 

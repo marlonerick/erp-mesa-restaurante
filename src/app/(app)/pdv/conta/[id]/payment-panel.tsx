@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
 import { v7 as uuidv7 } from 'uuid';
 import { payAction } from '@/modules/pos/interface/actions';
 import type { BillView } from '@/modules/pos/web';
@@ -12,6 +12,7 @@ import { TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { formatBRL } from '@/ui/money';
 import { SubmitButton } from '@/ui/submit-button';
+import { useServerAction } from '@/ui/use-server-action';
 
 const METHODS = [
   ['DINHEIRO', 'Dinheiro'],
@@ -41,7 +42,7 @@ export function PaymentPanel({
   readonly bill: BillView;
   readonly storeId: string;
 }) {
-  const [state, action] = useActionState(payAction, null);
+  const [state, action] = useServerAction(payAction);
   const [method, setMethod] = useState<Method>('PIX');
   const [amount, setAmount] = useState(() => formatMoneyText(bill.totals.balanceCents));
   const [people, setPeople] = useState(2);

@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useActionState, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import {
   cancelOrderAction,
   detachAction,
@@ -17,6 +17,7 @@ import { SelectField, TextAreaField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { SubmitButton } from '@/ui/submit-button';
 import { useFloor, useRefreshAfter } from '../../live';
+import { useServerAction } from '@/ui/use-server-action';
 
 type Action = (previous: FormState | null, formData: FormData) => Promise<FormState>;
 
@@ -92,7 +93,7 @@ function OrderDialogBody({
   readonly submitVariant: 'primary' | 'danger';
   readonly onClose: () => void;
 }) {
-  const [state, formAction] = useActionState(action, null);
+  const [state, formAction] = useServerAction(action);
   useRefreshAfter(state);
   return (
     <>
@@ -129,7 +130,7 @@ export function OrderActions({
   readonly floor: FloorView;
   readonly storeId: string;
 }) {
-  const [billState, billAction] = useActionState(requestBillAction, null);
+  const [billState, billAction] = useServerAction(requestBillAction);
   useRefreshAfter(billState);
   const isTable = order.type === 'MESA';
   const waiting = order.tables.some((table) => table.status === 'AGUARDANDO_CONTA');

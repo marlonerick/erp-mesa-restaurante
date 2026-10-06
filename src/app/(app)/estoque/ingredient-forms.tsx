@@ -1,6 +1,5 @@
 'use client';
 
-import { useActionState } from 'react';
 import {
   addConversionAction,
   countAction,
@@ -16,6 +15,7 @@ import { ActionForm } from '@/ui/action-form';
 import { CheckboxField, SelectField, TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { SubmitButton } from '@/ui/submit-button';
+import { useServerAction } from '@/ui/use-server-action';
 
 export interface UnitOption {
   readonly value: string;
@@ -30,7 +30,7 @@ export function NewIngredientForm({
   readonly storeId: string;
   readonly units: readonly UnitOption[];
 }) {
-  const [state, action] = useActionState(createIngredientAction, null);
+  const [state, action] = useServerAction(createIngredientAction);
   return (
     <ActionForm action={action} state={state}>
       <FormMessage state={state} />
@@ -92,7 +92,7 @@ function AmountFields({
 
 /** Entrada (compra): quantidade + valor total pago (E5-2). */
 export function EntryForm({ target }: { readonly target: Target }) {
-  const [state, action] = useActionState(entryAction, null);
+  const [state, action] = useServerAction(entryAction);
   return (
     <ActionForm action={action} state={state} resetOnSuccess>
       <FormMessage state={state} />
@@ -112,7 +112,7 @@ export function EntryForm({ target }: { readonly target: Target }) {
 
 /** Saída manual (uso interno): motivo obrigatório (RN-INV-06). */
 export function ExitForm({ target }: { readonly target: Target }) {
-  const [state, action] = useActionState(exitAction, null);
+  const [state, action] = useServerAction(exitAction);
   return (
     <ActionForm action={action} state={state} resetOnSuccess>
       <FormMessage state={state} />
@@ -131,7 +131,7 @@ export function LossForm({
   readonly target: Target;
   readonly reasons: readonly UnitOption[];
 }) {
-  const [state, action] = useActionState(lossAction, null);
+  const [state, action] = useServerAction(lossAction);
   return (
     <ActionForm action={action} state={state} resetOnSuccess>
       <FormMessage state={state} />
@@ -147,7 +147,7 @@ export function LossForm({
 
 /** Contagem física: informa o que CONTOU; o sistema lança a diferença (RN-INV-08). */
 export function CountForm({ target }: { readonly target: Target }) {
-  const [state, action] = useActionState(countAction, null);
+  const [state, action] = useServerAction(countAction);
   return (
     <ActionForm action={action} state={state} resetOnSuccess>
       <FormMessage state={state} />
@@ -169,7 +169,7 @@ export function MinimumForm({
   readonly value: string;
   readonly unitLabel: string;
 }) {
-  const [state, action] = useActionState(setMinimumAction, null);
+  const [state, action] = useServerAction(setMinimumAction);
   return (
     <ActionForm key={value} action={action} state={state}>
       <FormMessage state={state} />
@@ -200,7 +200,7 @@ export function IngredientDataForm({
     readonly active: boolean;
   };
 }) {
-  const [state, action] = useActionState(updateIngredientAction, null);
+  const [state, action] = useServerAction(updateIngredientAction);
   return (
     <ActionForm key={ingredient.version} action={action} state={state}>
       <FormMessage state={state} />
@@ -228,8 +228,8 @@ export function ConversionForms({
   readonly baseLabel: string;
   readonly conversions: readonly { id: string; unitName: string; factor: string }[];
 }) {
-  const [state, add] = useActionState(addConversionAction, null);
-  const [removeState, remove] = useActionState(removeConversionAction, null);
+  const [state, add] = useServerAction(addConversionAction);
+  const [removeState, remove] = useServerAction(removeConversionAction);
   return (
     <div className="flex flex-col gap-4">
       <FormMessage state={removeState} />

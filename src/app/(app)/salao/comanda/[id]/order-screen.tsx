@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
 import { v7 as uuidv7 } from 'uuid';
 import {
   deliverItemAction,
@@ -17,6 +17,7 @@ import { isGone, useOrder, useRefreshAfter } from '../../live';
 import { AddItemDialog } from './add-item-dialog';
 import { CancelItemDialog } from './cancel-item-dialog';
 import { OrderActions } from './order-actions';
+import { useServerAction } from '@/ui/use-server-action';
 
 export interface OrderPermissions {
   readonly add: boolean;
@@ -204,7 +205,7 @@ function PendingItems({
   readonly storeId: string;
   readonly can: OrderPermissions;
 }) {
-  const [state, action] = useActionState(sendRoundAction, null);
+  const [state, action] = useServerAction(sendRoundAction);
   useRefreshAfter(state);
   const shown = order.pending.map((item) => item.id).join(',');
   // Uma chave por intenção: muda quando a lista muda ou quando o envio deu certo
@@ -250,7 +251,7 @@ function PendingItems({
 }
 
 function RemoveButton({ item, storeId }: { readonly item: ItemView; readonly storeId: string }) {
-  const [state, action] = useActionState(removeItemAction, null);
+  const [state, action] = useServerAction(removeItemAction);
   useRefreshAfter(state);
   return (
     <form action={action} className="flex flex-col gap-1">
@@ -274,7 +275,7 @@ function RemoveButton({ item, storeId }: { readonly item: ItemView; readonly sto
 }
 
 function DeliverButton({ item, storeId }: { readonly item: ItemView; readonly storeId: string }) {
-  const [state, action] = useActionState(deliverItemAction, null);
+  const [state, action] = useServerAction(deliverItemAction);
   useRefreshAfter(state);
   return (
     <form action={action}>

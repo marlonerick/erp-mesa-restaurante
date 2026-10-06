@@ -1,14 +1,14 @@
 'use client';
 
-import { useActionState } from 'react';
 import { loginAction } from '@/modules/auth/interface/actions';
 import { CheckboxField, TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { PasswordField } from '@/ui/password-field';
 import { SubmitButton } from '@/ui/submit-button';
+import { useServerAction } from '@/ui/use-server-action';
 
 export function LoginForm() {
-  const [state, action] = useActionState(loginAction, null);
+  const [state, action] = useServerAction(loginAction);
   return (
     <form action={action} className="flex flex-col gap-5" noValidate>
       <FormMessage state={state} />

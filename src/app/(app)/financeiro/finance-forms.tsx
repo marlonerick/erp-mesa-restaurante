@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
 import {
   cancelEntryAction,
   createCategoryAction,
@@ -14,6 +14,7 @@ import { SelectField, TextAreaField, TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { useIntentKey } from '@/ui/intent-key';
 import { SubmitButton } from '@/ui/submit-button';
+import { useServerAction } from '@/ui/use-server-action';
 
 const TYPES: readonly { value: FinanceType; label: string }[] = [
   { value: 'DESPESA', label: 'Despesa (saída)' },
@@ -30,7 +31,7 @@ export function NewEntryForm({
   readonly today: string;
   readonly categories: readonly CategoryView[];
 }) {
-  const [state, action] = useActionState(createEntryAction, null);
+  const [state, action] = useServerAction(createEntryAction);
   const key = useIntentKey(state);
   const [type, setType] = useState<FinanceType>('DESPESA');
   const [paid, setPaid] = useState(false);
@@ -150,7 +151,7 @@ function PayForm({
   readonly storeId: string;
   readonly today: string;
 }) {
-  const [state, action] = useActionState(payEntryAction, null);
+  const [state, action] = useServerAction(payEntryAction);
   return (
     <ActionForm action={action} state={state} className="flex flex-wrap items-end gap-3">
       <input type="hidden" name="expectedStoreId" value={storeId} />
@@ -172,7 +173,7 @@ function PayForm({
 }
 
 function CancelForm({ entry, storeId }: { readonly entry: EntryView; readonly storeId: string }) {
-  const [state, action] = useActionState(cancelEntryAction, null);
+  const [state, action] = useServerAction(cancelEntryAction);
   return (
     <ActionForm action={action} state={state} className="mt-3 flex max-w-md flex-col gap-3">
       <input type="hidden" name="expectedStoreId" value={storeId} />
@@ -188,7 +189,7 @@ function CancelForm({ entry, storeId }: { readonly entry: EntryView; readonly st
 }
 
 export function NewCategoryForm({ storeId }: { readonly storeId: string }) {
-  const [state, action] = useActionState(createCategoryAction, null);
+  const [state, action] = useServerAction(createCategoryAction);
   return (
     <ActionForm action={action} state={state} resetOnSuccess>
       <input type="hidden" name="expectedStoreId" value={storeId} />
@@ -209,7 +210,7 @@ export function CategoryToggle({
   readonly category: CategoryView;
   readonly storeId: string;
 }) {
-  const [state, action] = useActionState(setCategoryActiveAction, null);
+  const [state, action] = useServerAction(setCategoryActiveAction);
   if (category.system) return <span className="text-sm text-tinta-suave">Do sistema</span>;
   return (
     <ActionForm action={action} state={state} className="flex flex-wrap items-center gap-2">

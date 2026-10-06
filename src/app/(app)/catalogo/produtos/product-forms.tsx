@@ -1,6 +1,5 @@
 'use client';
 
-import { useActionState } from 'react';
 import {
   createProductAction,
   removeFromStoreAction,
@@ -12,6 +11,7 @@ import { ActionForm } from '@/ui/action-form';
 import { CheckboxField, SelectField, TextAreaField, TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { SubmitButton } from '@/ui/submit-button';
+import { useServerAction } from '@/ui/use-server-action';
 
 export interface ProductFormValues {
   readonly name: string;
@@ -42,7 +42,7 @@ interface Props {
 
 /** Cadastro e edição do produto (RN-CAT-04, RN-CAT-06). */
 export function ProductForm({ values, categories, groups, product, store, descriptionMax }: Props) {
-  const [state, action] = useActionState(product ? updateProductAction : createProductAction, null);
+  const [state, action] = useServerAction(product ? updateProductAction : createProductAction);
   const errors = state?.fieldErrors;
   return (
     <ActionForm key={product?.version} action={action} state={state}>
@@ -145,8 +145,8 @@ export interface StorePriceValues {
 
 /** Preço numa loja (RN-CAT-07): definir/alterar e "parar de vender nesta loja". */
 export function StorePriceForm({ values }: { readonly values: StorePriceValues }) {
-  const [state, action] = useActionState(setStorePriceAction, null);
-  const [removeState, remove] = useActionState(removeFromStoreAction, null);
+  const [state, action] = useServerAction(setStorePriceAction);
+  const [removeState, remove] = useServerAction(removeFromStoreAction);
   const { price } = values;
   return (
     <div className="flex flex-col gap-3 border-b border-borda py-5">
@@ -197,7 +197,7 @@ export function ProductStatus({
 }: {
   readonly product: { readonly id: string; readonly version: number; readonly active: boolean };
 }) {
-  const [state, action] = useActionState(setProductStatusAction, null);
+  const [state, action] = useServerAction(setProductStatusAction);
   return (
     <section className="flex flex-col gap-4 border-t-2 border-borda pt-6">
       <h2 className="text-2xl font-bold">

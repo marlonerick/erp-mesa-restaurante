@@ -1,11 +1,11 @@
 'use client';
 
-import { useActionState } from 'react';
 import { setStoreStatusAction } from '@/modules/organizations/interface/actions';
 import { ActionForm } from '@/ui/action-form';
 import { CheckboxField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { SubmitButton } from '@/ui/submit-button';
+import { useServerAction } from '@/ui/use-server-action';
 
 interface Props {
   readonly store: {
@@ -19,7 +19,7 @@ interface Props {
 
 /** Desativar (RN-ORG-06) ou reativar a loja. */
 export function StoreStatusForm({ store }: Props) {
-  const [state, action] = useActionState(setStoreStatusAction, null);
+  const [state, action] = useServerAction(setStoreStatusAction);
   const active = store.status === 'ATIVO';
 
   return (

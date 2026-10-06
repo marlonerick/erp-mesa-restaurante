@@ -1,6 +1,5 @@
 'use client';
 
-import { useActionState } from 'react';
 import {
   createCategoryAction,
   moveCategoryAction,
@@ -10,10 +9,11 @@ import { ActionForm } from '@/ui/action-form';
 import { CheckboxField, TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { SubmitButton } from '@/ui/submit-button';
+import { useServerAction } from '@/ui/use-server-action';
 
 /** Cadastro de categoria na empresa da loja ativa (RN-CAT-02). */
 export function NewCategoryForm({ storeId }: { readonly storeId: string }) {
-  const [state, action] = useActionState(createCategoryAction, null);
+  const [state, action] = useServerAction(createCategoryAction);
   return (
     <ActionForm action={action} state={state} resetOnSuccess>
       <FormMessage state={state} />
@@ -43,7 +43,7 @@ export function EditCategoryForm({
     readonly active: boolean;
   };
 }) {
-  const [state, action] = useActionState(updateCategoryAction, null);
+  const [state, action] = useServerAction(updateCategoryAction);
   return (
     <ActionForm key={category.version} action={action} state={state}>
       <FormMessage state={state} />
@@ -77,7 +77,7 @@ export function MoveButtons({
   readonly first: boolean;
   readonly last: boolean;
 }) {
-  const [state, action] = useActionState(moveCategoryAction, null);
+  const [state, action] = useServerAction(moveCategoryAction);
   return (
     <form action={action} className="flex items-center gap-2">
       <input type="hidden" name="categoryId" value={category.id} />

@@ -1,6 +1,5 @@
 'use client';
 
-import { useActionState } from 'react';
 import {
   createCompanyAction,
   updateCompanyAction,
@@ -9,6 +8,7 @@ import { ActionForm } from '@/ui/action-form';
 import { TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { SubmitButton } from '@/ui/submit-button';
+import { useServerAction } from '@/ui/use-server-action';
 
 interface Props {
   readonly values: {
@@ -22,7 +22,7 @@ interface Props {
 
 /** Razão social, nome fantasia e CNPJ opcional (RN-ORG-02). */
 export function CompanyForm({ values, company }: Props) {
-  const [state, action] = useActionState(company ? updateCompanyAction : createCompanyAction, null);
+  const [state, action] = useServerAction(company ? updateCompanyAction : createCompanyAction);
   const errors = state?.fieldErrors;
 
   return (

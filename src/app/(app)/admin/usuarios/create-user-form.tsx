@@ -1,15 +1,16 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { createUserAction } from '@/modules/users/interface/actions';
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@/shared/kernel/credentials';
 import { TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { SubmitButton } from '@/ui/submit-button';
 import { RoleCheckboxes } from './role-checkboxes';
+import { useServerAction } from '@/ui/use-server-action';
 
 export function CreateUserForm({ storeId }: { readonly storeId: string }) {
-  const [state, action] = useActionState(createUserAction, null);
+  const [state, action] = useServerAction(createUserAction);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {

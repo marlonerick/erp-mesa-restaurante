@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
 import {
   cashMovementAction,
   closeCashAction,
@@ -16,6 +16,7 @@ import { formatBRL } from '@/ui/money';
 import { formatMoneyText } from '@/shared/kernel';
 import { SubmitButton } from '@/ui/submit-button';
 import { CashCounter } from './cash-counter';
+import { useServerAction } from '@/ui/use-server-action';
 
 const time = (iso: string) =>
   new Intl.DateTimeFormat('pt-BR', {
@@ -94,7 +95,7 @@ export function CashierScreen({ view, storeId, can }: Props) {
 }
 
 function OpenForm({ storeId }: { readonly storeId: string }) {
-  const [state, action] = useActionState(openCashAction, null);
+  const [state, action] = useServerAction(openCashAction);
   const key = useIntentKey(state);
   return (
     <section aria-labelledby="abrir" className="flex max-w-md flex-col gap-4">
@@ -120,7 +121,7 @@ function OpenForm({ storeId }: { readonly storeId: string }) {
 }
 
 function MovementForm({ storeId }: { readonly storeId: string }) {
-  const [state, action] = useActionState(cashMovementAction, null);
+  const [state, action] = useServerAction(cashMovementAction);
   const key = useIntentKey(state);
   return (
     <section aria-labelledby="sangria" className="flex max-w-md flex-col gap-4">
@@ -176,7 +177,7 @@ function CloseForm({
   readonly storeId: string;
   readonly session: NonNullable<CashierView['session']>;
 }) {
-  const [state, action] = useActionState(closeCashAction, null);
+  const [state, action] = useServerAction(closeCashAction);
   const key = useIntentKey(state);
   const [cash, setCash] = useState('');
   const recount = session.recountRequested || state?.warning !== undefined;

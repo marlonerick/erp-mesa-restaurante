@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState } from 'react';
+
 import { openCounterAction, openTableAction } from '@/modules/orders/interface/actions';
 import type { FloorTableView, FloorView, OrderSummaryView } from '@/modules/orders/web';
 import { releaseTableAction } from '@/modules/tables/interface/actions';
@@ -14,6 +14,7 @@ import { FormMessage } from '@/ui/form-message';
 import { formatBRL } from '@/ui/money';
 import { SubmitButton } from '@/ui/submit-button';
 import { isGone, useFloor, useRefreshAfter } from './live';
+import { useServerAction } from '@/ui/use-server-action';
 
 /** Cor de cada estado — sempre junto com o texto (quem não distingue cores lê o estado). */
 const STATUS_STYLE: Readonly<Record<FloorTableView['status'], string>> = {
@@ -180,7 +181,7 @@ function OpenTableDialog({
   readonly table: FloorTableView;
   readonly storeId: string;
 }) {
-  const [state, action] = useActionState(openTableAction, null);
+  const [state, action] = useServerAction(openTableAction);
   useRefreshAfter(state);
   return (
     <Dialog>
@@ -217,7 +218,7 @@ function ReleaseTable({
   readonly table: FloorTableView;
   readonly storeId: string;
 }) {
-  const [state, action] = useActionState(releaseTableAction, null);
+  const [state, action] = useServerAction(releaseTableAction);
   useRefreshAfter(state);
   return (
     <form action={action} className={cn(cardClass, STATUS_STYLE.LIMPEZA)}>
@@ -243,7 +244,7 @@ function ReleaseTable({
 }
 
 function NewCounterDialog({ storeId }: { readonly storeId: string }) {
-  const [state, action] = useActionState(openCounterAction, null);
+  const [state, action] = useServerAction(openCounterAction);
   return (
     <Dialog>
       <DialogTrigger asChild>

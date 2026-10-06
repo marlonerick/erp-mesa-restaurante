@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
 import {
   bindTerminalAction,
   createTerminalAction,
@@ -12,6 +12,7 @@ import { ActionForm } from '@/ui/action-form';
 import { SelectField, TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { SubmitButton } from '@/ui/submit-button';
+import { useServerAction } from '@/ui/use-server-action';
 
 export const KIND_LABELS = {
   CAIXA: 'Caixa (computador ou tablet do caixa)',
@@ -43,10 +44,7 @@ export function TerminalForm({
   readonly storeId: string;
   readonly terminal?: { readonly id: string; readonly version: number };
 }) {
-  const [state, action] = useActionState(
-    terminal ? updateTerminalAction : createTerminalAction,
-    null,
-  );
+  const [state, action] = useServerAction(terminal ? updateTerminalAction : createTerminalAction);
   const errors = state?.fieldErrors;
   return (
     <ActionForm key={terminal?.version} action={action} state={state} resetOnSuccess={!terminal}>
@@ -122,8 +120,8 @@ export function DeviceBinding({
     readonly hasDevice: boolean;
   };
 }) {
-  const [bindState, bind] = useActionState(bindTerminalAction, null);
-  const [unbindState, unbind] = useActionState(unbindTerminalAction, null);
+  const [bindState, bind] = useServerAction(bindTerminalAction);
+  const [unbindState, unbind] = useServerAction(unbindTerminalAction);
   // Depois de vincular, o botão some (o aparelho já é este terminal): a mensagem fica FORA dos
   // formulários e mostra o resultado da última ação
   const [last, setLast] = useState<'bind' | 'unbind' | null>(null);
@@ -185,7 +183,7 @@ export function TerminalStatus({
   readonly terminal: { readonly id: string; readonly version: number; readonly active: boolean };
   readonly storeId: string;
 }) {
-  const [state, action] = useActionState(setTerminalActiveAction, null);
+  const [state, action] = useServerAction(setTerminalActiveAction);
   return (
     <section className="flex flex-col gap-4 border-t-2 border-borda pt-6">
       <h2 className="text-2xl font-bold">

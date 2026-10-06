@@ -1,6 +1,5 @@
 'use client';
 
-import { useActionState } from 'react';
 import {
   createModifierAction,
   createModifierGroupAction,
@@ -11,6 +10,7 @@ import { ActionForm } from '@/ui/action-form';
 import { CheckboxField, TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { SubmitButton } from '@/ui/submit-button';
+import { useServerAction } from '@/ui/use-server-action';
 
 interface GroupValues {
   readonly name: string;
@@ -32,9 +32,8 @@ export function ModifierGroupForm({
   readonly storeId?: string;
   readonly maxLimit: number;
 }) {
-  const [state, action] = useActionState(
+  const [state, action] = useServerAction(
     group ? updateModifierGroupAction : createModifierGroupAction,
-    null,
   );
   const errors = state?.fieldErrors;
   return (
@@ -103,7 +102,7 @@ export function NewModifierForm({
   /** Loja da tela: recusa se a sessão trocou de loja em outra aba (RN-CAT-01). */
   readonly storeId: string;
 }) {
-  const [state, action] = useActionState(createModifierAction, null);
+  const [state, action] = useServerAction(createModifierAction);
   return (
     <ActionForm action={action} state={state} resetOnSuccess>
       <FormMessage state={state} />
@@ -142,7 +141,7 @@ export function ModifierRow({
     readonly active: boolean;
   };
 }) {
-  const [state, action] = useActionState(updateModifierAction, null);
+  const [state, action] = useServerAction(updateModifierAction);
   return (
     <li className="border-b border-borda py-4">
       <ActionForm

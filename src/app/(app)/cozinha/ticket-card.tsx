@@ -1,6 +1,5 @@
 'use client';
 
-import { useActionState } from 'react';
 import {
   readyItemAction,
   readyTicketAction,
@@ -14,6 +13,7 @@ import { Button } from '@/ui/button';
 import { cn } from '@/ui/cn';
 import { SubmitButton } from '@/ui/submit-button';
 import { useRefreshAfter } from './live';
+import { useServerAction } from '@/ui/use-server-action';
 
 /** Texto do item na visão da cozinha ("Na cozinha" do salão vira "A fazer"). */
 const ITEM_LABEL: Readonly<Record<KitchenItemView['status'], string>> = {
@@ -77,7 +77,7 @@ function ActionButton({
   /** Ocupa as duas colunas da grade de botões do item. */
   readonly wide?: boolean;
 }) {
-  const [state, formAction] = useActionState(action, null);
+  const [state, formAction] = useServerAction(action);
   useRefreshAfter(state);
   return (
     <form action={formAction} className={cn('flex flex-col gap-1', wide && 'col-span-2')}>

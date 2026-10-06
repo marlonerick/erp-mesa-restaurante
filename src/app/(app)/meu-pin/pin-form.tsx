@@ -1,13 +1,14 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { setPinAction } from '@/modules/auth/interface/actions';
 import { FormMessage } from '@/ui/form-message';
 import { PasswordField } from '@/ui/password-field';
 import { SubmitButton } from '@/ui/submit-button';
+import { useServerAction } from '@/ui/use-server-action';
 
 export function PinForm() {
-  const [state, action] = useActionState(setPinAction, null);
+  const [state, action] = useServerAction(setPinAction);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {

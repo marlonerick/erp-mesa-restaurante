@@ -1,6 +1,6 @@
 'use client';
 
-import { type SyntheticEvent, useActionState, useState, useTransition } from 'react';
+import { type SyntheticEvent, useState, useTransition } from 'react';
 import { requestElevationAction } from '@/modules/auth/interface/actions';
 import { cancelItemAction } from '@/modules/orders/interface/actions';
 import type { ItemView } from '@/modules/orders/web';
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogTrigger } from '@/ui/dialog';
 import { TextAreaField, TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { useRefreshAfter } from '../../live';
+import { useServerAction } from '@/ui/use-server-action';
 
 /**
  * Cancelar item já enviado (RN-ORD-12): motivo obrigatório. Quem não tem `orders.cancel` (garçom,
@@ -25,7 +26,7 @@ export function CancelItemDialog({
   readonly needsManager: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [state, action, cancelling] = useActionState(cancelItemAction, null);
+  const [state, action, cancelling] = useServerAction(cancelItemAction);
   const [authorizing, startTransition] = useTransition();
   const pending = authorizing || cancelling;
   const [authError, setAuthError] = useState<string | null>(null);

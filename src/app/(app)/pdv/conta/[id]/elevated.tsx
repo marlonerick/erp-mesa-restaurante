@@ -1,10 +1,11 @@
 'use client';
 
-import { type SyntheticEvent, useActionState, useState, useTransition } from 'react';
+import { type SyntheticEvent, useState, useTransition } from 'react';
 import { requestElevationAction } from '@/modules/auth/interface/actions';
 import type { FormState } from '@/shared/errors/form-state';
 import type { Permission } from '@/shared/kernel';
 import { TextField } from '@/ui/field';
+import { useServerAction } from '@/ui/use-server-action';
 
 const text = (data: FormData, name: string) => {
   const value = data.get(name);
@@ -19,7 +20,7 @@ export function useElevatedForm(
   action: (previous: FormState | null, formData: FormData) => Promise<FormState>,
   permission: Permission,
 ) {
-  const [state, run, running] = useActionState(action, null);
+  const [state, run, running] = useServerAction(action);
   const [authorizing, startTransition] = useTransition();
   const [authError, setAuthError] = useState<string | null>(null);
 

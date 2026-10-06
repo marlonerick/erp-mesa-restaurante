@@ -1,6 +1,5 @@
 'use client';
 
-import { useActionState } from 'react';
 import {
   disableUserAction,
   renameUserAction,
@@ -12,6 +11,7 @@ import { CheckboxField, TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { SubmitButton } from '@/ui/submit-button';
 import { RoleCheckboxes } from '../role-checkboxes';
+import { useServerAction } from '@/ui/use-server-action';
 
 interface Props {
   readonly user: {
@@ -40,10 +40,10 @@ function Section({
 }
 
 export function EditUserForms({ user, can, storeId }: Props) {
-  const [renameState, rename] = useActionState(renameUserAction, null);
-  const [rolesState, setRoles] = useActionState(setUserRolesAction, null);
-  const [resetState, reset] = useActionState(resetPasswordAction, null);
-  const [disableState, disable] = useActionState(disableUserAction, null);
+  const [renameState, rename] = useServerAction(renameUserAction);
+  const [rolesState, setRoles] = useServerAction(setUserRolesAction);
+  const [resetState, reset] = useServerAction(resetPasswordAction);
+  const [disableState, disable] = useServerAction(disableUserAction);
   const active = user.status === 'ATIVO';
 
   if (!can.update && !can.disable) {

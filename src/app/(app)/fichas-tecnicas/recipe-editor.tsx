@@ -1,11 +1,12 @@
 'use client';
 
-import { useActionState, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { saveRecipeAction } from '@/modules/recipes/interface/actions';
 import { ActionForm } from '@/ui/action-form';
 import { Button } from '@/ui/button';
 import { FormMessage } from '@/ui/form-message';
 import { SubmitButton } from '@/ui/submit-button';
+import { useServerAction } from '@/ui/use-server-action';
 
 interface Ingredient {
   readonly id: string;
@@ -39,7 +40,7 @@ export function RecipeEditor({
   readonly ingredients: readonly Ingredient[];
   readonly maxLines: number;
 }) {
-  const [state, action] = useActionState(saveRecipeAction, null);
+  const [state, action] = useServerAction(saveRecipeAction);
   const toRows = () =>
     (initial.length > 0 ? initial : [{ ingredientId: '', quantity: '' }]).map((row, index) => ({
       key: index,

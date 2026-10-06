@@ -230,6 +230,11 @@ export default defineConfig([
     files: ['tests/**/*.ts', 'src/**/*.test.ts'],
     rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
   },
+  // Playwright e playwright-bdd exigem `{}` (fixtures) como primeiro argumento
+  {
+    files: ['tests/e2e/**/*.ts'],
+    rules: { 'no-empty-pattern': ['error', { allowObjectPatternsAsParameters: true }] },
+  },
 
   prettier,
 ]);

@@ -1,14 +1,14 @@
 'use client';
 
-import { useActionState } from 'react';
 import { changePasswordAction } from '@/modules/auth/interface/actions';
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@/shared/kernel/credentials';
 import { FormMessage } from '@/ui/form-message';
 import { PasswordField } from '@/ui/password-field';
 import { SubmitButton } from '@/ui/submit-button';
+import { useServerAction } from '@/ui/use-server-action';
 
 export function ChangePasswordForm() {
-  const [state, action] = useActionState(changePasswordAction, null);
+  const [state, action] = useServerAction(changePasswordAction);
   return (
     <form action={action} className="flex flex-col gap-5" noValidate>
       <FormMessage state={state} />

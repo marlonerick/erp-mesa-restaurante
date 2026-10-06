@@ -80,6 +80,35 @@ describeFeature(feature, ({ Background, Scenario }) => {
     Then('o subtotal da conta da mesa "10" é "32,00"', subtotalIs('32,00'));
   });
 
+  Scenario('Produto desativado durante o pedido', ({ Given, And, When, Then }) => {
+    Given('"joão" abriu a mesa "10"', () => w.open('joão', '10'));
+    And('"joão" lançou 1 "X-Burger" na mesa "10"', () => w.add('joão', mesa10, 1, 'X-Burger'));
+    When('o gerente desativa o "X-Burger"', async () => {
+      const product = await w.services.catalog.getProduct(w.ctx('sistema'), w.product('X-Burger'));
+      await w.services.catalog.setProductStatus(w.ctx('sistema'), {
+        productId: product.id,
+        version: product.version,
+        active: false,
+      });
+    });
+    Then(
+      '"joão" ainda envia para a cozinha o "X-Burger" já lançado, pelo preço do lançamento',
+      async () => {
+        // O item já lançado tem nome e preço congelados: segue normalmente (RN-ORD)
+        await w.send('joão', '10');
+        const [item] = await w.sentItems('10');
+        expect(item).toMatchObject({ productName: 'X-Burger', unitPriceCents: 3200 });
+      },
+    );
+    And(
+      '"joão" não consegue lançar outro "X-Burger": a ação é recusada com o código "PRODUCT_NOT_AVAILABLE"',
+      async () => {
+        await w.attempt(() => w.add('joão', mesa10, 1, 'X-Burger'));
+        w.expectFailure('PRODUCT_NOT_AVAILABLE');
+      },
+    );
+  });
+
   Scenario('Produto esgotado não pode ser lançado', ({ Given, And, When, Then }) => {
     Given('"joão" abriu a mesa "10"', () => w.open('joão', '10'));
     And('o "X-Burger" acabou no "Centro"', async () => {

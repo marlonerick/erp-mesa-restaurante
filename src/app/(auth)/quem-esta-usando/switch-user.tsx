@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { DeviceUser } from '@/modules/auth';
 import { switchUserAction } from '@/modules/auth/interface/actions';
 import { cn } from '@/ui/cn';
 import { FormMessage } from '@/ui/form-message';
+import { useServerAction } from '@/ui/use-server-action';
 
 const PIN_LENGTH = 6;
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -24,7 +25,7 @@ function initials(name: string): string {
 export function SwitchUser({ users }: { readonly users: readonly DeviceUser[] }) {
   const [selected, setSelected] = useState<DeviceUser | null>(null);
   const [pin, setPin] = useState('');
-  const [state, action, pending] = useActionState(switchUserAction, null);
+  const [state, action, pending] = useServerAction(switchUserAction);
   const formRef = useRef<HTMLFormElement>(null);
 
   // Ao enviar, os dígitos já estão no formulário; limpar deixa o teclado pronto se o PIN errar

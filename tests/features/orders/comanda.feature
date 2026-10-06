@@ -38,6 +38,13 @@ Funcionalidade: Comanda eletrônica
     Quando "joão" tenta lançar 1 "X-Burger" na mesa "10"
     Então a ação é recusada com o código "PRODUCT_NOT_AVAILABLE"
 
+  Cenário: Produto desativado durante o pedido
+    Dado "joão" abriu a mesa "10"
+    E "joão" lançou 1 "X-Burger" na mesa "10"
+    Quando o gerente desativa o "X-Burger"
+    Então "joão" ainda envia para a cozinha o "X-Burger" já lançado, pelo preço do lançamento
+    E "joão" não consegue lançar outro "X-Burger": a ação é recusada com o código "PRODUCT_NOT_AVAILABLE"
+
   Cenário: Remover item ainda não enviado
     Dado "joão" abriu a mesa "10"
     E "joão" lançou 1 "X-Burger" na mesa "10"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { addItemAction } from '@/modules/orders/interface/actions';
 import type { MenuItemView } from '@/modules/orders/web';
 import { ActionForm } from '@/ui/action-form';
@@ -12,6 +12,7 @@ import { FormMessage } from '@/ui/form-message';
 import { formatBRL } from '@/ui/money';
 import { SubmitButton } from '@/ui/submit-button';
 import { useRefreshAfter } from '../../live';
+import { useServerAction } from '@/ui/use-server-action';
 
 const normalize = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
@@ -151,7 +152,7 @@ function ItemForm({
   readonly onBack: () => void;
   readonly onAdded: (message: string) => void;
 }) {
-  const [state, action] = useActionState(addItemAction, null);
+  const [state, action] = useServerAction(addItemAction);
   const [quantity, setQuantity] = useState(1);
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
   useRefreshAfter(state);
