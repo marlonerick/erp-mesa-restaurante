@@ -255,6 +255,8 @@ export interface CashReportSession {
   readonly openedAt: Date;
   readonly closedAt: Date | null;
   readonly openingCents: number;
+  /** 1ª contagem do dinheiro (recontagem — E10-6); só de caixas fechados. */
+  readonly firstCashCountCents: number | null;
   readonly withdrawalsCents: number;
   readonly suppliesCents: number;
   /** Só caixas FECHADOS (o esperado do aberto não aparece — RN-CASH-06). */
@@ -310,6 +312,7 @@ export async function cash(
           openedAt: session.openedAt,
           closedAt: session.closedAt,
           openingCents: session.openingCents,
+          firstCashCountCents: closed ? session.firstCashCountCents : null,
           withdrawalsCents: total('SANGRIA'),
           suppliesCents: total('SUPRIMENTO'),
           counts: closed

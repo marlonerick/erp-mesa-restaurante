@@ -92,6 +92,13 @@
       "when": 1791202447286,
       "tag": "0012_financeiro_e_relatorios",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "5",
+      "when": 1791224651495,
+      "tag": "0013_caixa_recontagem",
+      "breakpoints": true
     }
   ]
 }

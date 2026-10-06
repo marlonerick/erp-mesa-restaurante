@@ -240,6 +240,7 @@ export const reportsRepository: ReportsRepository = {
         closedBy: cashSession.closedBy,
         closedAt: cashSession.closedAt,
         openingCents: cashSession.openingAmountCents,
+        firstCashCountCents: cashSession.firstCashCountCents,
       })
       .from(cashSession)
       .innerJoin(terminal, eq(terminal.id, cashSession.terminalId))

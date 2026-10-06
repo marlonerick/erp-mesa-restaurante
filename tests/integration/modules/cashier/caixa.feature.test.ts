@@ -1,7 +1,8 @@
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
 import { useTestDatabase } from '../../../support/database';
-import { money, posWorld } from '../pos/pos-world';
+import { newId } from '@/shared/kernel';
+import { cents, money, posWorld } from '../pos/pos-world';
 
 const feature = await loadFeature('tests/features/cashier/caixa.feature', { language: 'pt' });
 const { db } = useTestDatabase();
@@ -127,6 +128,119 @@ describeFeature(feature, ({ Background, Scenario }) => {
       w.expectFailure('CASH_COUNT_REQUIRED');
     });
   });
+
+  /** Um envio do fechamento (sem confirmar a recontagem automaticamente, como faz `closeCash`). */
+  async function declareCash(name: string, amount: string) {
+    const current = await w.services.cashier.summary(w.ctx(name), w.lastSessionId);
+    return w.services.cashier.close(w.ctx(name), {
+      sessionId: current.id,
+      version: current.version,
+      declared: { DINHEIRO: cents(amount) },
+      idempotencyKey: newId(),
+    });
+  }
+  let closeResult: Awaited<ReturnType<typeof declareCash>> | null = null;
+  const counted = () => {
+    if (closeResult?.status !== 'CLOSED') throw new Error('o caixa não fechou');
+    return closeResult.counts;
+  };
+
+  Scenario(
+    'Dinheiro que não bate pede uma recontagem, sem mostrar o valor',
+    ({ Given, When, Then, And }) => {
+      Given('"bia" abriu o caixa com "100,00" de fundo de troco', () =>
+        w.openCash('bia', '100,00'),
+      );
+      When('"bia" informa "90,00" em dinheiro para fechar o caixa', async () => {
+        closeResult = await declareCash('bia', '90,00');
+      });
+      Then('o sistema pede para contar de novo, sem mostrar o valor esperado', () => {
+        // Só o pedido: nenhum valor esperado, diferença ou contagem volta para a tela (RN-CASH-06)
+        expect(closeResult).toEqual({ status: 'RECOUNT', sessionId: w.lastSessionId });
+      });
+      And('o caixa continua aberto', async () => {
+        const screen = await w.services.cashier.current(w.ctx('bia'));
+        expect(screen.session).toMatchObject({
+          status: 'ABERTA',
+          recountRequested: true,
+          // A 1ª contagem não volta para a tela do caixa
+          firstCashCountCents: null,
+        });
+      });
+      When('"bia" informa "100,00" em dinheiro na recontagem', async () => {
+        closeResult = await declareCash('bia', '100,00');
+      });
+      Then(
+        'o fechamento mostra em dinheiro esperado "100,00", informado "100,00" e diferença "0,00"',
+        () => {
+          expect(counted().find((line) => line.method === 'DINHEIRO')).toEqual({
+            method: 'DINHEIRO',
+            expectedCents: 10000,
+            declaredCents: 10000,
+            differenceCents: 0,
+          });
+        },
+      );
+      And('o gerente vê que a primeira contagem do dinheiro foi "90,00"', async () => {
+        const summary = await w.services.cashier.summary(w.ctx('carla'), w.lastSessionId);
+        expect(summary.firstCashCountCents).toBe(9000);
+      });
+      And('a auditoria registra "CASH_RECOUNT_REQUESTED" feito por "bia"', () =>
+        w.expectAudit('CASH_RECOUNT_REQUESTED', 'bia'),
+      );
+    },
+  );
+
+  Scenario(
+    'Só uma recontagem: na segunda vez o caixa fecha mesmo com diferença',
+    ({ Given, When, And, Then }) => {
+      Given('"bia" abriu o caixa com "100,00" de fundo de troco', () =>
+        w.openCash('bia', '100,00'),
+      );
+      When('"bia" informa "90,00" em dinheiro para fechar o caixa', async () => {
+        closeResult = await declareCash('bia', '90,00');
+      });
+      And('"bia" informa "95,00" em dinheiro na recontagem', async () => {
+        closeResult = await declareCash('bia', '95,00');
+      });
+      Then(
+        'o fechamento mostra em dinheiro esperado "100,00", informado "95,00" e diferença "-5,00"',
+        () => {
+          expect(counted().find((line) => line.method === 'DINHEIRO')).toMatchObject({
+            expectedCents: 10000,
+            declaredCents: 9500,
+            differenceCents: -500,
+          });
+        },
+      );
+    },
+  );
+
+  Scenario(
+    'PIX e cartões aparecem antes de fechar; o dinheiro, não',
+    ({ Given, And, When, Then }) => {
+      let screen: Awaited<ReturnType<typeof w.services.cashier.current>>;
+      Given('"bia" abriu o caixa com "100,00" de fundo de troco', () =>
+        w.openCash('bia', '100,00'),
+      );
+      And('"bia" recebeu "45,50" em dinheiro e "30,00" no PIX de uma conta de balcão', async () => {
+        await w.counterWith('bia', 'Rafa', '75,50');
+        await w.pay('bia', { counter: 'Rafa' }, 'DINHEIRO', '45,50');
+        await w.pay('bia', { counter: 'Rafa' }, 'PIX', '30,00');
+      });
+      When('"bia" abre a tela do caixa', async () => {
+        screen = await w.services.cashier.current(w.ctx('bia'));
+      });
+      Then('a tela mostra "30,00" no PIX para conferir com a maquininha', () => {
+        expect(screen.session?.electronic).toEqual([{ method: 'PIX', expectedCents: 3000 }]);
+      });
+      And('a tela não mostra o dinheiro esperado', () => {
+        // Nem linha de DINHEIRO, nem total de vendas: o dinheiro continua às cegas (E10-6)
+        expect(screen.session?.electronic.some((line) => line.method === 'DINHEIRO')).toBe(false);
+        expect(JSON.stringify(screen)).not.toContain('14550');
+      });
+    },
+  );
 
   Scenario('Garçom não abre caixa', ({ Given, When, Then }) => {
     Given('"joão" é garçom na loja "Centro" usando o terminal de caixa "CX02"', () =>

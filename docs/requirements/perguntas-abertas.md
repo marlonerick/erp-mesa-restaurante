@@ -7,7 +7,7 @@ padrão que será adotada se você responder "use a proposta".
 |---|---|---|---|
 | Q-01 | ~~Momento da baixa de estoque?~~ **Respondida (2026-09-29): A** — ao enviar para a cozinha; cancelado antes do preparo volta ao estoque (estorno), depois do preparo vira perda (ADR-0006 aceito) | — | — |
 | Q-02 | ~~Impressora na cozinha?~~ **Respondida (2026-09-30): opção A** — a tela da cozinha é o canal principal e cada pedido tem um botão **Imprimir** (navegador, 80 mm). Impressão automática (computador em modo quiosque ou ESC/POS com agente local) fica para depois do piloto, se precisar. **Ainda em aberto:** modelo/conexão da impressora térmica e se o tablet é Android ou iPad | — | — |
-| Q-03 | Onde será hospedado? Há provedor preferido ou orçamento mensal? Como é a internet do restaurante (fibra, 4G de contingência)? | Container Node + MySQL gerenciado, região São Paulo | Etapa 10 (staging desde a Etapa 1 se possível) |
+| Q-03 | ~~Onde será hospedado?~~ **Respondida (2026-10-05): Hostinger** (E10-1). Onde será hospedado? Há provedor preferido ou orçamento mensal? Como é a internet do restaurante (fibra, 4G de contingência)? | Container Node + MySQL gerenciado, região São Paulo | Etapa 10 (staging desde a Etapa 1 se possível) |
 | Q-04 | ~~Comanda por mesa ou por cliente? Balcão?~~ **Respondida (2026-09-30):** comanda **por mesa**; no balcão, um **nome livre** identifica o pedido | — | — |
 | Q-05 | ~~Horário e corte do dia?~~ **Respondida (2026-09-29):** o piloto funciona geralmente até as **15:00** (horário de funcionamento configurável fica para o futuro); virada do dia operacional às **05:00**, configurável por loja; **vários caixas abertos ao mesmo tempo**, com limite configurável por loja (padrão 1) | — | — |
 | Q-06 | ~~Base da taxa de serviço?~~ **Respondida (2026-10-01):** calculada sobre o subtotal **depois dos descontos**; incide sobre **todos os produtos** (inclusive bebidas); **não** se aplica ao balcão | — | — |
@@ -130,6 +130,17 @@ padrão que será adotada se você responder "use a proposta".
 | E9-5 | Gráficos sem biblioteca nova: barras simples feitas na própria tela |
 | E9-6 | Relatórios baixam em **CSV** (sem dependência nova) e imprimem pelo navegador |
 | E9-7 | Margem por produto (preço − custo da ficha no momento da venda) no relatório de vendas, só para GERENTE e ADMIN |
+
+## Decisões tomadas na aprovação do plano da Etapa 10 (2026-10-05)
+
+| ID | Decisão |
+|---|---|
+| E10-1 | Hospedagem na **Hostinger** (responde a Q-03) — servidor único (VPS) com a aplicação e o banco; backup por nossa conta (ADR-0011 a atualizar) |
+| E10-2 | O usuário cria a conta no provedor; o deploy usa o acesso que ele deixar configurado |
+| E10-3 | O usuário cria o endereço (domínio) do sistema |
+| E10-4 | Manual de operação em páginas imprimíveis em `docs/manual/`; tela de Ajuda depois do piloto |
+| E10-5 | Internet caindo no piloto: anotar em papel e lançar depois; 4G no celular do caixa como reserva. Data do piloto: a definir |
+| E10-6 | Fechamento do caixa mais fácil, com o dinheiro ainda conferido às cegas: **(A)** contador de cédulas e moedas; **(B)** totais de PIX e cartões aparecem antes de fechar (para conferir com a maquininha); **(C)** se o dinheiro não bater, o sistema pede **uma** recontagem sem dizer o valor — na segunda vez fecha e o gerente vê as duas contagens. Sem tolerância (D) e sem fechamento aberto (E) |
 
 ## Pontos da especificação que interpretei (confirme ou corrija)
 

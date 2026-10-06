@@ -22,6 +22,13 @@ export interface CashierView {
     readonly openingAmountCents: number;
     readonly operationalDate: string;
     readonly movements: CashMovementView[];
+    /** PIX/cartões registrados, para conferir com a maquininha (E10-6 B); nunca o dinheiro. */
+    readonly electronic: {
+      readonly method: PaymentMethod;
+      readonly methodLabel: string;
+      readonly expectedCents: number;
+    }[];
+    readonly recountRequested: boolean;
   } | null;
 }
 
@@ -42,6 +49,8 @@ export interface CashSummaryView {
   readonly closedAt: string | null;
   readonly closedByName: string | null;
   readonly openingAmountCents: number;
+  /** 1ª contagem do dinheiro quando houve recontagem (E10-6); só depois de fechar. */
+  readonly firstCashCountCents: number | null;
   readonly counts: CountView[] | null;
   /** Sangrias acima do esperado (decisão I-3); só depois do fechamento. */
   readonly alerts:
@@ -66,6 +75,12 @@ export function toCashierView(screen: CashierScreen): CashierView {
           openedByName: screen.session.openedByName,
           openingAmountCents: screen.session.openingAmountCents,
           operationalDate: screen.session.operationalDate,
+          electronic: screen.session.electronic.map((line) => ({
+            method: line.method,
+            methodLabel: PAYMENT_METHOD_LABEL[line.method],
+            expectedCents: line.expectedCents,
+          })),
+          recountRequested: screen.session.recountRequested,
           movements: screen.session.movements.map((movement) => ({
             id: movement.id,
             type: movement.type,
@@ -89,6 +104,7 @@ export function toCashSummaryView(summary: ClosedSummary): CashSummaryView {
     closedAt: summary.closedAt?.toISOString() ?? null,
     closedByName: summary.closedByName,
     openingAmountCents: summary.openingAmountCents,
+    firstCashCountCents: summary.status === 'FECHADA' ? summary.firstCashCountCents : null,
     counts:
       summary.counts?.map((line) => ({
         ...line,

@@ -49,6 +49,7 @@ export const AUDIT_EVENT_LABEL: Readonly<Record<AuditEvent, string>> = {
   CASH_OPENED: 'Caixa aberto',
   CASH_MOVEMENT: 'Sangria ou suprimento',
   CASH_CLOSED: 'Caixa fechado',
+  CASH_RECOUNT_REQUESTED: 'Recontagem do dinheiro pedida no fechamento',
   INGREDIENT_CREATED: 'Insumo cadastrado',
   INGREDIENT_UPDATED: 'Insumo alterado',
   STOCK_MINIMUM_SET: 'Estoque mínimo definido',

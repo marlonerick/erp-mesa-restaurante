@@ -46,6 +46,8 @@ export interface CashSessionRow {
   readonly closedBy: Id | null;
   readonly closedAt: Date | null;
   readonly openingCents: number;
+  /** 1ª contagem do dinheiro quando houve recontagem (E10-6). */
+  readonly firstCashCountCents: number | null;
 }
 
 export interface CashMovementRow {

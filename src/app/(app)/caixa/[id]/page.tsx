@@ -107,6 +107,14 @@ export default async function CashSummaryPage({ params }: { params: Promise<{ id
         </table>
       )}
 
+      {summary.firstCashCountCents !== null ? (
+        <p className="rounded-md border-l-4 border-atencao bg-atencao-claro px-4 py-3 text-atencao">
+          <strong>Dinheiro recontado:</strong> na primeira contagem foi informado{' '}
+          {formatBRL(summary.firstCashCountCents)}; o sistema pediu para contar de novo e o valor
+          acima é o da segunda contagem.
+        </p>
+      ) : null}
+
       {summary.alerts && summary.alerts.length > 0 ? (
         <section
           aria-labelledby="alertas"

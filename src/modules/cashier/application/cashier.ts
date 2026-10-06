@@ -16,6 +16,7 @@ import {
   type CountLine,
   expectedByMethod,
   movementAmount,
+  needsRecount,
   openingAmount,
   PAYMENT_METHODS,
   type PaymentMethod,
@@ -96,6 +97,13 @@ export interface CashierScreen {
     | (CashSessionRecord & {
         readonly openedByName: string | null;
         readonly movements: CashMovementView[];
+        /**
+         * PIX, cartões e outros que o sistema registrou, para conferir com a maquininha antes de
+         * fechar (E10-6, opção B). O DINHEIRO nunca aparece: continua às cegas (RN-CASH-06).
+         */
+        readonly electronic: { readonly method: PaymentMethod; readonly expectedCents: number }[];
+        /** O sistema já pediu a recontagem do dinheiro (E10-6, opção C). */
+        readonly recountRequested: boolean;
       })
     | null;
 }
@@ -122,10 +130,17 @@ export async function current(
       session.openedBy,
       ...movements.map((movement) => movement.userId),
     ]);
+    const expected = await expectedOf(deps, tx, session);
     return {
       terminal: { id: terminal.id, code: terminal.code, name: terminal.name },
       session: {
         ...session,
+        // A 1ª contagem não vai para a tela do caixa (só o gerente vê, depois de fechar)
+        firstCashCountCents: null,
+        recountRequested: session.firstCashCountCents !== null,
+        electronic: PAYMENT_METHODS.filter(
+          (method) => method !== 'DINHEIRO' && expected[method] !== 0,
+        ).map((method) => ({ method, expectedCents: expected[method] })),
         openedByName: names.get(session.openedBy) ?? null,
         movements: movements.map((movement) => ({
           ...movement,
@@ -304,6 +319,11 @@ export async function movement(
   );
 }
 
+/** Fechou (com a conferência) ou pediu a recontagem do dinheiro (E10-6). */
+export type CloseResult =
+  | { readonly status: 'RECOUNT'; readonly sessionId: Id }
+  | { readonly status: 'CLOSED'; readonly sessionId: Id; readonly counts: CountLine[] };
+
 export async function close(
   deps: CashierDependencies,
   ctx: RequestContext,
@@ -313,7 +333,7 @@ export async function close(
     declared: Partial<Record<PaymentMethod, number | null>>;
     idempotencyKey: string;
   },
-): Promise<Jsonified<{ sessionId: Id; counts: CountLine[] }>> {
+): Promise<Jsonified<CloseResult>> {
   requirePermission(ctx, 'cashier.close');
   const outcome = await runInTransaction(deps.db, (tx) =>
     executeIdempotent(
@@ -336,6 +356,21 @@ export async function close(
         if (session.status === 'FECHADA') throw cashErrors.closed();
         if (session.version !== input.version) throw cashErrors.concurrent();
         const counts = blindCount(await expectedOf(deps, tx, session, true), input.declared);
+        // Dinheiro não bateu na 1ª vez: guarda a contagem e pede outra, sem dizer o valor (E10-6)
+        if (needsRecount(counts, session.firstCashCountCents)) {
+          const first = counts.find((line) => line.method === 'DINHEIRO')?.declaredCents ?? 0;
+          await deps.repo.recordFirstCashCount(
+            tx,
+            { storeId: ctx.storeId, sessionId: session.id },
+            first,
+          );
+          await recordAuditFromContext(tx, ctx, 'CASH_RECOUNT_REQUESTED', {
+            entityType: 'cash_session',
+            entityId: session.id,
+            after: { firstCashCountCents: first },
+          });
+          return { status: 'RECOUNT' as const, sessionId: session.id };
+        }
         const closed = await deps.repo.closeSession(
           tx,
           { storeId: ctx.storeId, sessionId: session.id, version: session.version },
@@ -356,9 +391,12 @@ export async function close(
         await recordAuditFromContext(tx, ctx, 'CASH_CLOSED', {
           entityType: 'cash_session',
           entityId: session.id,
-          after: { counts: counts.map((line) => ({ ...line })) },
+          after: {
+            counts: counts.map((line) => ({ ...line })),
+            firstCashCountCents: session.firstCashCountCents,
+          },
         });
-        return { sessionId: session.id, counts };
+        return { status: 'CLOSED' as const, sessionId: session.id, counts };
       },
     ),
   );

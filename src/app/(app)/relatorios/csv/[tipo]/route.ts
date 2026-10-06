@@ -158,6 +158,7 @@ const BUILDERS: Record<
         'Esperado',
         'Informado',
         'Diferença',
+        '1ª contagem do dinheiro',
       ],
       // Caixa aberto: sem esperado nem diferença (fechamento cego — RN-CASH-06)
       rows: sessions.flatMap((session) =>
@@ -168,8 +169,11 @@ const BUILDERS: Record<
               csvMoney(line.expectedCents),
               line.declaredCents === null ? null : csvMoney(line.declaredCents),
               line.differenceCents === null ? null : csvMoney(line.differenceCents),
+              line.method === 'DINHEIRO' && session.firstCashCountCents !== null
+                ? csvMoney(session.firstCashCountCents)
+                : null,
             ])
-          : [[...base(session), null, null, null, null]],
+          : [[...base(session), null, null, null, null, null]],
       ),
     };
   },

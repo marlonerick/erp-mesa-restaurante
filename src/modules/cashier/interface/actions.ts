@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { requireSession } from '@/modules/auth/web';
-import { type FormState, formError, formSuccess } from '@/shared/errors/form-state';
+import { type FormState, formError, formSuccess, formWarning } from '@/shared/errors/form-state';
 import {
   formatMoneyText,
   type Id,
@@ -26,7 +26,10 @@ const key = { idempotencyKey: z.string().max(64) };
 /** Lê a sessão UMA vez, confere a loja da tela (STORE_CHANGED), executa e atualiza as telas. */
 async function run(
   formData: FormData,
-  action: (ctx: RequestContext, data: Record<string, FormDataEntryValue>) => Promise<string>,
+  action: (
+    ctx: RequestContext,
+    data: Record<string, FormDataEntryValue>,
+  ) => Promise<string | FormState>,
 ): Promise<FormState> {
   const { context } = await requireSession();
   try {
@@ -35,7 +38,7 @@ async function run(
     requireSameStore(context, expectedStoreId);
     const message = await action(context, data);
     revalidatePath('/', 'layout');
-    return formSuccess(message);
+    return typeof message === 'string' ? formSuccess(message) : message;
   } catch (error) {
     if (isDomainError(error) && error.code === 'CONCURRENT_MODIFICATION') {
       revalidatePath('/', 'layout');
@@ -104,6 +107,12 @@ export async function closeCashAction(_previous: FormState | null, formData: For
       declared,
       idempotencyKey: String(input.idempotencyKey),
     });
+    // Dinheiro não bateu na 1ª contagem: pede outra, sem dizer o valor (E10-6, opção C)
+    if (result.status === 'RECOUNT') {
+      return formWarning(
+        'O dinheiro informado não bate com o sistema. Conte a gaveta de novo com calma e informe outra vez — na segunda vez o caixa fecha e o gerente vê as duas contagens.',
+      );
+    }
     closedId = result.sessionId;
     return 'Caixa fechado.';
   });

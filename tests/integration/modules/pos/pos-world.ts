@@ -46,6 +46,8 @@ export function posWorld(db: Database) {
     differenceCents: number | null;
   }[] = [];
   let parts: number[] = [];
+  /** O último fechamento passou por recontagem do dinheiro (E10-6). */
+  let lastRecount = false;
 
   /** Última conta de cada mesa: paga, a conta sai da mesa (LIMPEZA) mas o cenário ainda a confere. */
   const lastOrders = new Map<string, Id>();
@@ -86,6 +88,9 @@ export function posWorld(db: Database) {
     get parts() {
       return parts;
     },
+    get lastRecount() {
+      return lastRecount;
+    },
     /** Último caixa aberto no cenário. */
     get lastSessionId(): Id {
       const last = [...sessions.values()].at(-1);
@@ -100,6 +105,7 @@ export function posWorld(db: Database) {
       lastPay = null;
       lastCounts = [];
       parts = [];
+      lastRecount = false;
       await base.first(name, role, pin);
     },
 
@@ -143,16 +149,30 @@ export function posWorld(db: Database) {
       );
     },
 
-    async closeCash(name: string, declared: Partial<Record<PaymentMethod, string>>) {
-      const current = await base.services.cashier.summary(base.ctx(name), session(name));
-      const result = await base.services.cashier.close(base.ctx(name), {
-        sessionId: current.id,
-        version: current.version,
-        declared: Object.fromEntries(
-          Object.entries(declared).map(([method, value]) => [method, cents(value)]),
-        ),
-        idempotencyKey: newId(),
-      });
+    /**
+     * Fecha o caixa. Se o dinheiro não bater, o sistema pede UMA recontagem (E10-6): por padrão a
+     * pessoa confirma a mesma contagem; `recount` informa outros valores na segunda vez.
+     */
+    async closeCash(
+      name: string,
+      declared: Partial<Record<PaymentMethod, string>>,
+      recount: Partial<Record<PaymentMethod, string>> = declared,
+    ) {
+      const send = async (values: Partial<Record<PaymentMethod, string>>) => {
+        const current = await base.services.cashier.summary(base.ctx(name), session(name));
+        return base.services.cashier.close(base.ctx(name), {
+          sessionId: current.id,
+          version: current.version,
+          declared: Object.fromEntries(
+            Object.entries(values).map(([method, value]) => [method, cents(value)]),
+          ),
+          idempotencyKey: newId(),
+        });
+      };
+      let result = await send(declared);
+      lastRecount = result.status === 'RECOUNT';
+      if (result.status === 'RECOUNT') result = await send(recount);
+      if (result.status !== 'CLOSED') throw new Error('o caixa pediu recontagem duas vezes');
       lastCounts = result.counts;
     },
 

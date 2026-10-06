@@ -52,3 +52,26 @@ Funcionalidade: Caixa
     Dado "joão" é garçom na loja "Centro" usando o terminal de caixa "CX02"
     Quando "joão" tenta abrir o caixa com "100,00" de fundo de troco
     Então a ação é recusada com o código "FORBIDDEN"
+
+  Cenário: Dinheiro que não bate pede uma recontagem, sem mostrar o valor
+    Dado "bia" abriu o caixa com "100,00" de fundo de troco
+    Quando "bia" informa "90,00" em dinheiro para fechar o caixa
+    Então o sistema pede para contar de novo, sem mostrar o valor esperado
+    E o caixa continua aberto
+    Quando "bia" informa "100,00" em dinheiro na recontagem
+    Então o fechamento mostra em dinheiro esperado "100,00", informado "100,00" e diferença "0,00"
+    E o gerente vê que a primeira contagem do dinheiro foi "90,00"
+    E a auditoria registra "CASH_RECOUNT_REQUESTED" feito por "bia"
+
+  Cenário: Só uma recontagem: na segunda vez o caixa fecha mesmo com diferença
+    Dado "bia" abriu o caixa com "100,00" de fundo de troco
+    Quando "bia" informa "90,00" em dinheiro para fechar o caixa
+    E "bia" informa "95,00" em dinheiro na recontagem
+    Então o fechamento mostra em dinheiro esperado "100,00", informado "95,00" e diferença "-5,00"
+
+  Cenário: PIX e cartões aparecem antes de fechar; o dinheiro, não
+    Dado "bia" abriu o caixa com "100,00" de fundo de troco
+    E "bia" recebeu "45,50" em dinheiro e "30,00" no PIX de uma conta de balcão
+    Quando "bia" abre a tela do caixa
+    Então a tela mostra "30,00" no PIX para conferir com a maquininha
+    E a tela não mostra o dinheiro esperado

@@ -72,7 +72,12 @@ describe('concorrência (RN-POS-16, RN-CASH-08)', () => {
       ),
     ]);
     expect(closed.ok).toBe(true);
-    const pix = closed.ok ? closed.value.counts.find((line) => line.method === 'PIX') : undefined;
+    // Dinheiro informado = esperado (0,00): fecha na primeira vez, sem recontagem
+    const pix =
+      closed.ok && closed.value.status === 'CLOSED'
+        ? closed.value.counts.find((line) => line.method === 'PIX')
+        : undefined;
+    expect(closed.ok && closed.value.status).toBe('CLOSED');
     if (paid.ok) {
       expect(pix).toMatchObject({ expectedCents: 1000, differenceCents: 0 });
     } else {

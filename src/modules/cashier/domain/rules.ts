@@ -124,6 +124,40 @@ export function sangriasAboveExpected<
   return flagged;
 }
 
+/**
+ * Recontagem (E10-6, opção C): o dinheiro informado não bate e ainda não houve recontagem → o
+ * sistema pede para contar de novo SEM dizer o valor. Só uma vez por caixa: na segunda o caixa
+ * fecha (com várias tentativas daria para descobrir o esperado por tentativa e erro).
+ */
+export function needsRecount(lines: readonly CountLine[], firstCashCount: number | null): boolean {
+  const cash = lines.find((line) => line.method === 'DINHEIRO');
+  return firstCashCount === null && cash !== undefined && cash.differenceCents !== 0;
+}
+
+/** Cédulas e moedas do real, em centavos (contador do fechamento — E10-6, opção A). */
+export const DENOMINATIONS = [
+  { cents: 20_000, label: 'R$ 200', kind: 'cédula' },
+  { cents: 10_000, label: 'R$ 100', kind: 'cédula' },
+  { cents: 5_000, label: 'R$ 50', kind: 'cédula' },
+  { cents: 2_000, label: 'R$ 20', kind: 'cédula' },
+  { cents: 1_000, label: 'R$ 10', kind: 'cédula' },
+  { cents: 500, label: 'R$ 5', kind: 'cédula' },
+  { cents: 200, label: 'R$ 2', kind: 'cédula' },
+  { cents: 100, label: 'R$ 1', kind: 'moeda' },
+  { cents: 50, label: 'R$ 0,50', kind: 'moeda' },
+  { cents: 25, label: 'R$ 0,25', kind: 'moeda' },
+  { cents: 10, label: 'R$ 0,10', kind: 'moeda' },
+  { cents: 5, label: 'R$ 0,05', kind: 'moeda' },
+] as const;
+
+/** Soma da contagem por cédula/moeda; quantidade inválida (negativa, fração, vazia) conta como 0. */
+export function sumDenominations(counts: Readonly<Record<number, number>>): number {
+  return DENOMINATIONS.reduce((sum, { cents }) => {
+    const quantity = counts[cents] ?? 0;
+    return Number.isSafeInteger(quantity) && quantity > 0 ? sum + quantity * cents : sum;
+  }, 0);
+}
+
 export interface CountLine {
   readonly method: PaymentMethod;
   readonly expectedCents: number;

@@ -14,6 +14,7 @@ const sessionColumns = {
   openingAmountCents: cashSession.openingAmountCents,
   closedBy: cashSession.closedBy,
   closedAt: cashSession.closedAt,
+  firstCashCountCents: cashSession.firstCashCountCents,
   version: cashSession.version,
 };
 
@@ -68,6 +69,19 @@ export const cashierRepository: CashierRepository = {
         ),
       );
     return result.affectedRows === 1;
+  },
+
+  async recordFirstCashCount(tx, { storeId, sessionId }, cents) {
+    await tx
+      .update(cashSession)
+      .set({ firstCashCountCents: cents })
+      .where(
+        and(
+          eq(cashSession.id, sessionId),
+          eq(cashSession.storeId, storeId),
+          eq(cashSession.status, 'ABERTA'),
+        ),
+      );
   },
 
   async insertMovement(tx, movement) {

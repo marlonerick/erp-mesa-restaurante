@@ -21,6 +21,8 @@ export interface CashSessionRecord {
   readonly openingAmountCents: number;
   readonly closedBy: Id | null;
   readonly closedAt: Date | null;
+  /** Primeira contagem do dinheiro, se o sistema pediu recontagem (E10-6). */
+  readonly firstCashCountCents: number | null;
   readonly version: number;
 }
 
@@ -67,7 +69,10 @@ export interface CashierRepository {
   countOpenSessions(tx: Transaction, storeId: Id): Promise<number>;
   insertSession(
     tx: Transaction,
-    session: Omit<CashSessionRecord, 'status' | 'closedBy' | 'closedAt' | 'version'>,
+    session: Omit<
+      CashSessionRecord,
+      'status' | 'closedBy' | 'closedAt' | 'firstCashCountCents' | 'version'
+    >,
   ): Promise<void>;
   /** Fecha se a versão bate; false = outra pessoa alterou. */
   closeSession(
@@ -75,6 +80,12 @@ export interface CashierRepository {
     scope: { storeId: Id; sessionId: Id; version: number },
     data: { by: Id; at: Date },
   ): Promise<boolean>;
+  /** Guarda a 1ª contagem do dinheiro (recontagem pedida — E10-6); não muda a versão. */
+  recordFirstCashCount(
+    tx: Transaction,
+    scope: { storeId: Id; sessionId: Id },
+    cents: number,
+  ): Promise<void>;
   insertMovement(tx: Transaction, movement: NewCashMovement): Promise<void>;
   /** Soma COM SINAL por forma de pagamento; com trava = vê o último dado confirmado. */
   movementTotals(

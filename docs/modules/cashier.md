@@ -35,7 +35,17 @@ CAIXA, GERENTE, ADMIN (`cashier.*`). O garçom não usa o caixa.
   (obrigatório) e, se quiser, cartão de crédito, débito, PIX e outro (Q-16). O sistema grava, por
   forma, esperado, informado e diferença (informado − esperado); forma não informada fica sem
   diferença. Só **depois** de fechar a tela mostra as diferenças. Antes do fechamento, a tela do
-  caixa **não mostra totais de venda nem esperado** (é isso que torna o fechamento "cego").
+  caixa **não mostra totais de venda nem o esperado do dinheiro** (é isso que torna o fechamento
+  "cego").
+- **RN-CASH-06a** — **Fechamento mais fácil** (E10-6, 2026-10-05), sem abrir o esperado do dinheiro:
+  (A) **contador de cédulas e moedas** na tela, que soma e preenche o dinheiro; (B) **PIX, cartões e
+  outro** mostram o valor do sistema antes de fechar, para conferir com a maquininha e o extrato
+  (não revelam o dinheiro: o total de vendas continua escondido); (C) se o dinheiro informado não
+  bater, o sistema guarda essa **primeira contagem** (`cash_session.first_cash_count_cents`),
+  **não fecha** e pede para contar de novo **sem dizer o valor** (evento `CASH_RECOUNT_REQUESTED`);
+  na segunda vez o caixa fecha, bata ou não. Só **uma** recontagem por caixa (várias deixariam
+  descobrir o esperado por tentativa e erro). O gerente vê as duas contagens no fechamento e no
+  relatório de caixa; a tela do caixa nunca recebe a primeira contagem.
 - **RN-CASH-07** — O caixa pode ser fechado com contas ainda abertas (E8-5): elas continuam abertas
   e são recebidas em outro caixa ou no dia seguinte. Caixa fechado não recebe mais nada.
 - **RN-CASH-08** — Concorrência: abrir, movimentar, receber e fechar travam a linha da sessão; quem

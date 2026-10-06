@@ -117,6 +117,34 @@ test.describe('PDV e caixa (Etapa 8)', () => {
     await expect(page.getByRole('row', { name: /^PIX/ })).toContainText('não conferido');
   });
 
+  test('fechamento: contador de cédulas e uma recontagem quando o dinheiro não bate (E10-6)', async ({
+    page,
+  }) => {
+    await becomeCashier(page);
+    await openCash(page, '100,00');
+
+    // Contador: 1 nota de R$ 50 + 2 de R$ 20 = R$ 90,00 (faltam R$ 10)
+    await page.getByText('Contar cédulas e moedas').click();
+    await page.getByLabel('Notas de R$ 50', { exact: true }).fill('1');
+    await page.getByLabel('Notas de R$ 20', { exact: true }).fill('2');
+    await expect(page.getByText('Total contado:')).toContainText('R$ 90,00');
+    await page.getByRole('button', { name: 'Usar este total' }).click();
+    const cash = page.getByLabel('Dinheiro na gaveta (R$)');
+    await expect(cash).toHaveValue('90,00');
+    await page.getByRole('button', { name: 'Fechar caixa' }).click();
+
+    // Não bateu: pede para contar de novo, sem dizer quanto deveria haver
+    await expect(
+      page.getByRole('alert').filter({ hasText: 'Conte a gaveta de novo' }),
+    ).toBeVisible();
+    await expect(page.getByText('R$ 100,00 esperado')).toHaveCount(0);
+    await page.getByLabel('Dinheiro na gaveta — nova contagem (R$)').fill('100,00');
+    await page.getByRole('button', { name: 'Fechar caixa com a nova contagem' }).click();
+    await page.waitForURL(/\/caixa\/.+/);
+    await expect(page.getByRole('row', { name: /^Dinheiro/ })).toContainText('Confere');
+    await expect(page.getByText(/primeira contagem foi informado R\$ 90,00/)).toBeVisible();
+  });
+
   test('desconto acima do limite do caixa pede o PIN do gerente', async ({ page, browser }) => {
     const number = tableNumber();
     await createTables(browser, [number]);

@@ -55,6 +55,8 @@ export const cashSession = mysqlTable(
     openingAmountCents: int('opening_amount_cents', { unsigned: true }).notNull(),
     closedBy: uuidBinary('closed_by').references(() => appUser.id),
     closedAt: utcDatetime('closed_at'),
+    /** Primeira contagem do dinheiro quando o sistema pediu recontagem (E10-6); null = não pediu. */
+    firstCashCountCents: int('first_cash_count_cents', { unsigned: true }),
     version: version(),
     /** Coluna calculada: o terminal, só enquanto ABERTA — o índice único garante UM caixa aberto. */
     openTerminalId: uuidBinary('open_terminal_id').generatedAlwaysAs(

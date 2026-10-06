@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import {
   cashMovementAction,
   closeCashAction,
@@ -13,7 +13,9 @@ import { TextAreaField, TextField } from '@/ui/field';
 import { FormMessage } from '@/ui/form-message';
 import { useIntentKey } from '@/ui/intent-key';
 import { formatBRL } from '@/ui/money';
+import { formatMoneyText } from '@/shared/kernel';
 import { SubmitButton } from '@/ui/submit-button';
+import { CashCounter } from './cash-counter';
 
 const time = (iso: string) =>
   new Intl.DateTimeFormat('pt-BR', {
@@ -86,9 +88,7 @@ export function CashierScreen({ view, storeId, can }: Props) {
         )}
       </section>
 
-      {can.close ? (
-        <CloseForm storeId={storeId} sessionId={session.id} version={session.version} />
-      ) : null}
+      {can.close ? <CloseForm storeId={storeId} session={session} /> : null}
     </div>
   );
 }
@@ -171,45 +171,87 @@ function MovementForm({ storeId }: { readonly storeId: string }) {
 
 function CloseForm({
   storeId,
-  sessionId,
-  version,
+  session,
 }: {
   readonly storeId: string;
-  readonly sessionId: string;
-  readonly version: number;
+  readonly session: NonNullable<CashierView['session']>;
 }) {
   const [state, action] = useActionState(closeCashAction, null);
   const key = useIntentKey(state);
+  const [cash, setCash] = useState('');
+  const recount = session.recountRequested || state?.warning !== undefined;
+  const expectedOf = (method: string) =>
+    session.electronic.find((line) => line.method === method)?.expectedCents ?? 0;
   return (
     <section
       aria-labelledby="fechar"
-      className="flex max-w-md flex-col gap-4 border-t-2 border-borda pt-6"
+      className="flex max-w-xl flex-col gap-4 border-t-2 border-borda pt-6"
     >
       <h2 id="fechar" className="text-xl font-bold">
         Fechar o caixa
       </h2>
       <p className="text-tinta-suave">
-        Conte o que há na gaveta e informe. O sistema não mostra o valor esperado antes: a diferença
-        aparece depois de fechar (fechamento cego).
+        Conte o dinheiro da gaveta e informe. O sistema não mostra quanto deveria haver em dinheiro:
+        a diferença aparece depois de fechar (fechamento cego). Se não bater, ele pede para contar
+        de novo uma vez.
       </p>
+      {recount && state?.warning === undefined ? (
+        <p
+          role="alert"
+          className="rounded-md border-l-4 border-atencao bg-atencao-claro px-4 py-3 font-semibold text-atencao"
+        >
+          O sistema pediu para contar o dinheiro de novo. Conte com calma e informe — desta vez o
+          caixa fecha.
+        </p>
+      ) : null}
       <ActionForm action={action} state={state}>
         <input type="hidden" name="expectedStoreId" value={storeId} />
         <input type="hidden" name="idempotencyKey" value={key} />
-        <input type="hidden" name="sessionId" value={sessionId} />
-        <input type="hidden" name="version" value={version} />
-        <TextField label="Dinheiro na gaveta (R$)" name="DINHEIRO" inputMode="decimal" required />
+        <input type="hidden" name="sessionId" value={session.id} />
+        <input type="hidden" name="version" value={session.version} />
+        <CashCounter
+          onUse={(cents) => {
+            setCash(formatMoneyText(cents));
+          }}
+        />
+        <TextField
+          label={recount ? 'Dinheiro na gaveta — nova contagem (R$)' : 'Dinheiro na gaveta (R$)'}
+          name="DINHEIRO"
+          inputMode="decimal"
+          value={cash}
+          onChange={(event) => {
+            setCash(event.target.value);
+          }}
+          required
+        />
         <fieldset className="flex flex-col gap-4">
-          <legend className="mb-1 font-semibold">Conferência opcional</legend>
-          <TextField label="PIX (R$)" name="PIX" inputMode="decimal" />
-          <TextField label="Cartão de crédito (R$)" name="CARTAO_CREDITO" inputMode="decimal" />
-          <TextField label="Cartão de débito (R$)" name="CARTAO_DEBITO" inputMode="decimal" />
-          <TextField label="Outro (R$)" name="OUTRO" inputMode="decimal" />
+          <legend className="mb-1 font-semibold">PIX e cartões — confira com a maquininha</legend>
+          <p className="text-sm text-tinta-suave">
+            Estes valores o sistema mostra: compare com o relatório da maquininha e o extrato do PIX
+            e informe o que conferiu (em branco = não conferido).
+          </p>
+          {ELECTRONIC.map(([method, label]) => (
+            <TextField
+              key={method}
+              label={`${label} (R$)`}
+              name={method}
+              inputMode="decimal"
+              hint={`No sistema: ${formatBRL(expectedOf(method))}`}
+            />
+          ))}
         </fieldset>
         <FormMessage state={state} />
         <SubmitButton pendingText="Fechando…" variant="danger">
-          Fechar caixa
+          {recount ? 'Fechar caixa com a nova contagem' : 'Fechar caixa'}
         </SubmitButton>
       </ActionForm>
     </section>
   );
 }
+
+const ELECTRONIC = [
+  ['PIX', 'PIX'],
+  ['CARTAO_CREDITO', 'Cartão de crédito'],
+  ['CARTAO_DEBITO', 'Cartão de débito'],
+  ['OUTRO', 'Outro'],
+] as const;

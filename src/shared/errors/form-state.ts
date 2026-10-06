@@ -8,6 +8,8 @@ export interface FormState {
   readonly error?: string;
   readonly fieldErrors?: Readonly<Record<string, readonly string[]>>;
   readonly success?: string;
+  /** Precisa de outra ação da pessoa (ex.: recontar o dinheiro); não é erro nem sucesso. */
+  readonly warning?: string;
   /** Muda a cada envio bem-sucedido, para o formulário poder se limpar. */
   readonly submittedAt?: number;
 }
@@ -30,4 +32,9 @@ export function formError(error: unknown, requestId: string, logger: ErrorLogger
 
 export function formSuccess(message: string): FormState {
   return { success: message, submittedAt: Date.now() };
+}
+
+/** Aviso que pede outra ação; muda `submittedAt` (o próximo envio é uma intenção nova). */
+export function formWarning(message: string): FormState {
+  return { warning: message, submittedAt: Date.now() };
 }

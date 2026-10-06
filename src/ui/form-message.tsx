@@ -12,6 +12,16 @@ export function FormMessage({ state }: { readonly state: FormState | null }) {
       </p>
     );
   }
+  if (state?.warning) {
+    return (
+      <p
+        role="alert"
+        className="rounded-md border-l-4 border-atencao bg-atencao-claro px-4 py-3 font-semibold text-atencao"
+      >
+        {state.warning}
+      </p>
+    );
+  }
   if (state?.success) {
     return (
       <p

@@ -214,6 +214,12 @@ export async function CashSection({ ctx, search, timeZone }: SectionProps) {
                 {formatBRL(session.withdrawalsCents)} · suprimentos{' '}
                 {formatBRL(session.suppliesCents)}
               </p>
+              {session.firstCashCountCents !== null ? (
+                <p className="font-semibold text-atencao">
+                  Dinheiro recontado: a primeira contagem foi{' '}
+                  {formatBRL(session.firstCashCountCents)}.
+                </p>
+              ) : null}
               {session.alerts > 0 ? (
                 <p className="font-semibold text-alerta">
                   {session.alerts === 1
