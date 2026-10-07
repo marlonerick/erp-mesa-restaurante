@@ -17,9 +17,17 @@ const securityHeaders = [
     : []),
 ];
 
+// Só no `npm run dev`: IPs da rede local que podem abrir o sistema em outro aparelho (o Next
+// bloqueia os scripts da tela para outros endereços). Ex.: DEV_ALLOWED_ORIGINS=192.168.1.18
+const allowedDevOrigins = (process.env.DEV_ALLOWED_ORIGINS ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const nextConfig: NextConfig = {
   // Imagem de produção enxuta para container Node persistente (ADR-0011)
   output: 'standalone',
+  allowedDevOrigins,
   poweredByHeader: false,
   reactStrictMode: true,
   // Bibliotecas Node que não devem ser empacotadas pelo bundler

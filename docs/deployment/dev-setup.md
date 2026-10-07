@@ -65,6 +65,17 @@ O comando só funciona com o banco sem usuários. Depois disso, a equipe é cada
 | Compilar e rodar como em produção | `npm run build` e depois `npm run start` |
 | Desligar o MySQL | `npm run db:down` (os dados ficam no volume do Docker) |
 
+### Testar de outro aparelho na mesma rede (celular, tablet, outro PC)
+
+1. Descubra o IP do computador: `ipconfig` → "Endereço IPv4" (ex.: `192.168.1.18`).
+2. No `.env`: `DEV_ALLOWED_ORIGINS=192.168.1.18` (vários: separe por vírgula).
+3. Pare e rode de novo: `npm run dev -- -H 0.0.0.0`.
+4. No outro aparelho: `http://192.168.1.18:3000`. Se não abrir, libere a porta 3000 no Firewall
+   do Windows (rede privada).
+
+Sem o passo 2 a tela aparece, mas nenhum botão funciona (o Next bloqueia os scripts para outros
+endereços no modo desenvolvimento).
+
 ## Verificações automáticas
 
 - **Ao fazer commit:** lint e formatação dos arquivos alterados; mensagem no formato
@@ -82,4 +93,6 @@ O comando só funciona com o banco sem usuários. Depois disso, a equipe é cada
 | `Could not find a working container runtime strategy` | Docker Desktop fechado | Abra o Docker Desktop e aguarde ficar pronto |
 | `Variáveis de ambiente inválidas ou ausentes: DATABASE_URL` | Falta o `.env` | `cp .env.example .env` |
 | `/ready` responde 503 | MySQL parado | `npm run db:up` |
+| `Unknown column '…'` no log | Banco sem as migrations mais novas | `npm run db:migrate` |
+| Outro aparelho abre a tela, mas os botões não respondem | IP não liberado no modo desenvolvimento | `DEV_ALLOWED_ORIGINS` (seção acima) |
 | Porta 3306 ocupada | Outro MySQL instalado na máquina | Pare o outro MySQL ou mude a porta em `docker/compose.dev.yml` e no `.env` |
