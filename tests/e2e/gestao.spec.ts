@@ -84,6 +84,8 @@ test.describe('Financeiro, painel e relatórios (Etapa 9)', () => {
     );
     expect(otherStore.status()).toBe(409);
     expect((await page.request.get('/relatorios/csv/constructor')).status()).toBe(404);
+    // Sem a loja da tela (favorito antigo): não baixa da loja ativa por engano (S-12)
+    expect((await page.request.get('/relatorios/csv/vendas')).status()).toBe(400);
 
     await page.getByRole('button', { name: 'Imprimir' }).click();
     expect(await page.evaluate(() => (window as unknown as { printed: number }).printed)).toBe(1);
@@ -118,8 +120,9 @@ test.describe('Financeiro, painel e relatórios (Etapa 9)', () => {
     await expect(page.getByRole('heading', { name: 'Sem permissão' })).toBeVisible();
     await page.goto('/relatorios');
     await expect(page.getByRole('heading', { name: 'Sem permissão' })).toBeVisible();
+    // O caixa não baixa relatório (sem a loja da tela: 400; com ela: 403 — reports-rules.test.ts)
     const csv = await page.request.get('/relatorios/csv/vendas');
-    expect(csv.status()).toBe(403);
+    expect(csv.ok()).toBe(false);
   });
 
   test('o garçom não vê o painel', async ({ page }) => {

@@ -55,10 +55,13 @@ async function names(tx: Transaction, ids: readonly (Id | null)[]) {
   return new Map((await findUsersByIds(tx, unique)).map((user) => [user.id, user.name]));
 }
 
-/** Página da tela (50 linhas) ou, sem página (CSV), as primeiras 10.000 (RN-REP-09). */
+/**
+ * Página da tela (50 linhas) ou, sem página (CSV), as primeiras 10.000 + 1: a linha a mais só diz
+ * que houve corte — quem gera o CSV avisa e descarta (RN-REP-09, S-11 da revisão da Etapa 9).
+ */
 const pageOf = (page: number | null) =>
   page === null
-    ? { offset: 0, limit: CSV_MAX_ROWS }
+    ? { offset: 0, limit: CSV_MAX_ROWS + 1 }
     : { offset: (page - 1) * REPORT_PAGE_SIZE, limit: REPORT_PAGE_SIZE };
 
 interface PeriodInput {

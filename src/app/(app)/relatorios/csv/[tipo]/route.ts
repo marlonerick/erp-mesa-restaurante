@@ -6,7 +6,7 @@ import { loadStoreSettings } from '@/modules/organizations/web';
 import { CSV_MAX_ROWS, csvMoney, reports, toCsv } from '@/modules/reports/web';
 import { INTERNAL_ERROR_STATUS, toErrorResponse } from '@/shared/errors/error-response';
 import { parseId, type RequestContext } from '@/shared/kernel';
-import { requireScreenStore } from '@/shared/http/screen-store';
+import { requireScreenStore, SCREEN_STORE_PARAM } from '@/shared/http/screen-store';
 import { getLogger } from '@/shared/logger/logger';
 import { formatQuantity, labelOf, reportSearchSchema, STOCK_TYPE_LABEL } from '../../report-params';
 
@@ -242,7 +242,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ tipo
     Object.fromEntries(new URL(request.url).searchParams.entries()),
   );
   try {
-    // A loja da TELA (achado I-2): trocou de loja em outra aba → 409, não baixa os dados da outra
+    // A loja da TELA é obrigatória (S-12): favorito antigo sem ela não baixa da loja ativa por engano;
+    // trocou de loja em outra aba → 409 (achado I-2)
+    if (!new URL(request.url).searchParams.has(SCREEN_STORE_PARAM)) {
+      return NextResponse.json(
+        { code: 'STORE_REQUIRED', message: 'Baixe o arquivo pelo botão da tela de relatórios.' },
+        { status: 400 },
+      );
+    }
     requireScreenStore(request, session.context);
     const table = await builder(
       session.context,
@@ -254,12 +261,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ tipo
     );
     const period = [search.de, search.ate].filter(Boolean).join('-a-') || 'hoje';
     const store = slug(session.storeName);
-    // Chegou no limite: avisa na última linha em vez de cortar calado (S-6)
+    // Passou do limite (veio a linha extra): corta em 10.000 e avisa na última linha (S-6, S-11)
     const rows =
-      table.rows.length >= CSV_MAX_ROWS
+      table.rows.length > CSV_MAX_ROWS
         ? [
-            ...table.rows,
-            [`Atenção: limite de ${String(CSV_MAX_ROWS)} linhas atingido. Diminua o período.`],
+            ...table.rows.slice(0, CSV_MAX_ROWS),
+            [
+              `Atenção: mais de ${String(CSV_MAX_ROWS)} linhas — o arquivo foi cortado. Diminua o período.`,
+            ],
           ]
         : table.rows;
     return new NextResponse(toCsv(table.headers, rows), {
